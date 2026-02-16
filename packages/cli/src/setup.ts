@@ -44,6 +44,34 @@ async function main() {
     console.log(DJINN_BANNER);
     console.log('  Welcome to Djinn! Let\'s set up your AI trading bot.\n');
 
+    // ─── Arg Parsing (Non-Interactive Mode) ─────────────────────────────────
+    const args = process.argv.slice(2);
+    const overrides: any = {};
+    args.forEach(arg => {
+        if (arg.startsWith('--')) {
+            const [key, val] = arg.slice(2).split('=');
+            if (!key) return;
+            if (key === 'name' || key === 'botName') overrides.botName = val;
+            if (key === 'rpc' || key === 'rpcUrl') overrides.rpcUrl = val;
+            if (key === 'webhook' || key === 'webhookUrl') overrides.webhookUrl = val;
+            if (key === 'network') overrides.network = val;
+            if (key === 'category') {
+                const idx = CATEGORIES.findIndex(c => c.toLowerCase() === (val || '').toLowerCase());
+                if (idx >= 0) overrides.category = idx;
+            }
+            if (key === 'force' || key === 'overwrite') overrides.overwrite = true;
+        }
+    });
+    prompts.override(overrides);
+
+    if (Object.keys(overrides).length > 0) {
+        console.log('  ⚡ Auto-Pilot Mode engaged.');
+        if (overrides.botName) console.log(`  🔹 Bot Name: \x1b[36m${overrides.botName}\x1b[0m`);
+        if (overrides.category !== undefined) console.log(`  🔹 Category: \x1b[36m${CATEGORIES[overrides.category]}\x1b[0m`);
+        if (overrides.network) console.log(`  🔹 Network: \x1b[36m${overrides.network}\x1b[0m`);
+        console.log('');
+    }
+
     // ─── Step 0: Prerequisites ──────────────────────────────────────────────
     const nodeVersion = parseInt(process.version.slice(1).split('.')[0]);
     if (nodeVersion < 22) {
@@ -206,22 +234,37 @@ ${webhookUrl ? `DJINN_WEBHOOK_URL=${webhookUrl}` : '# DJINN_WEBHOOK_URL=https://
 
     // ─── Done ──────────────────────────────────────────────────────────────
     console.log('\n' + '═'.repeat(60));
-    console.log('\n🎉 Setup complete! Next steps:\n');
+    console.log('\n🎉 Setup complete! Here\'s how it works:\n');
+
+    console.log('  YOUR BOT HAS TWO WALLETS:');
+    console.log('  ┌──────────────────────────────────────────────────────┐');
+    console.log('  │  🧑 OWNER WALLET (Phantom/Backpack in your browser) │');
+    console.log('  │     → Signs the registration tx & pays the stake    │');
+    console.log('  │     → You control this. It\'s YOUR wallet.           │');
+    console.log('  │                                                      │');
+    console.log('  │  🤖 BOT WALLET (generated above)                    │');
+    console.log(`  │     → ${walletPath}`);
+    console.log('  │     → The bot uses this to execute trades 24/7      │');
+    console.log('  │     → It operates autonomously with this key        │');
+    console.log('  └──────────────────────────────────────────────────────┘\n');
+
+    console.log('  NEXT STEPS:\n');
 
     if (network === 'devnet') {
-        console.log('  1. Fund your bot wallet with devnet SOL:');
-        console.log(`     solana airdrop 10 ${walletPath} --url devnet\n`);
+        console.log('  1. Open Djinn in your browser and connect your OWNER wallet (Phantom)');
     } else {
-        console.log('  1. Fund your bot wallet with 11+ SOL:');
-        console.log(`     (10 SOL stake + gas fees)\n`);
+        console.log('  1. Fund your owner wallet with 11+ SOL (10 SOL stake + gas fees)');
     }
 
-    console.log('  2. Register your bot on-chain (Magic Link):');
-    const magicLink = `http://localhost:3000/bots?name=${encodeURIComponent(botName)}&category=${encodeURIComponent(CAT_LABELS[category])}`;
+    console.log('\n  2. Click this Magic Link to register your bot:');
+    const baseUrl = network === 'devnet' ? 'http://localhost:3000' : 'https://djinn.world';
+    const magicLink = `${baseUrl}/bots?name=${encodeURIComponent(botName)}&category=${encodeURIComponent(CATEGORIES[category])}`;
     console.log(`     👉 ${magicLink}\n`);
-    console.log(`     (Or connect wallet manually on /bots)`);
+    console.log('     This opens Djinn with your bot info pre-filled.');
+    console.log('     Connect your browser wallet → Stake 10 SOL → Bot is live!\n');
 
-    console.log('\n  3. Start trading:');
+    console.log('  3. Start your bot:');
+    console.log('     // Your bot reads .env.djinn and trades with the bot wallet');
     console.log('     const markets = await djinn.listMarkets({ category: "crypto" });');
     console.log('     // Your bot\'s strategy goes here!\n');
 

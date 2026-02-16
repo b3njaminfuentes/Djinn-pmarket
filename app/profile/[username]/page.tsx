@@ -1590,7 +1590,8 @@ function CreatorRewardsCard({ createdMarkets, isMyProfile, creatorStats }: { cre
     const [claimableSol, setClaimableSol] = useState(0);
     const [marketsWithFees, setMarketsWithFees] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const { claimCreatorFees } = useDjinnProtocol();
+    // claimCreatorFees not available in current program version
+    // const { claimCreatorFees } = useDjinnProtocol();
 
     // Interaction state
     const [hoverValue, setHoverValue] = useState<number | null>(null);
@@ -1648,13 +1649,14 @@ function CreatorRewardsCard({ createdMarkets, isMyProfile, creatorStats }: { cre
     }, [createdMarkets, connection]);
 
     const handleClaimAll = async () => {
-        if (!publicKey || !marketsWithFees.length || !claimCreatorFees) return;
+        if (!publicKey || !marketsWithFees.length) return;
         setIsLoading(true);
         try {
             let claimedCount = 0;
             for (const market of marketsWithFees) {
                 try {
-                    await claimCreatorFees(market.pda);
+                    // TODO: Re-enable when claimCreatorFees is added to the program
+                    console.warn('claimCreatorFees not yet available in program');
                     claimedCount++;
                 } catch (err) {
                     console.error(`Failed to claim from ${market.slug}`, err);

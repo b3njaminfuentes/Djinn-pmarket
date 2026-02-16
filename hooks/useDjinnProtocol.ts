@@ -11,7 +11,7 @@ import idlJson from '../lib/idl/djinn_market.json';
 const MASTER_TREASURY = new PublicKey("G1NaEsx5Pg7dSmyYy6Jfraa74b7nTbmN9A9NuiK171Ma");
 
 // Get program ID (HARDCODED as it might be missing from IDL in some builds)
-const PROGRAM_ID = "Fdbhx4cN5mPWzXneDm9XjaRgjYVjyXtpsJLGeQLPr7hg";
+const PROGRAM_ID = "A8pVMgP6vwjGqcbYh1WGWDjXq9uwQRoF9Lz1siLmD7nm";
 const PROGRAM_PUBKEY = new PublicKey(PROGRAM_ID);
 
 export const useDjinnProtocol = () => {
@@ -181,6 +181,11 @@ export const useDjinnProtocol = () => {
             tx.add(web3.ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
             tx.add(web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 10_000_000 }));
 
+            const [insuranceVaultPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from("insurance_vault")],
+                program.programId
+            );
+
             const ix = await program.methods
                 .buyShares(outcomeIndex, amountLamports, minSharesBN)
                 .accounts({
@@ -189,6 +194,7 @@ export const useDjinnProtocol = () => {
                     userPosition: userPositionPda,
                     user: publicKey,
                     protocolTreasury: MASTER_TREASURY,
+                    insuranceVault: insuranceVaultPda,
                     marketCreator: marketCreator,
                     systemProgram: SystemProgram.programId,
                 })
@@ -217,6 +223,11 @@ export const useDjinnProtocol = () => {
                 program.programId
             );
 
+            const [insuranceVaultPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from("insurance_vault")],
+                program.programId
+            );
+
             const winningOutcome = outcome === 'yes' ? 0 : 1;
             const tx = new web3.Transaction();
             const ix = await program.methods
@@ -226,6 +237,7 @@ export const useDjinnProtocol = () => {
                     marketVault: marketVaultPda,
                     authority: publicKey,
                     protocolTreasury: MASTER_TREASURY,
+                    insuranceVault: insuranceVaultPda,
                     systemProgram: SystemProgram.programId,
                 })
                 .instruction();
@@ -345,6 +357,11 @@ export const useDjinnProtocol = () => {
             tx.add(web3.ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
             tx.add(web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 10_000_000 }));
 
+            const [insuranceVaultPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from("insurance_vault")],
+                program.programId
+            );
+
             const ix = await program.methods.sellShares(outcomeIndex, sharesToBurnBN, new BN(minSolOut))
                 .accounts({
                     market: marketPda,
@@ -352,6 +369,7 @@ export const useDjinnProtocol = () => {
                     userPosition: userPositionPda,
                     user: publicKey,
                     protocolTreasury: MASTER_TREASURY,
+                    insuranceVault: insuranceVaultPda,
                     systemProgram: SystemProgram.programId,
                     marketCreator: marketCreator || MASTER_TREASURY,
                 })
@@ -367,39 +385,210 @@ export const useDjinnProtocol = () => {
         }
     }, [program, anchorWallet, connection, publicKey]);
 
-    const claimCreatorFees = useCallback(async (marketPda: PublicKey) => {
+    // ═══════════════════════════════════════════════════════════════════════
+    // BOT MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const registerBot = useCallback(async (
+        name: string,
+        metadataUri: string,
+        strategyCategory: number
+    ) => {
         if (!program || !anchorWallet || !connection || !publicKey) throw new Error("Wallet not connected");
+
         try {
-            const [marketVaultPda] = await PublicKey.findProgramAddress([Buffer.from("market_vault"), marketPda.toBuffer()], program.programId);
+            const [botProfilePda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('bot_profile'), publicKey.toBuffer()],
+                program.programId
+            );
+            const [botEscrowPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('bot_escrow'), publicKey.toBuffer()],
+                program.programId
+            );
+
             const tx = new web3.Transaction();
-            tx.add(web3.ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }));
+            tx.add(web3.ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
             tx.add(web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 10_000_000 }));
-            const ix = await program.methods.claimCreatorFees().accounts({
-                market: marketPda,
-                marketVault: marketVaultPda,
-                creator: publicKey,
-                protocolTreasury: MASTER_TREASURY,
-                systemProgram: SystemProgram.programId,
-            }).instruction();
+
+            const ix = await program.methods
+                .registerBot(name, metadataUri, strategyCategory)
+                .accounts({
+                    botProfile: botProfilePda,
+                    botEscrow: botEscrowPda,
+                    owner: publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .instruction();
+
+            tx.add(ix);
+            const signature = await sendTransaction(tx, connection, { skipPreflight: true });
+            await connection.confirmTransaction(signature, 'confirmed');
+            console.log('✅ Bot registered:', botProfilePda.toBase58());
+            return { tx: signature, botProfilePda, botEscrowPda };
+        } catch (error) {
+            console.error("Error registering bot:", error);
+            throw error;
+        }
+    }, [program, anchorWallet, connection, publicKey]);
+
+    const toggleBot = useCallback(async (isActive: boolean, isPaperTrading: boolean) => {
+        if (!program || !anchorWallet || !connection || !publicKey) throw new Error("Wallet not connected");
+
+        try {
+            const [botProfilePda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('bot_profile'), publicKey.toBuffer()],
+                program.programId
+            );
+
+            const tx = new web3.Transaction();
+            const ix = await program.methods
+                .toggleBot(isActive, isPaperTrading)
+                .accounts({
+                    botProfile: botProfilePda,
+                    owner: publicKey,
+                })
+                .instruction();
+
+            tx.add(ix);
+            const signature = await sendTransaction(tx, connection);
+            await connection.confirmTransaction(signature, 'confirmed');
+            return signature;
+        } catch (error) {
+            console.error("Error toggling bot:", error);
+            throw error;
+        }
+    }, [program, anchorWallet, connection, publicKey]);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // VAULT MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const initializeVault = useCallback(async () => {
+        if (!program || !anchorWallet || !connection || !publicKey) throw new Error("Wallet not connected");
+
+        try {
+            const [botProfilePda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('bot_profile'), publicKey.toBuffer()],
+                program.programId
+            );
+            const [agentVaultPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('agent_vault'), botProfilePda.toBuffer()],
+                program.programId
+            );
+
+            const tx = new web3.Transaction();
+            const ix = await program.methods
+                .initializeVault()
+                .accounts({
+                    agentVault: agentVaultPda,
+                    botProfile: botProfilePda,
+                    owner: publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .instruction();
+
+            tx.add(ix);
+            const signature = await sendTransaction(tx, connection, { skipPreflight: true });
+            await connection.confirmTransaction(signature, 'confirmed');
+            console.log('✅ Vault initialized:', agentVaultPda.toBase58());
+            return { tx: signature, agentVaultPda };
+        } catch (error) {
+            console.error("Error initializing vault:", error);
+            throw error;
+        }
+    }, [program, anchorWallet, connection, publicKey]);
+
+    const depositToVault = useCallback(async (agentVaultPda: PublicKey, amountSol: number) => {
+        if (!program || !anchorWallet || !connection || !publicKey) throw new Error("Wallet not connected");
+
+        try {
+            const amountLamports = new BN(Math.round(amountSol * web3.LAMPORTS_PER_SOL));
+
+            const [vaultDepositPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('vault_deposit'), agentVaultPda.toBuffer(), publicKey.toBuffer()],
+                program.programId
+            );
+            const [vaultSolPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('vault_sol'), agentVaultPda.toBuffer()],
+                program.programId
+            );
+
+            const tx = new web3.Transaction();
+            const ix = await program.methods
+                .depositToVault(amountLamports)
+                .accounts({
+                    agentVault: agentVaultPda,
+                    vaultDeposit: vaultDepositPda,
+                    vaultSol: vaultSolPda,
+                    depositor: publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .instruction();
+
             tx.add(ix);
             const signature = await sendTransaction(tx, connection, { skipPreflight: true });
             await connection.confirmTransaction(signature, 'confirmed');
             return signature;
         } catch (error) {
-            console.error(error);
+            console.error("Error depositing to vault:", error);
+            throw error;
+        }
+    }, [program, anchorWallet, connection, publicKey]);
+
+    const withdrawFromVault = useCallback(async (agentVaultPda: PublicKey, amountSol: number) => {
+        if (!program || !anchorWallet || !connection || !publicKey) throw new Error("Wallet not connected");
+
+        try {
+            const amountLamports = new BN(Math.round(amountSol * web3.LAMPORTS_PER_SOL));
+
+            const [vaultDepositPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('vault_deposit'), agentVaultPda.toBuffer(), publicKey.toBuffer()],
+                program.programId
+            );
+            const [vaultSolPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('vault_sol'), agentVaultPda.toBuffer()],
+                program.programId
+            );
+
+            const tx = new web3.Transaction();
+            const ix = await program.methods
+                .withdrawFromVault(amountLamports)
+                .accounts({
+                    agentVault: agentVaultPda,
+                    vaultDeposit: vaultDepositPda,
+                    vaultSol: vaultSolPda,
+                    depositor: publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .instruction();
+
+            tx.add(ix);
+            const signature = await sendTransaction(tx, connection, { skipPreflight: true });
+            await connection.confirmTransaction(signature, 'confirmed');
+            return signature;
+        } catch (error) {
+            console.error("Error withdrawing from vault:", error);
             throw error;
         }
     }, [program, anchorWallet, connection, publicKey]);
 
     return {
         program,
+        // Markets
         createMarket,
         buyShares,
         sellShares,
         resolveMarket,
         claimReward,
-        claimCreatorFees,
         getUserBalance,
+        // Bots
+        registerBot,
+        toggleBot,
+        // Vaults
+        initializeVault,
+        depositToVault,
+        withdrawFromVault,
+        // Status
         isReady: isContractReady
     };
 };

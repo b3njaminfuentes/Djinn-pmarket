@@ -58,22 +58,17 @@ export function useWalletConnection() {
         setState({ isConnecting: true, error: null });
 
         try {
-            // STEP 0: Small breathing room before selection to prevent event collision
-            await new Promise(resolve => setTimeout(resolve, 100));
-
             // STEP 1: Select the wallet adapter
             console.log('[Wallet] 1. Selecting:', walletName);
             select(walletName);
 
-            // STEP 2: Wait for wallet extension to initialize
-            // Poll for readiness instead of fixed delay
-            console.log('[Wallet] 2. Waiting for adapter readiness...');
+            // STEP 2: Brief pause to allow React state to update (wallet object needs to change)
+            await new Promise(resolve => setTimeout(resolve, 50));
 
-            // Give it multiple ticks to stabilize
-            for (let i = 0; i < 5; i++) {
-                await new Promise(resolve => setTimeout(resolve, 300));
-                // If the adapter is already connected or ready, we can move faster
-                if (wallet?.adapter?.connected) break;
+            // Check if wallet object is available
+            if (!wallet) {
+                // Give it one more tick if context is slow
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
 
             // STEP 3: Call connect() with Retry Logic

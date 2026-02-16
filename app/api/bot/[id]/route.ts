@@ -64,16 +64,16 @@ export async function GET(
             isActive: acc.isActive,
             isPaperTrading: acc.isPaperTrading, // Now in struct
             isFrozen: acc.isFrozen,
-            stake: acc.stake.toNumber(),
+            stake: Number(acc.stake.toString()),
             stats: {
                 totalTrades: totalTrades,
-                totalVolume: acc.totalVolume.toNumber() / 1e9,
+                totalVolume: Number(acc.totalVolume.toString()) / 1e9,
                 winningTrades: winningTrades,
                 losingTrades: acc.losingTrades.toNumber(),
                 winRate: totalTrades > 0
                     ? (winningTrades / totalTrades * 100).toFixed(1)
                     : '0.0',
-                pnl: acc.bountiesEarned.toNumber() / 1e9, // Proxy for now
+                pnl: Number(acc.bountiesEarned.toString()) / 1e9, // Proxy for now
             },
             verification: {
                 submitted: acc.verificationsSubmitted.toNumber(),
@@ -82,7 +82,7 @@ export async function GET(
                 accuracy: acc.verificationsSubmitted.toNumber() > 0
                     ? (acc.verificationsCorrect.toNumber() / acc.verificationsSubmitted.toNumber() * 100).toFixed(1)
                     : '0.0',
-                bountiesEarned: acc.bountiesEarned.toNumber() / 1e9,
+                bountiesEarned: Number(acc.bountiesEarned.toString()) / 1e9,
             },
             reputation: {
                 upvotes: acc.communityUpvotes.toNumber(),
@@ -103,12 +103,12 @@ export async function GET(
                     const vaultAccount: any = await program.account.agentVault.fetch(vaultPubkey);
                     response.vault = {
                         publicKey: vaultPubkey.toBase58(),
-                        totalAum: vaultAccount.totalAum.toNumber() / 1e9,
-                        maxAum: vaultAccount.maxTotalAum.toNumber() / 1e9,
-                        numDepositors: vaultAccount.numDepositors.toNumber(),
-                        totalProfit: vaultAccount.totalProfit.toNumber() / 1e9,
-                        totalLoss: vaultAccount.totalLoss.toNumber() / 1e9,
-                        highWaterMark: vaultAccount.highWaterMark.toNumber() / 1e9,
+                        totalAum: Number(vaultAccount.totalAum.toString()) / 1e9,
+                        maxAum: Number(vaultAccount.maxTotalAum.toString()) / 1e9,
+                        numDepositors: Number(vaultAccount.numDepositors.toString()),
+                        totalProfit: Number(vaultAccount.totalProfit.toString()) / 1e9,
+                        totalLoss: Number(vaultAccount.totalLoss.toString()) / 1e9,
+                        highWaterMark: Number(vaultAccount.highWaterMark.toString()) / 1e9,
                         isPaused: vaultAccount.isPaused,
                         isLiquidating: vaultAccount.isLiquidating,
                         createdAt: new Date(vaultAccount.createdAt.toNumber() * 1000).toISOString(),

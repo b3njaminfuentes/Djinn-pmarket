@@ -43,7 +43,7 @@ enum MarketInterval {
 }
 
 // Program ID
-const PROGRAM_ID = new PublicKey("Fdbhx4cN5mPWzXneDm9XjaRgjYVjyXtpsJLGeQLPr7hg");
+const PROGRAM_ID = new PublicKey("A8pVMgP6vwjGqcbYh1WGWDjXq9uwQRoF9Lz1siLmD7nm");
 
 // Treasury
 const TREASURY = new PublicKey("G1NaEsx5Pg7dSmyYy6Jfraa74b7nTbmN9A9NuiK171Ma");

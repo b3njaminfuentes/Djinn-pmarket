@@ -86,18 +86,24 @@ export async function GET(request: NextRequest) {
         // For devnet/MVP, fetching all is fine.
         const botAccounts = await program.account.botProfile.all();
 
+        // Helper to safely convert BN or number
+        const safeToNumber = (val: any) => {
+            if (val === undefined || val === null) return 0;
+            if (typeof val?.toNumber === 'function') return val.toNumber();
+            return Number(val);
+        };
+
         // 3. Map to Leaderboard Entries
         let bots = botAccounts.map(({ publicKey, account }: any) => {
             const acc = account;
-            const totalTrades = acc.totalTrades.toNumber();
-            const winningTrades = acc.winningTrades.toNumber();
-            const losingTrades = acc.losingTrades.toNumber();
-            const verificationsSubmitted = acc.verificationsSubmitted.toNumber();
-            const verificationsCorrect = acc.verificationsCorrect.toNumber();
+            const totalTrades = safeToNumber(acc.totalTrades);
+            const winningTrades = safeToNumber(acc.winningTrades);
+            const losingTrades = safeToNumber(acc.losingTrades);
+            const verificationsSubmitted = safeToNumber(acc.verificationsSubmitted);
+            const verificationsCorrect = safeToNumber(acc.verificationCorrect || acc.verificationsCorrect); // Handle potential typo in IDL/Account
 
             // Calculate PnL (Mock for now as it's not directly on BotProfile yet, or use bounty rewards)
-            // Actually, we can use bountiesEarned as a proxy for PnL for now
-            const pnl = acc.bountiesEarned.toNumber() / 1e9; // SOL
+            const pnl = Number(acc.bountiesEarned?.toString() || 0) / 1e9; // SOL
 
             return {
                 id: publicKey.toBase58(),
@@ -107,10 +113,10 @@ export async function GET(request: NextRequest) {
                 tier: TIER_MAP[acc.tier as number] as 'Novice' | 'Verified' | 'Elite',
                 category: CATEGORY_MAP[acc.strategyCategory as number] || 'Other',
                 isActive: acc.isActive,
-                isPaperTrading: false, // Not in struct yet, assume real
+                isPaperTrading: acc.isPaperTrading ?? false,
                 stats: {
                     totalTrades,
-                    totalVolume: acc.totalVolume.toNumber() / 1e9,
+                    totalVolume: Number(acc.totalVolume.toString()) / 1e9,
                     winningTrades,
                     losingTrades,
                     winRate: totalTrades > 0 ? (winningTrades / totalTrades * 100) : 0,
@@ -120,7 +126,7 @@ export async function GET(request: NextRequest) {
                     submitted: verificationsSubmitted,
                     correct: verificationsCorrect,
                     accuracy: verificationsSubmitted > 0 ? (verificationsCorrect / verificationsSubmitted * 100) : 0,
-                    bountiesEarned: acc.bountiesEarned.toNumber() / 1e9,
+                    bountiesEarned: Number(acc.bountiesEarned.toString()) / 1e9,
                 },
                 reputation: {
                     upvotes: acc.communityUpvotes.toNumber(),

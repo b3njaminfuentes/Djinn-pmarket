@@ -1,75 +1,202 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { PublicKey } from '@solana/web3.js';
+import { useWallet } from '@solana/wallet-adapter-react';
 import StarfieldBg from '@/components/StarfieldBg';
 import { useSound } from '@/components/providers/SoundProvider';
+import { useDjinnProtocol } from '@/hooks/useDjinnProtocol';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MOCK DATA — Replace with API call to /api/bot/[id]
+// TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
+
+interface BotProfileData {
+    id: string;
+    name: string;
+    owner: string;
+    tier: 'Novice' | 'Verified' | 'Elite';
+    category: string;
+    isActive: boolean;
+    isPaperTrading: boolean;
+    registeredAt: string;
+    stats: {
+        totalTrades: number;
+        totalVolume: number;
+        winningTrades: number;
+        losingTrades: number;
+        winRate: string;
+        pnl: number;
+    };
+    verification: {
+        submitted: number;
+        correct: number;
+        accuracy: string;
+        bountiesEarned: number;
+    };
+    reputation: {
+        score: number;
+        upvotes: number;
+        downvotes: number;
+    };
+    vault?: {
+        publicKey: string;
+        totalAum: number;
+        maxAum: number;
+        numDepositors: number;
+        totalProfit: number;
+        totalLoss: number;
+        highWaterMark: number;
+        isPaused: boolean;
+        isLiquidating: boolean;
+    };
+    recentTrades: Array<{
+        market: string;
+        position: string;
+        amount: number;
+        result: string;
+        pnl: number;
+        date: string;
+    }>;
+    theses: Array<{
+        title: string;
+        confidence: number;
+        date: string;
+        summary: string;
+    }>;
+}
 
 const TIER_CONFIG = {
-    Novice: { color: 'text-gray-600', bg: 'bg-gray-200', icon: '🌱', border: 'border-gray-300' },
-    Verified: { color: 'text-blue-600', bg: 'bg-blue-100', icon: '✅', border: 'border-blue-300' },
-    Elite: { color: 'text-amber-500', bg: 'bg-amber-100', icon: '👑', border: 'border-amber-400' },
+    Novice: { bg: 'bg-gray-200', icon: '🌱' },
+    Verified: { bg: 'bg-blue-100', icon: '✅' },
+    Elite: { bg: 'bg-amber-100', icon: '👑' },
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
     All: '🌐', Sports: '⚽', Crypto: '₿', Politics: '🏛️', Other: '🔮',
 };
 
-const mockBotData: Record<string, any> = {
-    'alpha-sniper': {
-        name: 'AlphaSniper', owner: 'Lord_Prophet', avatar: '🤖',
-        tier: 'Elite', category: 'Crypto', isActive: true, isPaperTrading: false,
-        metadataUri: 'https://arweave.net/abc123',
-        registeredAt: '2025-06-15', reputation: 92,
-        stats: { totalTrades: 4821, winRate: 73.2, pnl: 2847500, totalVolume: 42150000, winningTrades: 3529, losingTrades: 1292 },
-        verification: { accuracy: 91.3, bountiesEarned: 128500, totalSubmissions: 342 },
-        vault: { totalAum: 8540000, numDepositors: 47, isPaused: false, hwm: 9200000, performanceFee: 20 },
-        recentTrades: [
-            { market: 'BTC > $120K by March', position: 'Yes', amount: 5000, result: 'won', pnl: 3200, date: '2026-02-12' },
-            { market: 'Lakers Win NBA Finals', position: 'No', amount: 8000, result: 'won', pnl: 5600, date: '2026-02-10' },
-            { market: 'SOL > $300 EOW', position: 'Yes', amount: 3500, result: 'lost', pnl: -3500, date: '2026-02-08' },
-            { market: 'ETH/BTC Ratio > 0.04', position: 'Yes', amount: 6000, result: 'won', pnl: 4800, date: '2026-02-05' },
-            { market: 'Fed Rate Cut Feb', position: 'No', amount: 10000, result: 'won', pnl: 7200, date: '2026-02-01' },
-            { market: 'Trump EO on Crypto', position: 'Yes', amount: 4000, result: 'won', pnl: 2400, date: '2026-01-28' },
-        ],
-        theses: [
-            { title: 'BTC Momentum Analysis Q1 2026', confidence: 87, date: '2026-02-10', summary: 'Strong accumulation pattern detected. Whale wallets adding 2.3% weekly. Target $135K.' },
-            { title: 'Sports Betting Alpha: NBA Playoffs', confidence: 72, date: '2026-02-05', summary: 'Historical data shows underdog value in Western Conference matchups post All-Star break.' },
-        ],
-    },
-};
-
-// fallback for unknown bots
-const fallbackBot = {
-    name: 'Unknown Bot', owner: 'unknown', avatar: '❓',
-    tier: 'Novice' as const, category: 'All', isActive: false, isPaperTrading: false,
-    metadataUri: '', registeredAt: '—', reputation: 0,
-    stats: { totalTrades: 0, winRate: 0, pnl: 0, totalVolume: 0, winningTrades: 0, losingTrades: 0 },
-    verification: { accuracy: 0, bountiesEarned: 0, totalSubmissions: 0 },
-    recentTrades: [], theses: [],
-};
-
 type Tab = 'trades' | 'theses' | 'vault';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SKELETON
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function ProfileSkeleton() {
+    return (
+        <div className="max-w-[1200px] mx-auto relative z-10 animate-pulse">
+            <div className="h-4 bg-white/10 rounded w-40 mb-6" />
+            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 mb-8">
+                <div className="flex items-center gap-6">
+                    <div className="w-24 h-24 rounded-2xl bg-white/10" />
+                    <div className="flex-1 space-y-3">
+                        <div className="h-8 bg-white/10 rounded-lg w-48" />
+                        <div className="h-4 bg-white/5 rounded-lg w-64" />
+                    </div>
+                    <div className="w-20 h-20 rounded-full bg-white/10" />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 h-20" />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function BotProfilePage() {
     const params = useParams();
     const { play } = useSound();
     const botId = params.id as string;
-    const bot = mockBotData[botId] || fallbackBot;
-    const tier = TIER_CONFIG[bot.tier as keyof typeof TIER_CONFIG];
-    const [activeTab, setActiveTab] = useState<Tab>('trades');
 
-    const formatNumber = (n: number) => {
-        if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-        if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-        return n.toLocaleString();
+    const { publicKey: walletPubkey } = useWallet();
+    const { depositToVault, withdrawFromVault } = useDjinnProtocol();
+
+    const [bot, setBot] = useState<BotProfileData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
+    const [activeTab, setActiveTab] = useState<Tab>('trades');
+    const [vaultAmount, setVaultAmount] = useState('');
+    const [vaultAction, setVaultAction] = useState<'deposit' | 'withdraw'>('deposit');
+    const [vaultTxLoading, setVaultTxLoading] = useState(false);
+    const [vaultTxError, setVaultTxError] = useState('');
+    const [vaultTxSuccess, setVaultTxSuccess] = useState('');
+
+    useEffect(() => {
+        const fetchBot = async () => {
+            setIsLoading(true);
+            try {
+                const res = await fetch(`/api/bot/${botId}?include=vault`);
+                if (res.status === 404) {
+                    setNotFound(true);
+                    return;
+                }
+                if (!res.ok) throw new Error('Failed to fetch bot');
+                const data = await res.json();
+                setBot(data);
+            } catch {
+                setNotFound(true);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchBot();
+    }, [botId]);
+
+    const formatSol = (n: number) => {
+        if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}K`;
+        if (Math.abs(n) >= 1) return n.toFixed(2);
+        if (Math.abs(n) >= 0.001) return n.toFixed(4);
+        return '0';
     };
+
+    // Loading
+    if (isLoading) {
+        return (
+            <main className="min-h-screen bg-black text-white pb-20 pt-28 px-6 relative font-sans overflow-hidden">
+                <StarfieldBg />
+                <ProfileSkeleton />
+            </main>
+        );
+    }
+
+    // Not Found
+    if (notFound || !bot) {
+        return (
+            <main className="min-h-screen bg-black text-white pb-20 pt-28 px-6 relative font-sans overflow-hidden">
+                <StarfieldBg />
+                <div className="max-w-[1200px] mx-auto relative z-10 text-center py-32">
+                    <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                    >
+                        <div className="text-6xl mb-6">👻</div>
+                    </motion.div>
+                    <h2 className="font-black text-3xl text-white lowercase mb-2">bot not found</h2>
+                    <p className="text-gray-400 mb-6">this agent may have been deregistered or doesn&apos;t exist</p>
+                    <Link
+                        href="/bots"
+                        className="bg-[#F492B7] text-black font-black px-8 py-3 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 transition-all inline-block"
+                    >
+                        Back to Leaderboard
+                    </Link>
+                </div>
+            </main>
+        );
+    }
+
+    const tier = TIER_CONFIG[bot.tier] || TIER_CONFIG.Novice;
+    const repScore = bot.reputation?.score ?? 0;
+    const winRate = parseFloat(bot.stats.winRate) || 0;
+    const accuracy = parseFloat(bot.verification.accuracy) || 0;
 
     return (
         <main className="min-h-screen bg-black text-white pb-20 pt-28 px-6 relative font-sans overflow-hidden">
@@ -83,69 +210,69 @@ export default function BotProfilePage() {
                     ← back to leaderboard
                 </Link>
 
-                {/* ═══════════ HERO CARD ═══════════ */}
+                {/* HERO CARD */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-white border-4 border-black rounded-[2rem] p-8 mb-8 shadow-[8px_8px_0px_0px_#F492B7] relative overflow-hidden"
                 >
-                    {/* BG Decoration */}
                     <div className="absolute top-0 right-0 text-[180px] font-black text-gray-100/50 leading-none select-none -translate-y-8 translate-x-4">
-                        {bot.avatar}
+                        {CATEGORY_ICONS[bot.category] || '🤖'}
                     </div>
 
                     <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
                         {/* Avatar */}
                         <div className="relative">
                             <div className="w-24 h-24 rounded-2xl border-4 border-black bg-gray-100 flex items-center justify-center text-5xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                                {bot.avatar}
+                                {CATEGORY_ICONS[bot.category] || '🤖'}
                             </div>
                             <div className={`absolute -bottom-2 -right-2 px-2 py-1 rounded-full border-2 border-black text-xs font-black ${tier.bg}`}>
                                 {tier.icon} {bot.tier}
                             </div>
-                            <div className={`absolute -top-1 -left-1 w-4 h-4 rounded-full border-2 border-white ${bot.isActive ? 'bg-green-500' : 'bg-gray-400'
-                                }`} />
+                            <div className={`absolute -top-1 -left-1 w-4 h-4 rounded-full border-2 border-white ${bot.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
                         </div>
 
                         {/* Info */}
                         <div className="flex-1">
                             <h1 className="text-4xl font-black text-black lowercase tracking-tight">{bot.name}</h1>
                             <div className="flex flex-wrap items-center gap-3 mt-2">
-                                <Link href={`/profile/${bot.owner.toLowerCase()}`} className="bg-gray-100 hover:bg-[#F492B7] border-2 border-black rounded-full px-3 py-1 text-sm font-bold text-black transition-colors">
-                                    @{bot.owner}
-                                </Link>
+                                <span className="bg-gray-100 border-2 border-black rounded-full px-3 py-1 text-sm font-bold text-black font-mono">
+                                    {bot.owner.slice(0, 6)}...{bot.owner.slice(-4)}
+                                </span>
                                 <span className="bg-gray-100 border border-gray-300 rounded-full px-3 py-1 text-xs font-bold text-gray-600">
                                     {CATEGORY_ICONS[bot.category]} {bot.category}
                                 </span>
-                                <span className="text-gray-400 text-xs font-bold">Since {bot.registeredAt}</span>
+                                <span className="text-gray-400 text-xs font-bold">
+                                    Since {new Date(bot.registeredAt).toLocaleDateString()}
+                                </span>
                                 {bot.isPaperTrading && (
-                                    <span className="bg-yellow-100 text-yellow-700 border border-yellow-300 rounded-full px-3 py-1 text-xs font-black uppercase">📄 Paper</span>
+                                    <span className="bg-yellow-100 text-yellow-700 border border-yellow-300 rounded-full px-3 py-1 text-xs font-black uppercase">Paper</span>
                                 )}
                             </div>
                         </div>
 
-                        {/* Reputation Circle */}
+                        {/* Reputation */}
                         <div className="flex flex-col items-center">
-                            <div className={`w-20 h-20 rounded-full border-4 border-black flex items-center justify-center text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${bot.reputation >= 80 ? 'bg-[#10B981] text-white' :
-                                    bot.reputation >= 60 ? 'bg-yellow-300 text-black' :
+                            <div className={`w-20 h-20 rounded-full border-4 border-black flex items-center justify-center text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${repScore >= 10 ? 'bg-[#10B981] text-white' :
+                                    repScore >= 0 ? 'bg-yellow-300 text-black' :
                                         'bg-red-400 text-white'
                                 }`}>
-                                {bot.reputation}
+                                {repScore}
                             </div>
                             <span className="text-[10px] font-black uppercase text-gray-400 mt-1">Reputation</span>
                         </div>
                     </div>
                 </motion.div>
 
-                {/* ═══════════ STAT CARDS ═══════════ */}
+                {/* STAT CARDS */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                     {[
-                        { label: 'PnL', value: `${bot.stats.pnl >= 0 ? '+' : ''}$${formatNumber(bot.stats.pnl)}`, color: bot.stats.pnl >= 0 ? 'bg-[#10B981]' : 'bg-red-500', txtColor: 'text-white' },
-                        { label: 'Win Rate', value: `${bot.stats.winRate}%`, color: bot.stats.winRate >= 65 ? 'bg-[#10B981]' : 'bg-yellow-400', txtColor: bot.stats.winRate >= 65 ? 'text-white' : 'text-black' },
+                        { label: 'PnL', value: `${bot.stats.pnl >= 0 ? '+' : ''}${formatSol(bot.stats.pnl)} ◎`, color: bot.stats.pnl >= 0 ? 'bg-[#10B981]' : 'bg-red-500', txtColor: 'text-white' },
+                        { label: 'Win Rate', value: `${winRate.toFixed(1)}%`, color: winRate >= 65 ? 'bg-[#10B981]' : 'bg-yellow-400', txtColor: winRate >= 65 ? 'text-white' : 'text-black' },
                         { label: 'Total Trades', value: bot.stats.totalTrades.toLocaleString(), color: 'bg-white', txtColor: 'text-black' },
-                        { label: 'Volume', value: `$${formatNumber(bot.stats.totalVolume)}`, color: 'bg-white', txtColor: 'text-black' },
-                        { label: 'Accuracy', value: `${bot.verification.accuracy}%`, color: 'bg-purple-100', txtColor: 'text-purple-700' },
-                        { label: 'Bounties', value: `$${formatNumber(bot.verification.bountiesEarned)}`, color: 'bg-[#F492B7]', txtColor: 'text-black' },
+                        { label: 'Volume', value: `${formatSol(bot.stats.totalVolume)} ◎`, color: 'bg-white', txtColor: 'text-black' },
+                        { label: 'Accuracy', value: `${accuracy.toFixed(1)}%`, color: 'bg-purple-100', txtColor: 'text-purple-700' },
+                        { label: 'Bounties', value: `${formatSol(bot.verification.bountiesEarned)} ◎`, color: 'bg-[#F492B7]', txtColor: 'text-black' },
                     ].map((stat, i) => (
                         <motion.div
                             key={stat.label}
@@ -160,12 +287,12 @@ export default function BotProfilePage() {
                     ))}
                 </div>
 
-                {/* ═══════════ TAB BAR ═══════════ */}
+                {/* TAB BAR */}
                 <div className="bg-[#121212] border-2 border-white/20 rounded-full p-1.5 flex gap-1.5 backdrop-blur-md mb-8 w-fit">
                     {([
-                        { key: 'trades' as Tab, label: '📊 Trades', count: bot.recentTrades?.length },
-                        { key: 'theses' as Tab, label: '📝 Theses', count: bot.theses?.length },
-                        { key: 'vault' as Tab, label: '🏦 Vault', count: bot.vault ? 1 : 0 },
+                        { key: 'trades' as Tab, label: 'Trades', count: bot.recentTrades?.length },
+                        { key: 'theses' as Tab, label: 'Theses', count: bot.theses?.length },
+                        { key: 'vault' as Tab, label: 'Vault', count: bot.vault ? 1 : 0 },
                     ]).map(tab => (
                         <button
                             key={tab.key}
@@ -180,8 +307,6 @@ export default function BotProfilePage() {
                     ))}
                 </div>
 
-                {/* ═══════════ TAB CONTENT ═══════════ */}
-
                 {/* TRADES TAB */}
                 {activeTab === 'trades' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white border-4 border-black rounded-[2rem] overflow-hidden">
@@ -194,7 +319,7 @@ export default function BotProfilePage() {
                             </div>
                         </div>
                         <div className="divide-y-2 divide-black">
-                            {(bot.recentTrades || []).map((trade: any, i: number) => (
+                            {(bot.recentTrades || []).map((trade, i) => (
                                 <motion.div
                                     key={i}
                                     initial={{ opacity: 0, x: -20 }}
@@ -203,8 +328,7 @@ export default function BotProfilePage() {
                                     className="flex items-center justify-between py-4 px-6 hover:bg-[#FFF5F7] transition-colors"
                                 >
                                     <div className="flex items-center gap-4 flex-1">
-                                        <div className={`w-8 h-8 rounded-xl border-2 border-black flex items-center justify-center text-xs font-black ${trade.result === 'won' ? 'bg-[#10B981] text-white' : 'bg-red-400 text-white'
-                                            }`}>
+                                        <div className={`w-8 h-8 rounded-xl border-2 border-black flex items-center justify-center text-xs font-black ${trade.result === 'won' ? 'bg-[#10B981] text-white' : 'bg-red-400 text-white'}`}>
                                             {trade.result === 'won' ? 'W' : 'L'}
                                         </div>
                                         <div>
@@ -213,22 +337,23 @@ export default function BotProfilePage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-8">
-                                        <span className={`font-bold text-sm px-3 py-1 rounded-full border-2 border-black ${trade.position === 'Yes' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-                                            }`}>
+                                        <span className={`font-bold text-sm px-3 py-1 rounded-full border-2 border-black ${trade.position === 'Yes' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                                             {trade.position}
                                         </span>
-                                        <span className="font-bold text-black w-20 text-right">${trade.amount.toLocaleString()}</span>
-                                        <span className={`font-black w-20 text-right text-lg italic ${trade.pnl >= 0 ? 'text-[#10B981]' : 'text-red-500'
-                                            }`}>
-                                            {trade.pnl >= 0 ? '+' : ''}${Math.abs(trade.pnl).toLocaleString()}
+                                        <span className="font-bold text-black w-20 text-right">{formatSol(trade.amount)} ◎</span>
+                                        <span className={`font-black w-20 text-right text-lg italic ${trade.pnl >= 0 ? 'text-[#10B981]' : 'text-red-500'}`}>
+                                            {trade.pnl >= 0 ? '+' : ''}{formatSol(Math.abs(trade.pnl))} ◎
                                         </span>
                                     </div>
                                 </motion.div>
                             ))}
                             {(!bot.recentTrades || bot.recentTrades.length === 0) && (
-                                <div className="py-12 text-center text-gray-400">
-                                    <div className="text-3xl mb-2">📊</div>
-                                    <div className="font-black">no trades yet</div>
+                                <div className="py-16 text-center text-gray-400">
+                                    <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
+                                        <div className="text-4xl mb-3">📊</div>
+                                    </motion.div>
+                                    <div className="font-black text-xl mb-1">no trades yet</div>
+                                    <div className="text-sm">this bot is warming up in the arena</div>
                                 </div>
                             )}
                         </div>
@@ -238,7 +363,7 @@ export default function BotProfilePage() {
                 {/* THESES TAB */}
                 {activeTab === 'theses' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-                        {(bot.theses || []).map((thesis: any, i: number) => (
+                        {(bot.theses || []).map((thesis, i) => (
                             <motion.div
                                 key={i}
                                 initial={{ opacity: 0, y: 20 }}
@@ -249,8 +374,7 @@ export default function BotProfilePage() {
                                 <div className="flex items-start justify-between mb-3">
                                     <h3 className="font-black text-black text-xl">{thesis.title}</h3>
                                     <div className={`px-3 py-1 rounded-full border-2 border-black font-black text-sm ${thesis.confidence >= 80 ? 'bg-[#10B981] text-white' :
-                                            thesis.confidence >= 60 ? 'bg-yellow-300 text-black' :
-                                                'bg-red-400 text-white'
+                                            thesis.confidence >= 60 ? 'bg-yellow-300 text-black' : 'bg-red-400 text-white'
                                         }`}>
                                         {thesis.confidence}% confidence
                                     </div>
@@ -260,9 +384,12 @@ export default function BotProfilePage() {
                             </motion.div>
                         ))}
                         {(!bot.theses || bot.theses.length === 0) && (
-                            <div className="bg-white border-4 border-black rounded-[2rem] py-12 text-center text-gray-400">
-                                <div className="text-3xl mb-2">📝</div>
-                                <div className="font-black">no theses published</div>
+                            <div className="bg-white border-4 border-black rounded-[2rem] py-16 text-center">
+                                <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
+                                    <div className="text-4xl mb-3">📝</div>
+                                </motion.div>
+                                <div className="font-black text-black text-xl mb-1">no theses published</div>
+                                <div className="text-gray-400 text-sm">this bot hasn&apos;t shared any research yet</div>
                             </div>
                         )}
                     </motion.div>
@@ -281,18 +408,17 @@ export default function BotProfilePage() {
                                                 ? 'bg-red-100 text-red-600 border-red-300'
                                                 : 'bg-green-100 text-green-700 border-green-300'
                                             }`}>
-                                            {bot.vault.isPaused ? '🔴 Circuit Breaker' : '🟢 Active'}
+                                            {bot.vault.isPaused ? 'Circuit Breaker' : 'Active'}
                                         </div>
                                     </div>
-
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center py-3 border-b-2 border-gray-100">
                                             <span className="font-bold text-gray-500 text-sm uppercase">Total AUM</span>
-                                            <span className="font-black text-2xl text-purple-700">${formatNumber(bot.vault.totalAum)}</span>
+                                            <span className="font-black text-2xl text-purple-700">{formatSol(bot.vault.totalAum)} ◎</span>
                                         </div>
                                         <div className="flex justify-between items-center py-3 border-b-2 border-gray-100">
                                             <span className="font-bold text-gray-500 text-sm uppercase">High Water Mark</span>
-                                            <span className="font-black text-xl text-black">${formatNumber(bot.vault.hwm)}</span>
+                                            <span className="font-black text-xl text-black">{formatSol(bot.vault.highWaterMark)} ◎</span>
                                         </div>
                                         <div className="flex justify-between items-center py-3 border-b-2 border-gray-100">
                                             <span className="font-bold text-gray-500 text-sm uppercase">Depositors</span>
@@ -300,10 +426,9 @@ export default function BotProfilePage() {
                                         </div>
                                         <div className="flex justify-between items-center py-3">
                                             <span className="font-bold text-gray-500 text-sm uppercase">Performance Fee</span>
-                                            <span className="font-black text-xl text-[#F492B7]">{bot.vault.performanceFee}%</span>
+                                            <span className="font-black text-xl text-[#F492B7]">20%</span>
                                         </div>
                                     </div>
-
                                     {/* Profit Split */}
                                     <div className="mt-6 bg-gray-50 border-2 border-black rounded-xl p-4">
                                         <div className="text-[10px] font-black uppercase text-gray-400 mb-3">Profit Distribution</div>
@@ -329,39 +454,100 @@ export default function BotProfilePage() {
                                     <div>
                                         <h3 className="text-2xl font-black text-white lowercase mb-2">invest in {bot.name}</h3>
                                         <p className="text-gray-400 text-sm mb-6">Deposit SOL to earn from this bot&apos;s autonomous trading strategy. 70% of profits go to depositors.</p>
-
-                                        {/* AUM Bar */}
                                         <div className="mb-6">
                                             <div className="flex justify-between mb-2">
                                                 <span className="text-xs font-black text-gray-400 uppercase">Vault Capacity</span>
                                                 <span className="text-xs font-black text-white">
-                                                    ${formatNumber(bot.vault.totalAum)} / ${formatNumber(bot.tier === 'Elite' ? 10000000000 : 100000000)}
+                                                    {formatSol(bot.vault.totalAum)} / {formatSol(bot.vault.maxAum)} ◎
                                                 </span>
                                             </div>
                                             <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden border border-white/20">
-                                                <div className="h-full bg-gradient-to-r from-[#F492B7] to-purple-500 rounded-full" style={{ width: '35%' }} />
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-[#F492B7] to-purple-500 rounded-full"
+                                                    style={{ width: `${bot.vault.maxAum > 0 ? Math.min((bot.vault.totalAum / bot.vault.maxAum) * 100, 100) : 0}%` }}
+                                                />
                                             </div>
                                         </div>
-
-                                        {/* Circuit Breaker Info */}
                                         <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
-                                            <div className="text-[10px] font-black uppercase text-[#F492B7] mb-2">⚡ Circuit Breakers</div>
+                                            <div className="text-[10px] font-black uppercase text-[#F492B7] mb-2">Circuit Breakers</div>
                                             <div className="flex gap-4 text-xs text-gray-400">
-                                                <div><span className="font-black text-yellow-400">-20%</span> → Auto-pause</div>
-                                                <div><span className="font-black text-red-400">-30%</span> → Liquidation</div>
+                                                <div><span className="font-black text-yellow-400">-20%</span> Auto-pause</div>
+                                                <div><span className="font-black text-red-400">-30%</span> Liquidation</div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex gap-3">
-                                        <button className="flex-1 bg-[#10B981] text-white font-black text-sm px-6 py-3 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 transition-all">
-                                            Deposit SOL
-                                        </button>
-                                        <button className="flex-1 bg-white/10 text-white font-black text-sm px-6 py-3 rounded-full border-2 border-white/30 hover:bg-white/20 transition-all">
-                                            Withdraw
-                                        </button>
+                                    {/* Amount Input */}
+                                    <div className="mb-4">
+                                        <div className="flex gap-2 mb-3">
+                                            <button
+                                                onClick={() => setVaultAction('deposit')}
+                                                className={`flex-1 py-2 rounded-full text-xs font-black uppercase border-2 transition-all ${vaultAction === 'deposit' ? 'bg-[#10B981] text-white border-[#10B981]' : 'bg-transparent text-gray-400 border-white/20'}`}
+                                            >
+                                                Deposit
+                                            </button>
+                                            <button
+                                                onClick={() => setVaultAction('withdraw')}
+                                                className={`flex-1 py-2 rounded-full text-xs font-black uppercase border-2 transition-all ${vaultAction === 'withdraw' ? 'bg-red-500 text-white border-red-500' : 'bg-transparent text-gray-400 border-white/20'}`}
+                                            >
+                                                Withdraw
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center bg-white/10 border-2 border-white/20 rounded-xl px-4 py-3">
+                                            <input
+                                                type="number"
+                                                placeholder="0.0"
+                                                value={vaultAmount}
+                                                onChange={(e) => setVaultAmount(e.target.value)}
+                                                className="bg-transparent text-white font-black text-xl flex-1 outline-none placeholder:text-gray-600"
+                                                step="0.1"
+                                                min="0"
+                                            />
+                                            <span className="text-gray-400 font-black text-sm ml-2">SOL</span>
+                                        </div>
                                     </div>
+
+                                    {vaultTxError && (
+                                        <div className="bg-red-500/20 border border-red-500/40 rounded-xl px-4 py-2 mb-3 text-red-400 text-xs font-bold">
+                                            {vaultTxError}
+                                        </div>
+                                    )}
+                                    {vaultTxSuccess && (
+                                        <div className="bg-green-500/20 border border-green-500/40 rounded-xl px-4 py-2 mb-3 text-green-400 text-xs font-bold">
+                                            {vaultTxSuccess}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        disabled={vaultTxLoading || !walletPubkey || !vaultAmount || parseFloat(vaultAmount) <= 0}
+                                        onClick={async () => {
+                                            if (!bot?.vault?.publicKey || !vaultAmount) return;
+                                            setVaultTxLoading(true);
+                                            setVaultTxError('');
+                                            setVaultTxSuccess('');
+                                            try {
+                                                const vaultPda = new PublicKey(bot.vault.publicKey);
+                                                const amount = parseFloat(vaultAmount);
+                                                if (vaultAction === 'deposit') {
+                                                    await depositToVault(vaultPda, amount);
+                                                    setVaultTxSuccess(`Deposited ${amount} SOL`);
+                                                } else {
+                                                    await withdrawFromVault(vaultPda, amount);
+                                                    setVaultTxSuccess(`Withdrew ${amount} SOL`);
+                                                }
+                                                setVaultAmount('');
+                                            } catch (e: unknown) {
+                                                const msg = e instanceof Error ? e.message : 'Transaction failed';
+                                                setVaultTxError(msg);
+                                            } finally {
+                                                setVaultTxLoading(false);
+                                            }
+                                        }}
+                                        className={`w-full font-black text-sm px-6 py-3 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                                            vaultAction === 'deposit' ? 'bg-[#10B981] text-white' : 'bg-red-500 text-white'
+                                        }`}
+                                    >
+                                        {vaultTxLoading ? 'Processing...' : vaultAction === 'deposit' ? `Deposit ${vaultAmount || '0'} SOL` : `Withdraw ${vaultAmount || '0'} SOL`}
+                                    </button>
                                 </div>
                             </div>
                         ) : (
@@ -373,7 +559,6 @@ export default function BotProfilePage() {
                         )}
                     </motion.div>
                 )}
-
             </div>
         </main>
     );

@@ -87,6 +87,11 @@
           "isSigner": false
         },
         {
+          "name": "insuranceVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
@@ -141,6 +146,11 @@
           "isSigner": false
         },
         {
+          "name": "insuranceVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
@@ -184,6 +194,11 @@
         },
         {
           "name": "protocolTreasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "insuranceVault",
           "isMut": true,
           "isSigner": false
         },
@@ -417,6 +432,686 @@
           "type": "u8"
         }
       ]
+    },
+    {
+      "name": "registerBot",
+      "docs": [
+        "Register a new AI Bot — stakes 10 SOL as collateral"
+      ],
+      "accounts": [
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botEscrow",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "metadataUri",
+          "type": "string"
+        },
+        {
+          "name": "strategyCategory",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "toggleBot",
+      "docs": [
+        "Toggle bot active state (owner only)"
+      ],
+      "accounts": [
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "owner",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "isActive",
+          "type": "bool"
+        },
+        {
+          "name": "isPaperTrading",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "initializeInsurancePool",
+      "docs": [
+        "Initialize Insurance Pool (Admin only — called once)"
+      ],
+      "accounts": [
+        {
+          "name": "insuranceVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "freezeBot",
+      "docs": [
+        "Freeze a bot (Cerberus/Admin only)"
+      ],
+      "accounts": [
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "unfreezeBot",
+      "docs": [
+        "Unfreeze a bot after dispute resolution (Admin only)"
+      ],
+      "accounts": [
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initializeBountyPool",
+      "docs": [
+        "Initialize a Bounty Pool for a market (called at resolve)"
+      ],
+      "accounts": [
+        {
+          "name": "bountyPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "bountyVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "market",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "marketVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "bountyAmount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "submitVerification",
+      "docs": [
+        "Bot submits a verification with confidence level"
+      ],
+      "accounts": [
+        {
+          "name": "bountyPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "verificationSubmission",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botOwnerSigner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "proposedOutcome",
+          "type": "u8"
+        },
+        {
+          "name": "confidence",
+          "type": "u8"
+        },
+        {
+          "name": "evidenceUri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "cerberusOverride",
+      "docs": [
+        "Cerberus overrides the verification outcome (Admin/Oracle)"
+      ],
+      "accounts": [
+        {
+          "name": "bountyPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "finalOutcome",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "finalizeBountyPool",
+      "docs": [
+        "Finalize a bounty pool — determine the winning outcome and mark correct submissions"
+      ],
+      "accounts": [
+        {
+          "name": "bountyPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "market",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claimBounty",
+      "docs": [
+        "Bot claims bounty reward for a correct verification"
+      ],
+      "accounts": [
+        {
+          "name": "bountyPool",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "verificationSubmission",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "bountyVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botOwner",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "expireBounty",
+      "docs": [
+        "Expire unclaimed bounty — after 48h, remaining funds go to treasury"
+      ],
+      "accounts": [
+        {
+          "name": "bountyPool",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "bountyVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "protocolTreasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "proposeSlash",
+      "docs": [
+        "Propose slashing a bot (Reporter initiates)"
+      ],
+      "accounts": [
+        {
+          "name": "slashProposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "accusedBot",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "reporter",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "evidenceUri",
+          "type": "string"
+        },
+        {
+          "name": "slashReason",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "submitDefense",
+      "docs": [
+        "Bot owner defends against a slash (within 48h)"
+      ],
+      "accounts": [
+        {
+          "name": "slashProposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "accusedBot",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "defender",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Bot owner must sign the defense"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "defenseUri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "resolveDispute",
+      "docs": [
+        "Resolve a slash dispute (Admin/Multisig verdict)"
+      ],
+      "accounts": [
+        {
+          "name": "slashProposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "accusedBot",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botEscrow",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "insuranceVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "reporter",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Admin signs the verdict"
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "verdict",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "initializeVault",
+      "docs": [
+        "Initialize an Agent Vault for a Verified/Elite bot"
+      ],
+      "accounts": [
+        {
+          "name": "agentVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "depositToVault",
+      "docs": [
+        "User deposits SOL into a bot's Agent Vault"
+      ],
+      "accounts": [
+        {
+          "name": "agentVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultDeposit",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultSol",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositor",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdrawFromVault",
+      "docs": [
+        "User withdraws SOL from a bot's Agent Vault"
+      ],
+      "accounts": [
+        {
+          "name": "agentVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultDeposit",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultSol",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositor",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "distributeProfits",
+      "docs": [
+        "Distribute profits from vault (Bot owner calls after profitable trades)",
+        "Split: 70% depositors (pro-rata), 20% bot owner, 10% insurance"
+      ],
+      "accounts": [
+        {
+          "name": "agentVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultSol",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botOwner",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "insuranceVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "profitAmount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "checkCircuitBreaker",
+      "docs": [
+        "Circuit breaker check — anyone can call to pause/liquidate underperforming vaults"
+      ],
+      "accounts": [
+        {
+          "name": "agentVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "caller",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Anyone can call this — it's a permissionless safety check"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "liquidateVault",
+      "docs": [
+        "Emergency liquidation — distribute remaining AUM to depositors pro-rata",
+        "This is separate from individual withdrawals — admin triggers after circuit breaker"
+      ],
+      "accounts": [
+        {
+          "name": "agentVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultDeposit",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultSol",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositor",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "depositorShare",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -629,6 +1324,392 @@
           }
         ]
       }
+    },
+    {
+      "name": "BotProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "metadataUri",
+            "type": "string"
+          },
+          {
+            "name": "strategyCategory",
+            "type": "u8"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          },
+          {
+            "name": "tier",
+            "type": {
+              "defined": "BotTier"
+            }
+          },
+          {
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "name": "isPaperTrading",
+            "type": "bool"
+          },
+          {
+            "name": "isFrozen",
+            "type": "bool"
+          },
+          {
+            "name": "totalTrades",
+            "type": "u32"
+          },
+          {
+            "name": "totalVolume",
+            "type": "u64"
+          },
+          {
+            "name": "winningTrades",
+            "type": "u32"
+          },
+          {
+            "name": "losingTrades",
+            "type": "u32"
+          },
+          {
+            "name": "verificationsSubmitted",
+            "type": "u32"
+          },
+          {
+            "name": "verificationsCorrect",
+            "type": "u32"
+          },
+          {
+            "name": "verificationsWrong",
+            "type": "u32"
+          },
+          {
+            "name": "bountiesEarned",
+            "type": "u64"
+          },
+          {
+            "name": "communityUpvotes",
+            "type": "u32"
+          },
+          {
+            "name": "communityDownvotes",
+            "type": "u32"
+          },
+          {
+            "name": "reportsAgainst",
+            "type": "u8"
+          },
+          {
+            "name": "slashingIncidents",
+            "type": "u8"
+          },
+          {
+            "name": "hasVault",
+            "type": "bool"
+          },
+          {
+            "name": "vaultPubkey",
+            "type": {
+              "option": "publicKey"
+            }
+          },
+          {
+            "name": "registeredAt",
+            "type": "i64"
+          },
+          {
+            "name": "lastTradeAt",
+            "type": "i64"
+          },
+          {
+            "name": "tradesThisHour",
+            "type": "u32"
+          },
+          {
+            "name": "hourStartTs",
+            "type": "i64"
+          },
+          {
+            "name": "volumeThisDay",
+            "type": "u64"
+          },
+          {
+            "name": "dayStartTs",
+            "type": "i64"
+          },
+          {
+            "name": "activePositions",
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BountyPool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "publicKey"
+          },
+          {
+            "name": "totalBounty",
+            "type": "u64"
+          },
+          {
+            "name": "totalWeight",
+            "type": "u64"
+          },
+          {
+            "name": "winningOutcome",
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "cerberusOverride",
+            "type": "bool"
+          },
+          {
+            "name": "cerberusOutcome",
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "numSubmissions",
+            "type": "u32"
+          },
+          {
+            "name": "isFinalized",
+            "type": "bool"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "expiresAt",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VerificationSubmission",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bountyPool",
+            "type": "publicKey"
+          },
+          {
+            "name": "bot",
+            "type": "publicKey"
+          },
+          {
+            "name": "botOwner",
+            "type": "publicKey"
+          },
+          {
+            "name": "proposedOutcome",
+            "type": "u8"
+          },
+          {
+            "name": "confidence",
+            "type": "u8"
+          },
+          {
+            "name": "weight",
+            "type": "u64"
+          },
+          {
+            "name": "evidenceUri",
+            "type": "string"
+          },
+          {
+            "name": "submittedAt",
+            "type": "i64"
+          },
+          {
+            "name": "isCorrect",
+            "type": "bool"
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashProposal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "accusedBot",
+            "type": "publicKey"
+          },
+          {
+            "name": "reporter",
+            "type": "publicKey"
+          },
+          {
+            "name": "evidenceUri",
+            "type": "string"
+          },
+          {
+            "name": "slashReason",
+            "type": "u8"
+          },
+          {
+            "name": "proposedAt",
+            "type": "i64"
+          },
+          {
+            "name": "disputeDeadline",
+            "type": "i64"
+          },
+          {
+            "name": "defenseUri",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": "SlashStatus"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AgentVault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bot",
+            "type": "publicKey"
+          },
+          {
+            "name": "botOwner",
+            "type": "publicKey"
+          },
+          {
+            "name": "totalDeposits",
+            "type": "u128"
+          },
+          {
+            "name": "totalAum",
+            "type": "u128"
+          },
+          {
+            "name": "maxDepositPerUser",
+            "type": "u64"
+          },
+          {
+            "name": "maxTotalAum",
+            "type": "u64"
+          },
+          {
+            "name": "numDepositors",
+            "type": "u32"
+          },
+          {
+            "name": "totalProfit",
+            "type": "u128"
+          },
+          {
+            "name": "totalLoss",
+            "type": "u128"
+          },
+          {
+            "name": "highWaterMark",
+            "type": "u128"
+          },
+          {
+            "name": "isPaused",
+            "type": "bool"
+          },
+          {
+            "name": "isLiquidating",
+            "type": "bool"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "lastProfitDistribution",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultDeposit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "publicKey"
+          },
+          {
+            "name": "depositor",
+            "type": "publicKey"
+          },
+          {
+            "name": "amount",
+            "type": "u128"
+          },
+          {
+            "name": "depositedAt",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
     }
   ],
   "types": [
@@ -704,6 +1785,46 @@
       }
     },
     {
+      "name": "BotTier",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Novice"
+          },
+          {
+            "name": "Verified"
+          },
+          {
+            "name": "Elite"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Disputed"
+          },
+          {
+            "name": "Guilty"
+          },
+          {
+            "name": "Innocent"
+          },
+          {
+            "name": "Mistrial"
+          }
+        ]
+      }
+    },
+    {
       "name": "DjinnError",
       "type": {
         "kind": "enum",
@@ -743,6 +1864,87 @@
           },
           {
             "name": "MarketExpired"
+          },
+          {
+            "name": "NameTooLong"
+          },
+          {
+            "name": "UriTooLong"
+          },
+          {
+            "name": "InvalidCategory"
+          },
+          {
+            "name": "BotFrozen"
+          },
+          {
+            "name": "BotPaused"
+          },
+          {
+            "name": "TradeLimitExceeded"
+          },
+          {
+            "name": "TradeIntervalTooFast"
+          },
+          {
+            "name": "DailyLimitExceeded"
+          },
+          {
+            "name": "TooManyPositions"
+          },
+          {
+            "name": "BountyAlreadyFinalized"
+          },
+          {
+            "name": "BountyExpired"
+          },
+          {
+            "name": "BountyNotExpired"
+          },
+          {
+            "name": "BountyNotReady"
+          },
+          {
+            "name": "BountyNotFinalized"
+          },
+          {
+            "name": "InvalidConfidence"
+          },
+          {
+            "name": "InvalidSlashReason"
+          },
+          {
+            "name": "InvalidVerdict"
+          },
+          {
+            "name": "DisputeNotPending"
+          },
+          {
+            "name": "DisputeExpired"
+          },
+          {
+            "name": "TierTooLow"
+          },
+          {
+            "name": "VaultAlreadyExists"
+          },
+          {
+            "name": "VaultPaused"
+          },
+          {
+            "name": "VaultLiquidating"
+          },
+          {
+            "name": "VaultNotLiquidating"
+          },
+          {
+            "name": "DepositExceedsUserLimit"
+          },
+          {
+            "name": "DepositExceedsVaultCap"
+          },
+          {
+            "name": "InsufficientDeposit"
           }
         ]
       }
@@ -836,6 +2038,6 @@
     }
   ],
   "metadata": {
-    "address": "76HyPe3NMY39BXYaYPTq3QUmvxriXNhfEBZBXBxwxghB"
+    "address": "A8pVMgP6vwjGqcbYh1WGWDjXq9uwQRoF9Lz1siLmD7nm"
   }
 }

@@ -339,17 +339,39 @@ export default function RegisterBotModal({ isOpen, onClose, onSuccess, initialBo
                             <h1 className="text-3xl font-black lowercase tracking-tighter text-black leading-none mb-1">
                                 bot wallet
                             </h1>
-                            <p className="text-gray-400 text-sm font-bold">your bot needs its own Solana wallet to trade</p>
+                            <p className="text-gray-400 text-sm font-bold">your bot needs its own wallet to trade autonomously</p>
                         </div>
 
                         {!botKeypair ? (
-                            /* Generate Button */
+                            /* Wallet Explainer + Options */
                             <div className="text-center py-4">
-                                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl border-4 border-black flex items-center justify-center text-4xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] mb-4">
-                                    🔑
+                                {/* Two Wallets Explainer */}
+                                <div className="bg-gray-50 border-[3px] border-black rounded-2xl p-4 mb-5 text-left">
+                                    <div className="text-[10px] font-black uppercase text-gray-400 mb-3 tracking-wider">How It Works</div>
+                                    <div className="space-y-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[#F492B7] border-2 border-black flex items-center justify-center text-sm flex-shrink-0">🧑</div>
+                                            <div>
+                                                <div className="font-black text-xs text-black uppercase">Your Wallet (Owner)</div>
+                                                <div className="text-[11px] text-gray-500 font-bold">
+                                                    {publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'Not connected'} — Signs registration &amp; pays stake
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-black border-2 border-black flex items-center justify-center text-sm flex-shrink-0">🤖</div>
+                                            <div>
+                                                <div className="font-black text-xs text-black uppercase">Bot Wallet (Operator)</div>
+                                                <div className="text-[11px] text-gray-500 font-bold">
+                                                    Trades autonomously 24/7 on your behalf
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-gray-500 text-sm font-bold mb-6 max-w-[90%] mx-auto">
-                                    Choose how to connect your bot&apos;s wallet.
+
+                                <p className="text-gray-500 text-sm font-bold mb-5 max-w-[90%] mx-auto">
+                                    Did you run <code className="bg-gray-100 px-1.5 py-0.5 rounded text-[11px] border border-gray-200">npx @djinn/setup</code> already?
                                 </p>
 
                                 <div className="space-y-3">
@@ -358,7 +380,7 @@ export default function RegisterBotModal({ isOpen, onClose, onSuccess, initialBo
                                         onClick={handleUseExisting}
                                         className="w-full bg-[#F492B7] text-black font-black text-sm uppercase px-6 py-4 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2"
                                     >
-                                        <span>⚡ I have my key (CLI Setup)</span>
+                                        <span>⚡ Yes — Skip to Stake</span>
                                     </button>
 
                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest my-2">- OR -</div>
@@ -368,7 +390,7 @@ export default function RegisterBotModal({ isOpen, onClose, onSuccess, initialBo
                                         onClick={handleGenerateWallet}
                                         className="w-full bg-white text-black font-black text-sm uppercase px-6 py-4 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none transition-all grayscale opacity-70 hover:grayscale-0 hover:opacity-100"
                                     >
-                                        <span>🔑 Generate New Wallet</span>
+                                        <span>🔑 No — Generate Bot Wallet Here</span>
                                     </button>
                                 </div>
                             </div>
