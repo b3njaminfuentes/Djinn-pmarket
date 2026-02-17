@@ -302,49 +302,17 @@ export default function ProfilePage() {
                 // C. FINAL TARGET RESOLVED
                 setTargetWalletAddress(targetAddress);
                 isMeCheck = (!!myWallet && myWallet === targetAddress);
-                setTargetWalletAddress(targetAddress);
-                isMeCheck = (!!myWallet && myWallet === targetAddress);
                 setIsMyProfile(isMeCheck);
 
                 // --- BOT CHECK ---
+                let botProfileData = null;
                 try {
                     const botRes = await fetch(`/api/bot/${targetAddress}`);
                     if (botRes.ok) {
                         const botData = await botRes.json();
                         if (botData && botData.id) {
-                            console.log("🤖 Found Protocol Bot:", botData.name);
-                            setProfile({
-                                ...initialProfile,
-                                username: botData.name,
-                                pfp: botData.avatar || '🤖',
-                                bio: `Protocol Bot • ${botData.tier} Tier • ${botData.category} Strategy`,
-                                winRate: botData.stats?.winRate || 0,
-                                profit: botData.stats?.pnl || 0, // This is % in botData, but profile expects absolutes usually. 
-                                // Actually profile page assumes profit is $ or SOL?
-                                // Let's use portfolio for Vault.
-                                portfolio: botData.vault?.totalAum || 0,
-                                biggestWin: 0,
-                                medals: [],
-                                activeBets: [], // Will load below
-                                closedBets: [],
-                                achievements: [],
-                                createdMarkets: [],
-                                showGems: false,
-                                joinedAt: new Date().toISOString()
-                            });
-                            // Still load bets below
-                            // But return early from standard profile loading to avoid overwriting?
-                            // No, active bets loading is at end (Line 383).
-                            // We should let it fall through or handle it here?
-                            // Line 308 starts D. LOAD ACTUAL DATA.
-                            // If we setProfile here, we should prevent overwriting by 'finalProfile' logic below.
-
-                            // Let's modify the flow. 
-                            // I will set a flag or just return? 
-                            // If I return, 'activeBets' at line 384 won't run.
-
-                            // Better approach: Populate 'initialProfile' or modify 'finalProfile' logic?
-                            // I'll edit the logic below.
+                            botProfileData = botData;
+                            console.log("🤖 COMPLETED BOT PROFILE LOAD:", botData.name);
                         }
                     }
                 } catch (e) { }
@@ -352,14 +320,17 @@ export default function ProfilePage() {
                 // D. LOAD ACTUAL DATA (Memory Source of Truth)
                 let finalProfile = {
                     ...initialProfile,
-                    username: `${targetAddress.slice(0, 4)}...${targetAddress.slice(-4)}`,
-                    pfp: "/pink-pfp.png",
-                    bio: "New Djinn Trader"
+                    username: botProfileData?.name || `${targetAddress.slice(0, 4)}...${targetAddress.slice(-4)}`,
+                    pfp: botProfileData?.avatar || "/pink-pfp.png",
+                    bio: botProfileData ? `Protocol Bot • ${botProfileData.tier} Tier • ${botProfileData.category}` : "New Djinn Trader",
+                    // Map Bot Stats
+                    winRate: botProfileData?.stats?.winRate || 0,
+                    portfolio: botProfileData?.vault?.totalAum || 0,
+                    profit: botProfileData?.stats?.pnl || 0
                 };
 
-                // 1. Local Storage Override (OPTIMISTIC / FALLBACK)
-                // We check this FIRST so we have something to show if API fails
-                if (isMeCheck) {
+                // 1. Local Storage Override (Skip if Bot)
+                if (!botProfileData && isMeCheck) {
                     const local = localStorage.getItem(`djinn_profile_${targetAddress}`);
                     if (local) {
                         try {
@@ -380,7 +351,7 @@ export default function ProfilePage() {
                 const isLordWallet = targetAddress === GOD_WALLET || targetAddress === 'C31JQfZBVRsnvFqiNptD95rvbEx8fsuPwdZn62yEWx9X';
 
                 const [dbProfile, achievements, balance] = await Promise.all([
-                    supabaseDb.getProfile(targetAddress).catch(() => null),
+                    !botProfileData ? supabaseDb.getProfile(targetAddress).catch(() => null) : Promise.resolve(null),
                     isLordWallet ? Promise.resolve(null) : supabaseDb.getUserAchievements(targetAddress).catch(() => []),
                     connection.getBalance(new PublicKey(targetAddress)).catch(() => 0)
                 ]);
@@ -422,8 +393,12 @@ export default function ProfilePage() {
                     finalProfile.medals = achievements.map((a: any) => a.code);
                 }
 
-                // 4. On-chain Balance
-                finalProfile.portfolio = balance / LAMPORTS_PER_SOL;
+                // 4. On-chain Balance (Use Vault TVL if Bot?)
+                if (botProfileData) {
+                    finalProfile.portfolio = botProfileData.vault?.totalAum || (balance / LAMPORTS_PER_SOL);
+                } else {
+                    finalProfile.portfolio = balance / LAMPORTS_PER_SOL;
+                }
 
                 // 5. Load Active Bets for everyone
                 loadActiveBets(targetAddress);

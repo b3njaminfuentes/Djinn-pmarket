@@ -8,9 +8,11 @@ import StarfieldBg from '@/components/StarfieldBg';
 import { useSound } from '@/components/providers/SoundProvider';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
 import { useDjinnProtocol } from '@/hooks/useDjinnProtocol';
 import RegisterBotModal from '@/components/RegisterBotModal';
 import CustomWalletModal from '@/components/CustomWalletModal';
+import BotActionSuccessModal from '@/components/BotActionSuccessModal';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -217,38 +219,91 @@ function BotsLeaderboardContent() {
     const urlCode = searchParams.get('code');
     const [inlineCode, setInlineCode] = useState('');
 
-    const { toggleBot, withdrawFromVault } = useDjinnProtocol();
+    const { toggleBot, withdrawFromVault, deregisterBot, restakeBot, program } = useDjinnProtocol();
     const [isUnstaking, setIsUnstaking] = useState(false);
+    const [myBotOnChain, setMyBotOnChain] = useState<{ stake: BN, isActive: boolean } | null>(null);
+
+    const [successModalCtx, setSuccessModalCtx] = useState<{ txHash: string, wallet: PublicKey, action: 'refund' | 'stake' } | null>(null);
 
     const myBot = bots.find(b => publicKey && b.ownerAddress === publicKey.toBase58());
 
-    const handleUnstake = async () => {
+    // Fetch on-chain data for accuracy
+    useEffect(() => {
+        if (!program || !publicKey) return;
+        const fetchOnChain = async () => {
+            try {
+                const [botProfilePda] = PublicKey.findProgramAddressSync(
+                    [Buffer.from('bot_profile'), publicKey.toBuffer()],
+                    program.programId
+                );
+                // @ts-ignore
+                const acc = await program.account.botProfile.fetch(botProfilePda);
+                setMyBotOnChain({
+                    stake: acc.stake as BN,
+                    isActive: acc.isActive as boolean
+                });
+            } catch (e) {
+                // Account might not exist
+                setMyBotOnChain(null);
+            }
+        };
+        fetchOnChain();
+        const interval = setInterval(fetchOnChain, 5000);
+        return () => clearInterval(interval);
+    }, [program, publicKey]);
+
+    const handleWithdrawVault = async () => {
         if (!myBot || !publicKey) return;
         setIsUnstaking(true);
         try {
-            const PROGRAM_ID = new PublicKey("A8pVMgP6vwjGqcbYh1WGWDjXq9uwQRoF9Lz1siLmD7nm");
             const [botProfilePda] = PublicKey.findProgramAddressSync(
                 [Buffer.from('bot_profile'), publicKey.toBuffer()],
-                PROGRAM_ID
+                program.programId
             );
             const [agentVaultPda] = PublicKey.findProgramAddressSync(
                 [Buffer.from('agent_vault'), botProfilePda.toBuffer()],
-                PROGRAM_ID
+                program.programId
             );
 
-            // 1. Stop Bot
-            await toggleBot(false, myBot.isPaperTrading || false);
-
-            // 2. Withdraw All
-            if (myBot.vault && myBot.vault.totalAum > 0) {
-                await withdrawFromVault(agentVaultPda, myBot.vault.totalAum);
-            }
-
+            await withdrawFromVault(agentVaultPda, myBot.vault?.totalAum || 0);
             play('success');
-            // Optimistic update or refresh
             window.location.reload();
         } catch (e) {
-            console.error("Unstake failed", e);
+            console.error("Vault withdraw failed", e);
+            play('error');
+        } finally {
+            setIsUnstaking(false);
+        }
+    };
+
+    const handleDeregister = async () => {
+        if (!publicKey) return;
+        setIsUnstaking(true);
+        try {
+            // First ensure bot is inactive if it's active
+            if (myBotOnChain?.isActive) {
+                await toggleBot(false, false); // Turn off first
+            }
+            const sig = await deregisterBot();
+            play('success');
+            setSuccessModalCtx({ txHash: sig, wallet: publicKey, action: 'refund' });
+        } catch (e) {
+            console.error("Deregister failed", e);
+            play('error');
+        } finally {
+            setIsUnstaking(false);
+        }
+    };
+
+    const handleRestake = async () => {
+        if (!publicKey) return;
+        setIsUnstaking(true);
+        try {
+            const sig = await restakeBot();
+            play('success');
+            setSuccessModalCtx({ txHash: sig, wallet: publicKey, action: 'stake' });
+        } catch (e) {
+            console.error("Restake failed", e);
             play('error');
         } finally {
             setIsUnstaking(false);
@@ -691,13 +746,58 @@ function BotsLeaderboardContent() {
                                                     <button className="bg-white text-black font-bold px-5 py-2.5 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[0px] active:shadow-none transition-all uppercase text-xs">
                                                         View Analytics
                                                     </button>
-                                                    <button
-                                                        onClick={handleUnstake}
-                                                        disabled={isUnstaking}
-                                                        className="bg-gray-200 text-gray-800 font-bold px-5 py-2.5 rounded-xl border-2 border-gray-300 hover:bg-red-100 hover:text-red-600 hover:border-red-300 transition-all uppercase text-xs cursor-pointer disabled:opacity-50"
-                                                    >
-                                                        {isUnstaking ? 'Unstaking...' : 'Unstake & Stop'}
-                                                    </button>
+                                                    <div className="flex flex-col items-end gap-2">
+                                                        {/* 1. VAULT WITHDRAWAL (If AUM exists) */}
+                                                        {myBot.vault && myBot.vault.totalAum > 0 && (
+                                                            <button
+                                                                onClick={handleWithdrawVault}
+                                                                disabled={isUnstaking}
+                                                                className="bg-purple-100 text-purple-800 font-bold px-5 py-2.5 rounded-xl border-2 border-purple-300 hover:bg-purple-200 hover:scale-105 transition-all uppercase text-xs cursor-pointer disabled:opacity-50 shadow-sm"
+                                                            >
+                                                                {isUnstaking ? 'Processing...' : `Withdraw AUM (${formatSol(myBot.vault.totalAum)} ◎)`}
+                                                            </button>
+                                                        )}
+
+                                                        {/* 2. STAKE MANAGEMENT */}
+                                                        {!myBotOnChain ? (
+                                                            <span className="text-xs text-gray-400 animate-pulse">Loading status...</span>
+                                                        ) : (
+                                                            <>
+                                                                {/* ACTIVE -> STOP & REFUND */}
+                                                                {myBotOnChain.isActive && (
+                                                                    <button
+                                                                        onClick={handleDeregister}
+                                                                        disabled={isUnstaking}
+                                                                        className="bg-red-50 text-red-600 font-bold px-5 py-2.5 rounded-xl border-2 border-red-200 hover:bg-red-100 hover:border-red-400 hover:scale-105 transition-all uppercase text-xs cursor-pointer disabled:opacity-50 shadow-sm"
+                                                                    >
+                                                                        {isUnstaking ? 'Stopping...' : 'Stop & Refund (10 SOL)'}
+                                                                    </button>
+                                                                )}
+
+                                                                {/* INACTIVE + STAKED -> REFUND */}
+                                                                {!myBotOnChain.isActive && myBotOnChain.stake.gt(new BN(0)) && (
+                                                                    <button
+                                                                        onClick={handleDeregister}
+                                                                        disabled={isUnstaking}
+                                                                        className="bg-gray-100 text-gray-800 font-bold px-5 py-2.5 rounded-xl border-2 border-gray-300 hover:bg-gray-200 hover:border-gray-500 hover:scale-105 transition-all uppercase text-xs cursor-pointer disabled:opacity-50 shadow-sm"
+                                                                    >
+                                                                        {isUnstaking ? 'Refunding...' : 'Refund Stake (10 SOL)'}
+                                                                    </button>
+                                                                )}
+
+                                                                {/* INACTIVE + UNSTAKED -> RESTAKE */}
+                                                                {!myBotOnChain.isActive && myBotOnChain.stake.eqn(0) && (
+                                                                    <button
+                                                                        onClick={handleRestake}
+                                                                        disabled={isUnstaking}
+                                                                        className="bg-[#10B981] text-black font-bold px-5 py-2.5 rounded-xl border-2 border-black hover:bg-[#34D399] hover:scale-105 transition-all uppercase text-xs cursor-pointer disabled:opacity-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                                                    >
+                                                                        {isUnstaking ? 'Staking...' : 'Restake (10 SOL)'}
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -815,6 +915,17 @@ function BotsLeaderboardContent() {
             <CustomWalletModal
                 isOpen={isWalletModalOpen}
                 onClose={() => setIsWalletModalOpen(false)}
+            />
+
+            <BotActionSuccessModal
+                isOpen={!!successModalCtx}
+                onClose={() => {
+                    setSuccessModalCtx(null);
+                    window.location.reload();
+                }}
+                txHash={successModalCtx?.txHash || ''}
+                wallet={successModalCtx?.wallet || null}
+                action={successModalCtx?.action || 'refund'}
             />
         </main>
     );

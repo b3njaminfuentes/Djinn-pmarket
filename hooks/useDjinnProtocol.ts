@@ -459,6 +459,74 @@ export const useDjinnProtocol = () => {
         }
     }, [program, anchorWallet, connection, publicKey]);
 
+    const deregisterBot = useCallback(async () => {
+        if (!program || !anchorWallet || !connection || !publicKey) throw new Error("Wallet not connected");
+
+        try {
+            const [botProfilePda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('bot_profile'), publicKey.toBuffer()],
+                program.programId
+            );
+            const [botEscrowPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('bot_escrow'), publicKey.toBuffer()],
+                program.programId
+            );
+
+            const tx = new web3.Transaction();
+            const ix = await program.methods
+                .deregisterBot()
+                .accounts({
+                    botProfile: botProfilePda,
+                    botEscrow: botEscrowPda,
+                    owner: publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .instruction();
+
+            tx.add(ix);
+            const signature = await sendTransaction(tx, connection);
+            await connection.confirmTransaction(signature, 'confirmed');
+            return signature;
+        } catch (error) {
+            console.error("Error deregistering bot:", error);
+            throw error;
+        }
+    }, [program, anchorWallet, connection, publicKey]);
+
+    const restakeBot = useCallback(async () => {
+        if (!program || !anchorWallet || !connection || !publicKey) throw new Error("Wallet not connected");
+
+        try {
+            const [botProfilePda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('bot_profile'), publicKey.toBuffer()],
+                program.programId
+            );
+            const [botEscrowPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('bot_escrow'), publicKey.toBuffer()],
+                program.programId
+            );
+
+            const tx = new web3.Transaction();
+            const ix = await program.methods
+                .restakeBot()
+                .accounts({
+                    botProfile: botProfilePda,
+                    botEscrow: botEscrowPda,
+                    owner: publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .instruction();
+
+            tx.add(ix);
+            const signature = await sendTransaction(tx, connection);
+            await connection.confirmTransaction(signature, 'confirmed');
+            return signature;
+        } catch (error) {
+            console.error("Error restaking bot:", error);
+            throw error;
+        }
+    }, [program, anchorWallet, connection, publicKey]);
+
     // ═══════════════════════════════════════════════════════════════════════
     // VAULT MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
@@ -584,6 +652,8 @@ export const useDjinnProtocol = () => {
         // Bots
         registerBot,
         toggleBot,
+        deregisterBot,
+        restakeBot,
         // Vaults
         initializeVault,
         depositToVault,

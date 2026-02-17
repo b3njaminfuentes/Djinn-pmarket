@@ -52,6 +52,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const crypto_1 = require("crypto");
 const child_process_1 = require("child_process");
 // @ts-ignore
 const prompts_1 = __importDefault(require("prompts"));
@@ -215,11 +216,33 @@ async function main() {
             process.exit(0);
         }
     });
-    // Default configuration (User sets Name/Category on Web)
-    const botName = 'Unconfigured Bot';
-    const category = 0; // Default to 'All'
     if (response.network)
         network = response.network;
+    // ─── Step 2b: Bot Identity ──────────────────────────────────────────
+    console.log('\n🤖 Step 2b: Bot Identity\n');
+    const identityResponse = await (0, prompts_1.default)([
+        {
+            type: 'text',
+            name: 'botName',
+            message: 'Bot Name (max 32 chars):',
+            initial: overrides.botName || '',
+            validate: (v) => v.length > 0 && v.length <= 32 ? true : 'Name must be 1-32 characters',
+        },
+        {
+            type: 'select',
+            name: 'category',
+            message: 'Strategy Category:',
+            choices: CATEGORIES.map((c, i) => ({ title: `${c}`, value: i })),
+            initial: overrides.category || 0,
+        },
+    ], {
+        onCancel: () => {
+            console.log('\n❌ Setup cancelled.');
+            process.exit(0);
+        }
+    });
+    const botName = identityResponse.botName || 'Djinn Bot';
+    const category = identityResponse.category ?? 0;
     const defaultRpc = network === 'devnet' ? 'https://api.devnet.solana.com' : 'https://api.mainnet-beta.solana.com';
     const rpcUrl = response.rpcUrl || defaultRpc;
     const webhookUrl = response.webhookUrl;
@@ -254,25 +277,125 @@ async function main() {
     const kp = web3_js_1.Keypair.fromSecretKey(secretKey);
     const botWalletPubkey = kp.publicKey.toBase58();
     // ─── Step 3.5: Auto-Fund (Devnet) ──────────────────────────────────
+    const connection = new web3_js_1.Connection(rpcUrl, 'confirmed');
     if (network === 'devnet') {
         console.log('\n💸 Auto-Funding Wallet (Devnet)\n');
-        const connection = new web3_js_1.Connection(rpcUrl, 'confirmed');
         try {
-            const balance = await connection.getBalance(kp.publicKey);
-            if (balance < 1 * web3_js_1.LAMPORTS_PER_SOL) {
-                console.log('  💧 Requesting 5 SOL Airdrop...');
-                const signature = await connection.requestAirdrop(kp.publicKey, 5 * web3_js_1.LAMPORTS_PER_SOL);
-                await connection.confirmTransaction(signature);
-                const newBalance = await connection.getBalance(kp.publicKey);
-                console.log(`  ✅ Airdrop successful! New Balance: ${newBalance / web3_js_1.LAMPORTS_PER_SOL} SOL`);
+            let balance = await connection.getBalance(kp.publicKey);
+            const REQUIRED_SOL = 11; // 10 SOL stake + fees
+            if (balance < REQUIRED_SOL * web3_js_1.LAMPORTS_PER_SOL) {
+                // Request multiple airdrops (devnet limits ~2 SOL per request)
+                const rounds = Math.ceil((REQUIRED_SOL * web3_js_1.LAMPORTS_PER_SOL - balance) / (2 * web3_js_1.LAMPORTS_PER_SOL));
+                for (let i = 0; i < Math.min(rounds, 6); i++) {
+                    try {
+                        console.log(`  💧 Airdrop ${i + 1}/${rounds}...`);
+                        const sig = await connection.requestAirdrop(kp.publicKey, 2 * web3_js_1.LAMPORTS_PER_SOL);
+                        await connection.confirmTransaction(sig);
+                        await new Promise(r => setTimeout(r, 1000)); // Rate limit pause
+                    }
+                    catch {
+                        console.log(`  ⚠️  Airdrop ${i + 1} failed (rate limited). Continuing...`);
+                        break;
+                    }
+                }
+                balance = await connection.getBalance(kp.publicKey);
+                console.log(`  ✅ Balance: ${balance / web3_js_1.LAMPORTS_PER_SOL} SOL`);
+                if (balance < 10 * web3_js_1.LAMPORTS_PER_SOL) {
+                    console.log(`  ⚠️  Need 10+ SOL for registration. Use faucet: https://faucet.solana.com`);
+                    console.log(`  Wallet: ${botWalletPubkey}`);
+                }
             }
             else {
                 console.log(`  ✅ Wallet already funded: ${balance / web3_js_1.LAMPORTS_PER_SOL} SOL`);
             }
         }
         catch (e) {
-            console.log('  ⚠️  Airdrop failed (Rate limited?). You may need to use a faucet: https://faucet.solana.com');
+            console.log('  ⚠️  Airdrop failed. You may need to use a faucet: https://faucet.solana.com');
         }
+    }
+    // ─── Step 3.6: Register Bot On-Chain ──────────────────────────────
+    console.log('\n⛓️  Step 3.6: Registering Bot On-Chain\n');
+    let registeredOnChain = false;
+    const programId = new web3_js_1.PublicKey(DJINN_PROGRAM_ID);
+    try {
+        const balance = await connection.getBalance(kp.publicKey);
+        if (balance < 10 * web3_js_1.LAMPORTS_PER_SOL) {
+            console.log(`  ⚠️  Insufficient balance (${balance / web3_js_1.LAMPORTS_PER_SOL} SOL). Need 10+ SOL.`);
+            console.log('  Skipping on-chain registration. You can register later via the web.\n');
+        }
+        else {
+            // Derive PDAs
+            const [botProfilePDA] = web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('bot_profile'), kp.publicKey.toBuffer()], programId);
+            const [botEscrowPDA] = web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('bot_escrow'), kp.publicKey.toBuffer()], programId);
+            // Check if already registered
+            const existingAccount = await connection.getAccountInfo(botProfilePDA);
+            if (existingAccount) {
+                console.log('  ✅ Bot already registered on-chain!');
+                console.log(`  PDA: ${botProfilePDA.toBase58()}`);
+                registeredOnChain = true;
+            }
+            else {
+                // Build registerBot instruction manually (no Anchor dependency)
+                const discriminator = (0, crypto_1.createHash)('sha256')
+                    .update('global:register_bot')
+                    .digest()
+                    .slice(0, 8);
+                const nameBytes = Buffer.from(botName, 'utf-8');
+                const metadataUri = JSON.stringify({
+                    description: `Autonomous ${CATEGORIES[category] || 'general'} prediction agent`,
+                    image: `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${botName}`,
+                });
+                const uriBytes = Buffer.from(metadataUri, 'utf-8');
+                // Borsh serialization: discriminator + string(name) + string(uri) + u8(category)
+                const data = Buffer.alloc(8 + 4 + nameBytes.length + 4 + uriBytes.length + 1);
+                let offset = 0;
+                discriminator.copy(data, offset);
+                offset += 8;
+                data.writeUInt32LE(nameBytes.length, offset);
+                offset += 4;
+                nameBytes.copy(data, offset);
+                offset += nameBytes.length;
+                data.writeUInt32LE(uriBytes.length, offset);
+                offset += 4;
+                uriBytes.copy(data, offset);
+                offset += uriBytes.length;
+                data.writeUInt8(category, offset);
+                const instruction = new web3_js_1.TransactionInstruction({
+                    keys: [
+                        { pubkey: botProfilePDA, isSigner: false, isWritable: true },
+                        { pubkey: botEscrowPDA, isSigner: false, isWritable: true },
+                        { pubkey: kp.publicKey, isSigner: true, isWritable: true },
+                        { pubkey: web3_js_1.SystemProgram.programId, isSigner: false, isWritable: false },
+                    ],
+                    programId,
+                    data,
+                });
+                console.log('  📡 Sending registerBot transaction...');
+                const { blockhash } = await connection.getLatestBlockhash();
+                const messageV0 = new web3_js_1.TransactionMessage({
+                    payerKey: kp.publicKey,
+                    recentBlockhash: blockhash,
+                    instructions: [instruction],
+                }).compileToV0Message();
+                const tx = new web3_js_1.VersionedTransaction(messageV0);
+                tx.sign([kp]);
+                const txSig = await connection.sendTransaction(tx);
+                console.log(`  ⏳ Confirming tx: ${txSig}`);
+                await connection.confirmTransaction(txSig);
+                console.log(`  ✅ Bot registered on-chain!`);
+                console.log(`  PDA: ${botProfilePDA.toBase58()}`);
+                console.log(`  TX: ${txSig}`);
+                registeredOnChain = true;
+            }
+        }
+    }
+    catch (e) {
+        const err = e;
+        let msg = err.message || 'Unknown error';
+        if (msg.includes('custom program error: 0x0'))
+            msg = 'Bot already registered or name taken';
+        console.log(`  ⚠️  On-chain registration failed: ${msg}`);
+        console.log('  You can register later via the Magic Link.\n');
     }
     // ─── Step 4: Claim Activation Code ──────────────────────────────────
     console.log('\n📡 Step 4: Claiming Activation Code\n');
@@ -294,7 +417,25 @@ async function main() {
         }
         else {
             console.log(`  ⚠️  Could not claim code: ${claimData.error || 'Unknown'}`);
-            console.log('  You can still complete registration via the Magic Link.\n');
+        }
+        // If bot was registered on-chain, also mark code as "used"
+        if (registeredOnChain) {
+            try {
+                const [botProfilePDA] = web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('bot_profile'), kp.publicKey.toBuffer()], programId);
+                await fetch(`${finalApiUrl}/api/bot/codes/use`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code,
+                        ownerWallet: botWalletPubkey,
+                        botProfilePda: botProfilePDA.toBase58(),
+                    }),
+                });
+                console.log('  ✅ Code marked as used!');
+            }
+            catch {
+                // Non-critical
+            }
         }
     }
     catch (e) {
@@ -338,35 +479,45 @@ ${webhookUrl ? `DJINN_WEBHOOK_URL=${webhookUrl}` : '# DJINN_WEBHOOK_URL=https://
     }
     // ─── Done ──────────────────────────────────────────────────────────────
     console.log('\n' + '═'.repeat(60));
-    console.log('\n🎉 Setup complete! Here\'s how it works:\n');
-    console.log('  YOUR BOT HAS TWO WALLETS:');
-    console.log('  ┌──────────────────────────────────────────────────────┐');
-    console.log('  │  🧑 OWNER WALLET (Phantom/Backpack in your browser) │');
-    console.log('  │     → Signs the registration tx & pays the stake    │');
-    console.log('  │     → You control this. It\'s YOUR wallet.           │');
-    console.log('  │                                                      │');
-    console.log('  │  🤖 BOT WALLET (generated above)                    │');
-    console.log(`  │     → ${walletPath}`);
-    console.log('  │     → The bot uses this to execute trades 24/7      │');
-    console.log('  │     → It operates autonomously with this key        │');
-    console.log('  └──────────────────────────────────────────────────────┘\n');
-    console.log('  NEXT STEP:\n');
-    if (network === 'devnet') {
-        console.log('  1. Open this link in your browser (connect your OWNER wallet):');
+    console.log('\n🎉 Setup complete!\n');
+    if (registeredOnChain) {
+        console.log('  ✅ BOT STATUS: REGISTERED ON-CHAIN');
+        console.log('  ┌──────────────────────────────────────────────────────┐');
+        console.log(`  │  🤖 ${botName}`);
+        console.log(`  │  📍 Wallet: ${botWalletPubkey}`);
+        console.log(`  │  🏷️  Category: ${CATEGORIES[category] || 'All'}`);
+        console.log(`  │  💰 Stake: 10 SOL (in escrow)`);
+        console.log('  │  🔑 The bot signs its own transactions autonomously │');
+        console.log('  └──────────────────────────────────────────────────────┘\n');
+        console.log('  NEXT STEPS:\n');
+        console.log('  1. View your bot on the dashboard:');
+        const baseUrl = network === 'devnet' ? 'http://localhost:3000' : 'https://djinn.world';
+        console.log(`\n     👉 \x1b[36m${baseUrl}/bots\x1b[0m\n`);
+        console.log('  2. Start your bot (OpenClaw or custom logic):');
+        console.log('     // Your bot reads .env.djinn and trades autonomously');
+        console.log('     const markets = await djinn.listMarkets();\n');
     }
     else {
-        console.log('  1. Fund your owner wallet with 11+ SOL, then open:');
+        console.log('  ⚠️  BOT STATUS: NOT YET REGISTERED ON-CHAIN');
+        console.log('  ┌──────────────────────────────────────────────────────┐');
+        console.log(`  │  🤖 Bot Wallet: ${botWalletPubkey}`);
+        console.log('  │  💰 Need 10+ SOL to register                        │');
+        console.log('  └──────────────────────────────────────────────────────┘\n');
+        console.log('  NEXT STEPS:\n');
+        if (network === 'devnet') {
+            console.log('  1. Fund bot wallet via faucet: https://faucet.solana.com');
+            console.log(`     Wallet: ${botWalletPubkey}\n`);
+            console.log('  2. Re-run setup: npx @djinn/setup\n');
+        }
+        else {
+            console.log('  1. Send 11+ SOL to bot wallet:');
+            console.log(`     ${botWalletPubkey}\n`);
+            console.log('  2. Complete registration on the web:');
+            const baseUrl = 'https://djinn.world';
+            const magicLink = `${baseUrl}/bots?code=${encodeURIComponent(code)}`;
+            console.log(`\n     👉 \x1b[36m${magicLink}\x1b[0m\n`);
+        }
     }
-    const baseUrl = network === 'devnet' ? 'http://localhost:3000' : 'https://djinn.world';
-    const magicLink = `${baseUrl}/bots?code=${encodeURIComponent(code)}`;
-    console.log(`\n     👉 \x1b[36m${magicLink}\x1b[0m\n`);
-    console.log('     Connect wallet → Stake → Bot is live!\n');
-    console.log('  2. Configure & Activate on Web:');
-    console.log('     Follow the link above to set your Bot Name and Category.');
-    console.log('     Once activated, your bot will be ready to trade!\n');
-    console.log('  3. Start your bot logic:');
-    console.log('     // Your bot reads .env.djinn and trades with the bot wallet');
-    console.log('     const markets = await djinn.listMarkets();');
     console.log('  📖 Full docs: https://docs.djinn.world/bots');
     console.log('  💬 Discord: https://discord.gg/djinn\n');
 }

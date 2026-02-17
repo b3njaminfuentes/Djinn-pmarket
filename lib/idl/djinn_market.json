@@ -566,6 +566,64 @@
       "args": []
     },
     {
+      "name": "deregisterBot",
+      "docs": [
+        "Deregister a bot — returns 10 SOL stake to owner, sets active=false, keeps stats"
+      ],
+      "accounts": [
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botEscrow",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "restakeBot",
+      "docs": [
+        "Restake a bot — deposits 10 SOL to re-activate a previously deregistered bot"
+      ],
+      "accounts": [
+        {
+          "name": "botProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "botEscrow",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initializeBountyPool",
       "docs": [
         "Initialize a Bounty Pool for a market (called at resolve)"

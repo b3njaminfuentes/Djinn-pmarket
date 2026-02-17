@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Star {
     x: number;
@@ -12,7 +12,9 @@ interface Star {
 }
 
 export default function StarfieldBg() {
-    const stars = useMemo<Star[]>(() => {
+    const [stars, setStars] = useState<Star[]>([]);
+
+    useEffect(() => {
         const result: Star[] = [];
         for (let i = 0; i < 120; i++) {
             result.push({
@@ -21,10 +23,10 @@ export default function StarfieldBg() {
                 size: Math.random() * 2 + 0.5,
                 delay: Math.random() * 8,
                 duration: Math.random() * 4 + 3,
-                isPink: Math.random() < 0.06, // ~6% chance pink
+                isPink: Math.random() < 0.06,
             });
         }
-        return result;
+        setStars(result);
     }, []);
 
     return (

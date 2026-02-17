@@ -1053,6 +1053,68 @@ pub mod djinn_market {
         Ok(())
     }
 
+    /// Deregister a bot — returns 10 SOL stake to owner, sets active=false, keeps stats
+    pub fn deregister_bot(
+        ctx: Context<DeregisterBot>,
+    ) -> Result<()> {
+        let bot = &mut ctx.accounts.bot_profile;
+        require!(!bot.is_frozen, DjinnError::BotFrozen);
+        require!(bot.stake > 0, DjinnError::NoShares); // Reuse NoShares or add NoStake
+
+        // Transfer stake back to owner
+        let owner_key = bot.owner;
+        let seeds = &[
+            b"bot_escrow",
+            owner_key.as_ref(),
+            &[ctx.bumps.bot_escrow],
+        ];
+        let signer = &[&seeds[..]];
+
+        anchor_lang::system_program::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.bot_escrow.to_account_info(),
+                    to: ctx.accounts.owner.to_account_info(),
+                },
+                signer,
+            ),
+            bot.stake,
+        )?;
+
+        bot.stake = 0;
+        bot.is_active = false;
+        
+        Ok(())
+    }
+
+    /// Restake a bot — deposits 10 SOL to re-activate a previously deregistered bot
+    pub fn restake_bot(
+        ctx: Context<RestakeBot>,
+    ) -> Result<()> {
+        let bot = &mut ctx.accounts.bot_profile;
+        require!(!bot.is_frozen, DjinnError::BotFrozen);
+        require!(bot.stake == 0, DjinnError::AlreadyClaimed); // Reuse error or add generic
+
+        // Transfer 10 SOL stake from owner to bot escrow PDA
+        let stake_amount: u64 = 10_000_000_000; // 10 SOL
+        anchor_lang::system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.owner.to_account_info(),
+                    to: ctx.accounts.bot_escrow.to_account_info(),
+                },
+            ),
+            stake_amount,
+        )?;
+
+        bot.stake = stake_amount;
+        bot.is_active = true;
+
+        Ok(())
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // AI BOT INTEGRATION (Module 2: Oracle Network — Verification & Disputes)
     // ═══════════════════════════════════════════════════════════════════════════
@@ -2102,6 +2164,54 @@ pub struct UnfreezeBot<'info> {
     /// CHECK: Only G1 Treasury / Admin can unfreeze
     #[account(address = G1_TREASURY)]
     pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct DeregisterBot<'info> {
+    #[account(
+        mut,
+        seeds = [b"bot_profile", owner.key().as_ref()],
+        bump = bot_profile.bump,
+        has_one = owner
+    )]
+    pub bot_profile: Box<Account<'info, BotProfile>>,
+    
+    /// CHECK: Bot escrow PDA for slashing/refund
+    #[account(
+        mut,
+        seeds = [b"bot_escrow", owner.key().as_ref()],
+        bump
+    )]
+    pub bot_escrow: AccountInfo<'info>,
+    
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct RestakeBot<'info> {
+    #[account(
+        mut,
+        seeds = [b"bot_profile", owner.key().as_ref()],
+        bump = bot_profile.bump,
+        has_one = owner
+    )]
+    pub bot_profile: Box<Account<'info, BotProfile>>,
+    
+    /// CHECK: Bot escrow PDA for slashing/refund
+    #[account(
+        mut,
+        seeds = [b"bot_escrow", owner.key().as_ref()],
+        bump
+    )]
+    pub bot_escrow: AccountInfo<'info>,
+    
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]

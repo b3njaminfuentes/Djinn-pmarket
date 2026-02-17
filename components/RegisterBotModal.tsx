@@ -101,8 +101,13 @@ export default function RegisterBotModal({ isOpen, onClose, onSuccess, initialCo
                 return;
             }
 
+            // If code was already used (bot registered via CLI), show success
             if (data.status === 'used') {
-                setCodeError('This code has already been used');
+                setCodeData(data);
+                setBotNameInput(data.botName || '');
+                setCategoryInput(data.category || 0);
+                setBotId(data.botProfilePda || data.botWallet || '');
+                setStep('SUCCESS');
                 return;
             }
 
@@ -388,6 +393,16 @@ export default function RegisterBotModal({ isOpen, onClose, onSuccess, initialCo
                             </div>
                         </div>
 
+                        {/* Bot wallet warning */}
+                        {codeData?.botWallet && publicKey && codeData.botWallet === publicKey.toBase58() && (
+                            <div className="bg-yellow-50 border-[3px] border-yellow-400 rounded-2xl p-4 mb-4">
+                                <div className="text-[10px] font-black uppercase text-yellow-600 mb-1 tracking-wider">Wrong Wallet Connected</div>
+                                <p className="text-yellow-700 text-xs font-bold">
+                                    You&apos;re connected with the <strong>bot wallet</strong>. Please connect your <strong>human/owner wallet</strong> (Phantom) to register.
+                                </p>
+                            </div>
+                        )}
+
                         {/* Stake Info */}
                         <div className="bg-gray-50 border-[3px] border-black rounded-2xl p-5 mb-4">
                             <div className="flex justify-between items-center mb-1">
@@ -396,6 +411,7 @@ export default function RegisterBotModal({ isOpen, onClose, onSuccess, initialCo
                             </div>
                             <div className="text-[10px] font-bold text-gray-400 leading-relaxed">
                                 Stake is held in escrow. Returned when you deregister (minus slashing).
+                                {codeData?.botWallet && <> Bot wallet: <code className="bg-gray-100 px-1 rounded text-[9px]">{codeData.botWallet.slice(0, 8)}...{codeData.botWallet.slice(-4)}</code></>}
                             </div>
                         </div>
 

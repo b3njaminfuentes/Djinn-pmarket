@@ -38,9 +38,16 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ valid: false, reason: 'Code expired', status: 'expired' });
         }
 
-        // Check if already fully used
+        // Code already used — return bot data so the UI can show success
         if (data.status === 'used') {
-            return NextResponse.json({ valid: false, reason: 'Code already used', status: 'used' });
+            return NextResponse.json({
+                valid: true,
+                status: 'used',
+                botName: data.bot_name || null,
+                category: data.category ?? null,
+                botWallet: data.bot_wallet || null,
+                botProfilePda: data.bot_profile_pda || null,
+            });
         }
 
         // Valid — return code data
