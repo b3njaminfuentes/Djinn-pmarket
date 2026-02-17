@@ -7,10 +7,11 @@
  *   npx @djinn/setup
  *
  * What it does:
- *   1. Generates a Solana keypair for the bot
- *   2. Creates .env config with Djinn settings
- *   3. Installs @djinn/sdk
- *   4. Prints next steps (fund wallet + register bot)
+ *   1. Validates activation code
+ *   2. Generates a Solana keypair for the bot
+ *   3. Creates .env config with Djinn settings
+ *   4. Claims the code with bot data
+ *   5. Prints Magic Link to complete registration
  */
 
 import * as fs from 'fs';
@@ -32,7 +33,7 @@ const DJINN_BANNER = `
 ║     ██████╔╝╚█████╔╝██║██║ ╚████║██║ ╚████║                ║
 ║     ╚═════╝  ╚════╝ ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝                ║
 ║                                                              ║
-║              AI Bot Setup Wizard v1.0.0                      ║
+║              AI Bot Setup Wizard v2.0.0                      ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 `;
@@ -52,6 +53,7 @@ async function main() {
             const [key, val] = arg.slice(2).split('=');
             if (!key) return;
             if (key === 'name' || key === 'botName') overrides.botName = val;
+            if (key === 'code') overrides.activationCode = val;
             if (key === 'rpc' || key === 'rpcUrl') overrides.rpcUrl = val;
             if (key === 'webhook' || key === 'webhookUrl') overrides.webhookUrl = val;
             if (key === 'network') overrides.network = val;
@@ -64,18 +66,80 @@ async function main() {
     });
     prompts.override(overrides);
 
+    // ─── Global Config ──────────────────────────────────────────────────────
+    let network = overrides.network || 'devnet';
+
     if (Object.keys(overrides).length > 0) {
         console.log('  ⚡ Auto-Pilot Mode engaged.');
+        if (overrides.activationCode) console.log(`  🔹 Code: \x1b[36m${overrides.activationCode}\x1b[0m`);
         if (overrides.botName) console.log(`  🔹 Bot Name: \x1b[36m${overrides.botName}\x1b[0m`);
         if (overrides.category !== undefined) console.log(`  🔹 Category: \x1b[36m${CATEGORIES[overrides.category]}\x1b[0m`);
-        if (overrides.network) console.log(`  🔹 Network: \x1b[36m${overrides.network}\x1b[0m`);
-        console.log('');
+        // network already logged below if set
+    }
+    if (overrides.network) console.log(`  🔹 Network: \x1b[36m${overrides.network}\x1b[0m`);
+    if (Object.keys(overrides).length > 0) console.log('');
+
+    // ─── Step 0: Generate Activation Code ─────────────────────────────────
+    console.log('🔑 Step 0: Generating Activation Code...\n');
+
+    let code = '';
+
+    try {
+        const baseUrl = network === 'devnet' ? 'http://localhost:3000' : 'https://djinn.world';
+        const res = await fetch(`${baseUrl}/api/bot/codes/new`, { method: 'POST' });
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.error || 'Failed to generate code');
+        code = data.code;
+
+        console.log(`  ✨ Generated Code: \x1b[36m${code}\x1b[0m`);
+        console.log('  (This code links your CLI bot to the Web Dashboard)\n');
+
+    } catch (e) {
+        // Fallback for offline/manual testing if API fails
+        console.log('  ⚠️  Could not reach Djinn API. Using offline mode.');
+        const { activationCode } = await prompts({
+            type: 'text',
+            name: 'activationCode',
+            message: 'Enter manual code (or press Enter to generate generic):',
+            initial: 'DJNN-OFFLINE'
+        });
+        code = activationCode;
     }
 
-    // ─── Step 0: Prerequisites ──────────────────────────────────────────────
+    // Determine API URL (devnet = localhost, mainnet = production)
+    // We'll ask network first for this, but default to devnet for validation
+    const apiUrl = overrides.network === 'mainnet' ? 'https://djinn.world' : 'http://localhost:3000';
+
+    // Validate code against API
+    console.log('\n  🔍 Validating code...');
+    try {
+        const verifyRes = await fetch(`${apiUrl}/api/bot/codes/verify?code=${encodeURIComponent(code)}`);
+        const verifyData = await verifyRes.json();
+
+        if (!verifyData.valid) {
+            console.error(`\n  ❌ Invalid code: ${verifyData.reason || 'Unknown error'}`);
+            console.error('  Get a valid code from the Djinn team.\n');
+            process.exit(1);
+        }
+
+        if (verifyData.status === 'claimed') {
+            console.error(`\n  ❌ This code has already been claimed.`);
+            console.error('  If this is yours, use the Magic Link from your previous setup.\n');
+            process.exit(1);
+        }
+
+        console.log('  ✅ Code is valid!\n');
+    } catch (e) {
+        console.error('\n  ⚠️  Could not validate code (API not reachable).');
+        console.error('  Make sure the Djinn app is running: yarn dev\n');
+        console.error('  Continuing anyway...\n');
+    }
+
+    // ─── Step 1: Prerequisites ──────────────────────────────────────────────
     const nodeVersion = parseInt(process.version.slice(1).split('.')[0]);
     if (nodeVersion < 22) {
-        console.warn(`⚠️  Warning: OpenClaw recommends Node.js 22+. You satisfy v${process.version}.`);
+        console.warn(`⚠️  Warning: OpenClaw recommends Node.js 22+. You have v${process.version}.`);
     }
 
     console.log('🔍 Checking OpenClaw Engine...');
@@ -89,23 +153,10 @@ async function main() {
         process.exit(1);
     }
 
-    // ─── Step 1: Bot Configuration ──────────────────────────────────────────
-    console.log('\n📋 Step 1: Bot Configuration\n');
+    // ─── Step 2: Bot Configuration ──────────────────────────────────────────
+    console.log('\n📋 Step 2: Network Configuration\n');
 
     const response = await prompts([
-        {
-            type: 'text',
-            name: 'botName',
-            message: 'Bot name (max 32 chars):',
-            validate: (value: string) => value.length > 0 && value.length <= 32 ? true : 'Name must be 1-32 characters'
-        },
-        {
-            type: 'select',
-            name: 'category',
-            message: 'Select Strategy Category:',
-            choices: CATEGORIES.map((c, i) => ({ title: c, value: i })),
-            initial: 0
-        },
         {
             type: 'select',
             name: 'network',
@@ -133,15 +184,17 @@ async function main() {
         }
     });
 
-    const botName = response.botName;
-    const category = response.category;
-    const network = response.network;
+    // Default configuration (User sets Name/Category on Web)
+    const botName = 'Unconfigured Bot';
+    const category = 0; // Default to 'All'
+
+    if (response.network) network = response.network;
     const defaultRpc = network === 'devnet' ? 'https://api.devnet.solana.com' : 'https://api.mainnet-beta.solana.com';
     const rpcUrl = response.rpcUrl || defaultRpc;
     const webhookUrl = response.webhookUrl;
 
-    // ─── Step 4: Generate Wallet ──────────────────────────────────────────
-    console.log('\n🔑 Step 4: Generating Bot Wallet\n');
+    // ─── Step 3: Generate Wallet ──────────────────────────────────────────
+    console.log('\n🔑 Step 3: Generating Bot Wallet\n');
 
     const djinnDir = path.join(process.env.HOME || '.', '.djinn');
     if (!fs.existsSync(djinnDir)) {
@@ -168,12 +221,15 @@ async function main() {
         generateWallet(walletPath);
     }
 
-    // ─── Step 4.5: Auto-Fund (The Magic) ──────────────────────────────────
+    // Read wallet public key for claiming
+    const fileContent = fs.readFileSync(walletPath, 'utf-8');
+    const secretKey = new Uint8Array(JSON.parse(fileContent));
+    const kp = Keypair.fromSecretKey(secretKey);
+    const botWalletPubkey = kp.publicKey.toBase58();
+
+    // ─── Step 3.5: Auto-Fund (Devnet) ──────────────────────────────────
     if (network === 'devnet') {
-        console.log('\n💸 Step 4.5: Auto-Funding Wallet (Devnet Magic)\n');
-        const fileContent = fs.readFileSync(walletPath, 'utf-8');
-        const secretKey = new Uint8Array(JSON.parse(fileContent));
-        const kp = Keypair.fromSecretKey(secretKey);
+        console.log('\n💸 Auto-Funding Wallet (Devnet)\n');
         const connection = new Connection(rpcUrl, 'confirmed');
 
         try {
@@ -192,15 +248,45 @@ async function main() {
         }
     }
 
-    // ─── Step 5: Create .env ──────────────────────────────────────────────
+    // ─── Step 4: Claim Activation Code ──────────────────────────────────
+    console.log('\n📡 Step 4: Claiming Activation Code\n');
+
+    const finalApiUrl = network === 'devnet' ? 'http://localhost:3000' : 'https://djinn.world';
+
+    try {
+        const claimRes = await fetch(`${finalApiUrl}/api/bot/codes/claim`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                code,
+                botName,
+                category,
+                botWallet: botWalletPubkey,
+            }),
+        });
+
+        const claimData = await claimRes.json();
+
+        if (claimData.success) {
+            console.log('  ✅ Code claimed successfully!');
+        } else {
+            console.log(`  ⚠️  Could not claim code: ${claimData.error || 'Unknown'}`);
+            console.log('  You can still complete registration via the Magic Link.\n');
+        }
+    } catch (e) {
+        console.log('  ⚠️  Could not reach API to claim code. Continue manually.');
+    }
+
+    // ─── Step 5: Write .env ──────────────────────────────────────────────
     console.log('\n📝 Step 5: Writing Configuration\n');
 
     const envContent = `# Djinn AI Bot Configuration
 # Generated by @djinn/setup
 
+DJINN_ACTIVATION_CODE=${code}
 DJINN_RPC_URL=${rpcUrl}
 DJINN_BOT_KEYPAIR_PATH=${walletPath}
-DJINN_API_URL=${network === 'devnet' ? 'http://localhost:3000' : 'https://djinn.world'}
+DJINN_API_URL=${finalApiUrl}
 DJINN_PROGRAM_ID=${DJINN_PROGRAM_ID}
 DJINN_BOT_NAME=${botName}
 DJINN_STRATEGY_CATEGORY=${category}
@@ -248,25 +334,26 @@ ${webhookUrl ? `DJINN_WEBHOOK_URL=${webhookUrl}` : '# DJINN_WEBHOOK_URL=https://
     console.log('  │     → It operates autonomously with this key        │');
     console.log('  └──────────────────────────────────────────────────────┘\n');
 
-    console.log('  NEXT STEPS:\n');
+    console.log('  NEXT STEP:\n');
 
     if (network === 'devnet') {
-        console.log('  1. Open Djinn in your browser and connect your OWNER wallet (Phantom)');
+        console.log('  1. Open this link in your browser (connect your OWNER wallet):');
     } else {
-        console.log('  1. Fund your owner wallet with 11+ SOL (10 SOL stake + gas fees)');
+        console.log('  1. Fund your owner wallet with 11+ SOL, then open:');
     }
 
-    console.log('\n  2. Click this Magic Link to register your bot:');
     const baseUrl = network === 'devnet' ? 'http://localhost:3000' : 'https://djinn.world';
-    const magicLink = `${baseUrl}/bots?name=${encodeURIComponent(botName)}&category=${encodeURIComponent(CATEGORIES[category])}`;
-    console.log(`     👉 ${magicLink}\n`);
-    console.log('     This opens Djinn with your bot info pre-filled.');
-    console.log('     Connect your browser wallet → Stake 10 SOL → Bot is live!\n');
+    const magicLink = `${baseUrl}/bots?code=${encodeURIComponent(code)}`;
+    console.log(`\n     👉 \x1b[36m${magicLink}\x1b[0m\n`);
+    console.log('     Connect wallet → Stake → Bot is live!\n');
 
-    console.log('  3. Start your bot:');
+    console.log('  2. Configure & Activate on Web:');
+    console.log('     Follow the link above to set your Bot Name and Category.');
+    console.log('     Once activated, your bot will be ready to trade!\n');
+
+    console.log('  3. Start your bot logic:');
     console.log('     // Your bot reads .env.djinn and trades with the bot wallet');
-    console.log('     const markets = await djinn.listMarkets({ category: "crypto" });');
-    console.log('     // Your bot\'s strategy goes here!\n');
+    console.log('     const markets = await djinn.listMarkets();');
 
     console.log('  📖 Full docs: https://docs.djinn.world/bots');
     console.log('  💬 Discord: https://discord.gg/djinn\n');

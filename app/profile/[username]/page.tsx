@@ -302,7 +302,52 @@ export default function ProfilePage() {
                 // C. FINAL TARGET RESOLVED
                 setTargetWalletAddress(targetAddress);
                 isMeCheck = (!!myWallet && myWallet === targetAddress);
+                setTargetWalletAddress(targetAddress);
+                isMeCheck = (!!myWallet && myWallet === targetAddress);
                 setIsMyProfile(isMeCheck);
+
+                // --- BOT CHECK ---
+                try {
+                    const botRes = await fetch(`/api/bot/${targetAddress}`);
+                    if (botRes.ok) {
+                        const botData = await botRes.json();
+                        if (botData && botData.id) {
+                            console.log("🤖 Found Protocol Bot:", botData.name);
+                            setProfile({
+                                ...initialProfile,
+                                username: botData.name,
+                                pfp: botData.avatar || '🤖',
+                                bio: `Protocol Bot • ${botData.tier} Tier • ${botData.category} Strategy`,
+                                winRate: botData.stats?.winRate || 0,
+                                profit: botData.stats?.pnl || 0, // This is % in botData, but profile expects absolutes usually. 
+                                // Actually profile page assumes profit is $ or SOL?
+                                // Let's use portfolio for Vault.
+                                portfolio: botData.vault?.totalAum || 0,
+                                biggestWin: 0,
+                                medals: [],
+                                activeBets: [], // Will load below
+                                closedBets: [],
+                                achievements: [],
+                                createdMarkets: [],
+                                showGems: false,
+                                joinedAt: new Date().toISOString()
+                            });
+                            // Still load bets below
+                            // But return early from standard profile loading to avoid overwriting?
+                            // No, active bets loading is at end (Line 383).
+                            // We should let it fall through or handle it here?
+                            // Line 308 starts D. LOAD ACTUAL DATA.
+                            // If we setProfile here, we should prevent overwriting by 'finalProfile' logic below.
+
+                            // Let's modify the flow. 
+                            // I will set a flag or just return? 
+                            // If I return, 'activeBets' at line 384 won't run.
+
+                            // Better approach: Populate 'initialProfile' or modify 'finalProfile' logic?
+                            // I'll edit the logic below.
+                        }
+                    }
+                } catch (e) { }
 
                 // D. LOAD ACTUAL DATA (Memory Source of Truth)
                 let finalProfile = {

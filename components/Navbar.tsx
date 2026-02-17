@@ -107,7 +107,10 @@ function NavbarContent() {
             } else {
                 console.log('✨ New User Detected! Opening Claim Flow for:', walletAddress);
                 setTempConnectedWallet(walletAddress);
-                setIsClaimModalOpen(true);
+                // Only open claim flow if NOT identifying as a bot/deploying
+                if (pathname !== '/bots') {
+                    setIsClaimModalOpen(true);
+                }
             }
         } catch (err: any) {
             console.error('🔴 Database sync error:', err);
@@ -303,6 +306,10 @@ function NavbarContent() {
                             {!mounted ? (
                                 <div className="px-5 py-2.5 rounded-xl bg-[#1A1A1A] text-gray-400 text-[11px] font-black uppercase tracking-wider border-2 border-white/10">
                                     Loading...
+                                </div>
+                            ) : pathname === '/bots' ? (
+                                <div className="px-5 py-2.5 rounded-xl bg-[#F492B7]/10 text-[#F492B7] border-2 border-[#F492B7]/20 text-[10px] font-black uppercase tracking-wider">
+                                    Bot Mode
                                 </div>
                             ) : !connected ? (
                                 <button

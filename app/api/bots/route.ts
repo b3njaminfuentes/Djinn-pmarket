@@ -129,10 +129,10 @@ export async function GET(request: NextRequest) {
                     bountiesEarned: Number(acc.bountiesEarned.toString()) / 1e9,
                 },
                 reputation: {
-                    upvotes: acc.communityUpvotes.toNumber(),
-                    downvotes: acc.communityDownvotes.toNumber(),
-                    score: acc.communityUpvotes.toNumber() - acc.communityDownvotes.toNumber(),
-                    reportsAgainst: acc.reportsAgainst.toNumber(),
+                    upvotes: safeToNumber(acc.communityUpvotes),
+                    downvotes: safeToNumber(acc.communityDownvotes),
+                    score: safeToNumber(acc.communityUpvotes) - safeToNumber(acc.communityDownvotes),
+                    reportsAgainst: safeToNumber(acc.reportsAgainst),
                 },
                 vault: acc.hasVault ? {
                     publicKey: acc.vaultPubkey?.toBase58() || '',
@@ -140,8 +140,8 @@ export async function GET(request: NextRequest) {
                     numDepositors: 0,
                     isPaused: false,
                 } : undefined,
-                registeredAt: new Date(acc.registeredAt.toNumber() * 1000).toISOString().split('T')[0],
-                lastTradeAt: new Date(acc.lastTradeAt.toNumber() * 1000).toISOString(),
+                registeredAt: new Date(safeToNumber(acc.registeredAt) * 1000).toISOString().split('T')[0],
+                lastTradeAt: new Date(safeToNumber(acc.lastTradeAt) * 1000).toISOString(),
                 raw: acc // Keep raw for sorting
             } as BotLeaderboardEntry & { raw: any };
         });
@@ -159,6 +159,12 @@ export async function GET(request: NextRequest) {
         if (activeOnly) {
             bots = bots.filter(b => b.isActive && !b.raw.isFrozen);
         }
+
+        // BLACKLIST (Manual Deletions)
+        const BLACKLIST = [
+            'BTX34k1W16XAyzJrQGSgmFV3EwALKGU7npBkHj8Esoam' // "alfred" (test bot)
+        ];
+        bots = bots.filter(b => !BLACKLIST.includes(b.publicKey));
 
         // 5. Apply Sort
         bots.sort((a, b) => {
