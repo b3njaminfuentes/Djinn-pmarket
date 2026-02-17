@@ -187,21 +187,8 @@ async function main() {
         process.exit(1);
     }
     // ─── Step 2: Bot Configuration ──────────────────────────────────────────
-    console.log('\n📋 Step 2: Bot Configuration\n');
+    console.log('\n📋 Step 2: Network Configuration\n');
     const response = await (0, prompts_1.default)([
-        {
-            type: 'text',
-            name: 'botName',
-            message: 'Bot name (max 32 chars):',
-            validate: (value) => value.length > 0 && value.length <= 32 ? true : 'Name must be 1-32 characters'
-        },
-        {
-            type: 'select',
-            name: 'category',
-            message: 'Select Strategy Category:',
-            choices: CATEGORIES.map((c, i) => ({ title: c, value: i })),
-            initial: 0
-        },
         {
             type: 'select',
             name: 'network',
@@ -228,8 +215,9 @@ async function main() {
             process.exit(0);
         }
     });
-    const botName = response.botName;
-    const category = response.category;
+    // Default configuration (User sets Name/Category on Web)
+    const botName = 'Unconfigured Bot';
+    const category = 0; // Default to 'All'
     if (response.network)
         network = response.network;
     const defaultRpc = network === 'devnet' ? 'https://api.devnet.solana.com' : 'https://api.mainnet-beta.solana.com';
@@ -327,7 +315,7 @@ DJINN_STRATEGY_CATEGORY=${category}
 DJINN_NETWORK=${network}
 ${webhookUrl ? `DJINN_WEBHOOK_URL=${webhookUrl}` : '# DJINN_WEBHOOK_URL=https://your-bot.example.com/djinn'}
 `;
-    const envPath = path.join(process.cwd(), '.env.djinn');
+    const envPath = path.join(djinnDir, '.env.djinn');
     fs.writeFileSync(envPath, envContent);
     console.log(`  ✅ Config written to ${envPath}`);
     // ─── Step 6: Install SDK ──────────────────────────────────────────────
@@ -373,10 +361,12 @@ ${webhookUrl ? `DJINN_WEBHOOK_URL=${webhookUrl}` : '# DJINN_WEBHOOK_URL=https://
     const magicLink = `${baseUrl}/bots?code=${encodeURIComponent(code)}`;
     console.log(`\n     👉 \x1b[36m${magicLink}\x1b[0m\n`);
     console.log('     Connect wallet → Stake → Bot is live!\n');
-    console.log('  2. Start your bot:');
+    console.log('  2. Configure & Activate on Web:');
+    console.log('     Follow the link above to set your Bot Name and Category.');
+    console.log('     Once activated, your bot will be ready to trade!\n');
+    console.log('  3. Start your bot logic:');
     console.log('     // Your bot reads .env.djinn and trades with the bot wallet');
-    console.log('     const markets = await djinn.listMarkets({ category: "crypto" });');
-    console.log('     // Your bot\'s strategy goes here!\n');
+    console.log('     const markets = await djinn.listMarkets();');
     console.log('  📖 Full docs: https://docs.djinn.world/bots');
     console.log('  💬 Discord: https://discord.gg/djinn\n');
 }

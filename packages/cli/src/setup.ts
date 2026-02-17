@@ -294,7 +294,7 @@ DJINN_NETWORK=${network}
 ${webhookUrl ? `DJINN_WEBHOOK_URL=${webhookUrl}` : '# DJINN_WEBHOOK_URL=https://your-bot.example.com/djinn'}
 `;
 
-    const envPath = path.join(process.cwd(), '.env.djinn');
+    const envPath = path.join(djinnDir, '.env.djinn');
     fs.writeFileSync(envPath, envContent);
     console.log(`  ✅ Config written to ${envPath}`);
 
