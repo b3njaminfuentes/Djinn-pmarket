@@ -105,9 +105,21 @@ function NavbarContent() {
                     console.warn('⚠️ LocalStorage full, skipped profile cache update');
                 }
             } else {
+                // Check if this wallet is a registered bot
+                try {
+                    const botCheck = await fetch(`/api/bot/check?wallet=${walletAddress}`);
+                    const botData = await botCheck.json();
+                    if (botData.isBot) {
+                        console.log('🤖 Bot wallet detected, redirecting to /bots');
+                        router.push('/bots');
+                        return;
+                    }
+                } catch {
+                    // If check fails, continue with normal flow
+                }
+
                 console.log('✨ New User Detected! Opening Claim Flow for:', walletAddress);
                 setTempConnectedWallet(walletAddress);
-                // Only open claim flow if NOT identifying as a bot/deploying
                 if (pathname !== '/bots') {
                     setIsClaimModalOpen(true);
                 }
