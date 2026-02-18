@@ -2850,6 +2850,20 @@ export default function Page() {
                     </div>
                 </div>
 
+                {/* ── BOT VERIFICATION PANEL ─────────────────────────────────────── */}
+                {marketAccount && (
+                    <div className="mt-12">
+                        <BotVerificationPanel
+                            marketSlug={effectiveSlug}
+                            marketTitle={marketAccount.title || ''}
+                            endDate={marketAccount.end_date || new Date(Date.now() + 86400000).toISOString()}
+                            isResolved={marketAccount.resolved || false}
+                            cerberusVerdict={marketAccount.cerberus_verdict}
+                            cerberusConfidence={marketAccount.cerberus_confidence}
+                        />
+                    </div>
+                )}
+
                 {/* SHARE EXPERIENCE INTEGRATION */}
                 <ShareExperience
                     isOpen={showShareModal}
