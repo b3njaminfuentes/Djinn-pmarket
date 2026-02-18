@@ -179,6 +179,28 @@ export async function GET(request: NextRequest) {
             }
         });
 
+        // 5.5 Enrich with Supabase agent_type (Conway / ClawBot badges)
+        try {
+            const ownerAddresses = bots.map(b => b.owner);
+            const { createClient } = await import('@supabase/supabase-js');
+            const supabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('wallet_address, agent_type')
+                .in('wallet_address', ownerAddresses);
+
+            if (profiles && profiles.length > 0) {
+                const agentMap = new Map(profiles.map((p: any) => [p.wallet_address, p.agent_type]));
+                bots = bots.map(b => ({
+                    ...b,
+                    agentType: agentMap.get(b.owner) || 'clawbot', // default: clawbot (human-registered)
+                }));
+            }
+        } catch { /* non-critical — bots still shown without badge */ }
+
         // 6. Pagination
         const total = bots.length;
         const paginatedBots = bots.slice(offset, offset + limit).map((b, i) => ({

@@ -11,6 +11,7 @@ import { useTooltip, TooltipWithBounds, defaultStyles } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import TradeBubbles from './TradeBubbles';
 import { bisector } from 'd3-array';
+import { MiniLiveline } from '@/components/LivelineChart';
 
 // --- HYBRID PALETTE ---
 const THEME = {
@@ -245,21 +246,41 @@ export default function PrettyChartWrapper({ series, trigger }: { series: Outcom
         </div>
     );
 
+    // Build Liveline data from the primary series (YES outcome) for the live strip
+    const primarySeries = series[0];
+    const livePoints = primarySeries?.data.map(d => ({
+        time: Math.floor(d.date / 1000), // d.date is ms → convert to seconds
+        value: d.value,
+    })) || [];
+    const liveValue = livePoints.length > 0 ? livePoints[livePoints.length - 1].value : 50;
+    const liveColor = primarySeries?.color || '#22c55e';
+
     return (
-        <div
-            className="w-full h-[400px] rounded-3xl relative overflow-hidden shadow-2xl border border-gray-800"
-            style={{ backgroundColor: THEME.BG }}
-        >
-            <TradeBubbles trigger={trigger || null} />
+        <div className="w-full rounded-3xl overflow-hidden shadow-2xl border border-gray-800" style={{ backgroundColor: THEME.BG }}>
+            {/* ── Liveline Live Strip (60fps real-time indicator) ── */}
+            <div className="px-2 pt-2">
+                <MiniLiveline
+                    data={livePoints}
+                    value={liveValue}
+                    color={liveColor}
+                    height={72}
+                    className="rounded-xl overflow-hidden opacity-80"
+                />
+            </div>
 
-            <ParentSize>
-                {({ width, height }) => <Chart series={series} width={width} height={height} />}
-            </ParentSize>
+            {/* ── Historical Chart (Visx / Polymarket style) ── */}
+            <div className="relative h-[340px]">
+                <TradeBubbles trigger={trigger || null} />
 
-            {/* Platform Watermark - Centered Seal */}
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.05]">
-                <div className="relative w-64 h-64 grayscale">
-                    <img src="/djinn-logo.png" alt="Djinn Seal" className="w-full h-full object-contain" />
+                <ParentSize>
+                    {({ width, height }) => <Chart series={series} width={width} height={height} />}
+                </ParentSize>
+
+                {/* Platform Watermark */}
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.05]">
+                    <div className="relative w-64 h-64 grayscale">
+                        <img src="/djinn-logo.png" alt="Djinn Seal" className="w-full h-full object-contain" />
+                    </div>
                 </div>
             </div>
         </div>

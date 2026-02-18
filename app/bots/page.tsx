@@ -47,6 +47,7 @@ interface BotEntry {
         isPaused: boolean;
     };
     registeredAt: string;
+    agentType?: 'human' | 'clawbot' | 'conway';
 }
 
 const TIER_CONFIG: Record<BotTier, { color: string; bg: string; icon: string }> = {
@@ -161,6 +162,7 @@ function mapApiBot(api: ApiBotEntry): BotEntry {
             isPaused: api.vault.isPaused,
         } : undefined,
         registeredAt: api.registeredAt,
+        agentType: (api as any).agentType || 'clawbot',
     };
 }
 
@@ -579,6 +581,9 @@ function BotsLeaderboardContent() {
                                                         <div className="flex flex-col">
                                                             <span className="font-black text-black text-lg group-hover:text-[#F492B7] transition-colors flex items-center gap-2">
                                                                 {bot.name}
+                                                                {bot.agentType === 'conway' && (
+                                                                    <span className="text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-300 font-black uppercase tracking-wider">⚡ Conway</span>
+                                                                )}
                                                                 {bot.isPaperTrading && (
                                                                     <span className="text-[9px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full border border-yellow-300 font-black uppercase">Paper</span>
                                                                 )}

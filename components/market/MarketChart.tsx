@@ -1,8 +1,15 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, IChartApi, ISeriesApi, AreaSeries } from 'lightweight-charts';
+/**
+ * MarketChart — Primary market probability chart (Liveline, 60fps canvas)
+ *
+ * Replaces the previous lightweight-charts area chart with a Liveline real-time renderer.
+ * Same props API, drop-in replacement.
+ */
+
+import React, { useMemo } from 'react';
 import TradeBubbles from './TradeBubbles';
+import LivelineChart from '@/components/LivelineChart';
 
 interface MarketChartProps {
     data: { time: string; value: number }[];
@@ -11,93 +18,49 @@ interface MarketChartProps {
     lastTrade?: { amount: number; side: 'YES' | 'NO' } | null;
 }
 
-export default function MarketChart({ data, color, hasPosition, lastTrade }: MarketChartProps) {
-    const chartContainerRef = useRef<HTMLDivElement>(null);
-    const chartRef = useRef<IChartApi | null>(null);
-    const seriesRef = useRef<ISeriesApi<"Area"> | null>(null);
+const TIME_WINDOWS = [
+    { label: '1m', secs: 60 },
+    { label: '5m', secs: 300 },
+    { label: '15m', secs: 900 },
+    { label: '1H', secs: 3600 },
+    { label: '6H', secs: 21600 },
+    { label: '1D', secs: 86400 },
+    { label: '1W', secs: 604800 },
+];
 
-    useEffect(() => {
-        if (!chartContainerRef.current) return;
-
-        const chart = createChart(chartContainerRef.current, {
-            layout: {
-                background: { type: ColorType.Solid, color: 'transparent' },
-                textColor: '#A0A0A0',
-                fontFamily: 'Inter, sans-serif',
-            },
-            grid: {
-                vertLines: { visible: false },
-                horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
-            },
-            width: chartContainerRef.current.clientWidth,
-            height: 320,
-            timeScale: {
-                borderVisible: false,
-                timeVisible: true,
-            },
-            rightPriceScale: {
-                borderVisible: false,
-                scaleMargins: { top: 0.1, bottom: 0.1 },
-            },
-            handleScroll: false,
-            handleScale: false,
-        });
-
-        const areaSeries = chart.addSeries(AreaSeries, {
-            lineColor: color,
-            topColor: `${color}33`,
-            bottomColor: `${color}00`,
-            lineWidth: 2,
-            priceFormat: {
-                type: 'custom',
-                formatter: (price: number) => `${Math.round(price)}%`,
-            },
-        });
-
-        const formattedData = data.map((d, i) => ({
-            time: (i * 86400) as any,
-            value: d.value
+export default function MarketChart({ data, color, lastTrade }: MarketChartProps) {
+    const points = useMemo(() => {
+        if (!data || data.length === 0) return [];
+        return data.map(d => ({
+            // MarketChart passes time as string — convert if needed
+            time: typeof d.time === 'string' && !isNaN(Number(d.time))
+                ? Number(d.time)
+                : Math.floor(Date.now() / 1000),
+            value: d.value,
         }));
-
-        areaSeries.setData(formattedData);
-        chart.timeScale().fitContent();
-
-        chartRef.current = chart;
-        seriesRef.current = areaSeries;
-
-        const handleResize = () => {
-            if (chartContainerRef.current && chartRef.current) {
-                chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            chart.remove();
-        };
-    }, [color]);
-
-    useEffect(() => {
-        if (seriesRef.current && data.length > 0) {
-            const formattedData = data.map((d, i) => ({
-                time: (i * 86400) as any,
-                value: d.value
-            }));
-            seriesRef.current.setData(formattedData);
-        }
     }, [data]);
+
+    const liveValue = points.length > 0 ? points[points.length - 1].value : 50;
 
     return (
         <div className="relative w-full overflow-hidden">
-            {/* Real-time Bubbles Overlay */}
+            {/* Real-time trade bubbles overlay */}
             <TradeBubbles trigger={lastTrade || null} />
 
-            <div ref={chartContainerRef} className="w-full h-80" />
+            <LivelineChart
+                data={points}
+                value={liveValue}
+                color={color}
+                height={320}
+                degen
+                windows={TIME_WINDOWS}
+                formatValue={(v) => `${v.toFixed(1)}%`}
+                className="rounded-2xl"
+            />
 
-            {/* Polymarket-style Watermark or info */}
+            {/* Watermark */}
             <div className="absolute top-4 right-4 opacity-20 pointer-events-none">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white">Djinn Lite</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white">Djinn Live</span>
             </div>
         </div>
     );

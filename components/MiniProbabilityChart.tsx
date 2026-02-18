@@ -1,7 +1,15 @@
 "use client";
-import React from "react";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import { getOutcomeColor } from "@/lib/market-colors";
+
+/**
+ * MiniProbabilityChart — Compact live chart for MarketCards (Liveline)
+ *
+ * Replaces the previous Recharts LineChart with a Liveline canvas renderer.
+ * Shows the primary outcome (YES) live probability. 60fps, zero CSS imports.
+ */
+
+import React, { useMemo } from 'react';
+import { MiniLiveline } from '@/components/LivelineChart';
+import { getOutcomeColor } from '@/lib/market-colors';
 
 interface MiniProbabilityChartProps {
     data: any[];
@@ -9,33 +17,36 @@ interface MiniProbabilityChartProps {
 }
 
 export default function MiniProbabilityChart({ data, outcomes }: MiniProbabilityChartProps) {
-    const outcomeKeys = outcomes.map(o => typeof o === "string" ? o : o.title);
+    const outcomeKeys = outcomes.map(o => typeof o === 'string' ? o : o.title);
 
-    // Safety check for data
-    const safeData = data.length > 0 ? data : [
-        { time: Date.now() / 1000 - 3600, YES: 50, NO: 50 },
-        { time: Date.now() / 1000, YES: 50, NO: 50 }
-    ];
+    // Use the primary (YES) outcome as the main Liveline series
+    const primaryKey = outcomeKeys[0] || 'YES';
+    const primaryColor = getOutcomeColor(primaryKey, 0);
+
+    const points = useMemo(() => {
+        const safeData = data.length > 0 ? data : [
+            { time: Math.floor(Date.now() / 1000) - 3600, [primaryKey]: 50 },
+            { time: Math.floor(Date.now() / 1000), [primaryKey]: 50 },
+        ];
+        return safeData.map((d: any) => ({
+            time: typeof d.time === 'number' && d.time > 1e10
+                ? Math.floor(d.time / 1000)
+                : Number(d.time) || Math.floor(Date.now() / 1000),
+            value: Number(d[primaryKey] ?? d['YES'] ?? 50),
+        }));
+    }, [data, primaryKey]);
+
+    const liveValue = points.length > 0 ? points[points.length - 1].value : 50;
 
     return (
         <div className="w-full h-full min-h-[160px]">
-            <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={safeData}>
-                    <XAxis dataKey="time" hide />
-                    <YAxis domain={[0, 100]} hide />
-                    {outcomeKeys.map((key, idx) => (
-                        <Line
-                            key={key}
-                            type="monotone"
-                            dataKey={key}
-                            stroke={getOutcomeColor(key, idx)}
-                            strokeWidth={2}
-                            dot={false}
-                            isAnimationActive={false}
-                        />
-                    ))}
-                </LineChart>
-            </ResponsiveContainer>
+            <MiniLiveline
+                data={points}
+                value={liveValue}
+                color={primaryColor}
+                height={160}
+                className="w-full"
+            />
         </div>
     );
 }
