@@ -418,6 +418,14 @@ function NavbarContent() {
                                                         <span className="text-lg">🤖</span>
                                                         <span>AI Agents</span>
                                                     </Link>
+                                                    <Link
+                                                        href="/web4"
+                                                        onClick={() => setIsNavMenuOpen(false)}
+                                                        className="w-full flex items-center gap-3 px-5 py-3 text-white hover:text-black hover:bg-[#F492B7] transition-all text-sm font-bold group"
+                                                    >
+                                                        <span className="text-lg">⚡</span>
+                                                        <span>Web 4.0 Hub</span>
+                                                    </Link>
 
                                                     <button
                                                         onClick={handleOpenNotifications}
