@@ -84,17 +84,29 @@ Si un market se resuelve YES, pero **nadie tiene YES shares**, el Protocol Treas
 
 ---
 
-## 🧠 The Math: Golden Mutant V4 (Advanced)
+## 🧠 The Math: Golden Mutant V4 (Advanced Deep Dive)
+
+Djinn implements the **Golden Mutant V4**, a 3-phase piecewise bonding curve that preserves **C³ Synchronicity (Continuity)** to ensure a smooth trading experience without price gaps or "jerk."
 
 ### Phase 1: Linear Ignition (0 ≤ S ≤ 100M)
-$P(S) = P_{START} \times \frac{S + VIRT_F}{VIRT_F}$ (Virtual Floor prevents P=0 explosion).
+Predictable discovery with a **1M Virtual Floor** to prevent $P(0) = 0$ explosion.
+$P(S) = P_{START} \times \frac{S + VIRT\_F}{VIRT\_F}$
+*   **$P_{START}$**: 0.000001 SOL (genesis price).
+*   **Target**: 10M=2x, 100M=101x genesis.
 
 ### Phase 2: C³ Bridge (Quadratic) (100M < S ≤ 200M)
+Uses a C³ continuous bridge polynomial to ensure smoothness:
 $P(S) = A(S - S_1)^2 + B(S - S_1) + C$
-Garantiza continuidad C0 (precio), C1 (velocidad) y C2 (aceleración).
+*   **C⁰ (Price)**: No price gaps at the transition.
+*   **C¹ (Velocity)**: No instantaneous price jumps.
+*   **C² (Acceleration)**: Smooth velocity ramping.
+*   **C³ (Synchronicity)**: No "jerk" (predictable change in acceleration).
 
 ### Phase 3: Mutant Sigmoid (Asymptotic) (200M < S ≤ 1B)
-Approaching **0.95 SOL Truth Ceiling**. Manipulation becomes prohibitively expensive near resolution.
+Approaching the **0.95 SOL Truth Ceiling**.
+$P(S) = \frac{P_{MAX}}{1 + e^{-k(S - S_{MID})}}$
+*   **$P_{MAX}$**: 0.95 SOL.
+*   **Anti-Manipulation**: The asymptotic behavior makes buying the final 5% of probability significantly more expensive, defending against front-running near resolution.
 
 ---
 
