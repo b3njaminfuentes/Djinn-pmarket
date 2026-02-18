@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Loader2, ArrowRight, LogOut } from 'lucide-react';
+import { Loader2, ArrowRight, LogOut, Zap, Bot, Users, TrendingUp, CheckCircle } from 'lucide-react';
 import { getWhitelistStatus, registerForWhitelist } from '@/lib/whitelist';
 import CustomWalletModal from '@/components/CustomWalletModal';
 import { useRouter } from 'next/navigation';
@@ -57,6 +57,13 @@ export default function DjinnLanding() {
     const [showGenesisAnnouncement, setShowGenesisAnnouncement] = useState(false);
     const [isGenesis, setIsGenesis] = useState(false);
     const [liveStats, setLiveStats] = useState({ markets: 0 });
+    const [ecosystemStats, setEcosystemStats] = useState({ waitlistCount: 0, botCount: 0, activeMarkets: 0 });
+
+    // Waitlist form state
+    const [waitlistEmail, setWaitlistEmail] = useState('');
+    const [waitlistTwitter, setWaitlistTwitter] = useState('');
+    const [waitlistState, setWaitlistState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [waitlistMessage, setWaitlistMessage] = useState('');
 
     const walletAddress = useMemo(() => publicKey?.toBase58(), [publicKey]);
 
@@ -139,6 +146,51 @@ export default function DjinnLanding() {
         }
         fetchStats();
     }, []);
+
+    // Fetch ecosystem stats (waitlist + bots + markets)
+    useEffect(() => {
+        async function fetchEcosystem() {
+            try {
+                const res = await fetch('/api/waitlist');
+                if (res.ok) {
+                    const data = await res.json();
+                    setEcosystemStats(data);
+                }
+            } catch { }
+        }
+        fetchEcosystem();
+        const interval = setInterval(fetchEcosystem, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleWaitlistSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!waitlistEmail.trim()) return;
+        setWaitlistState('loading');
+        try {
+            const res = await fetch('/api/waitlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: waitlistEmail.trim(),
+                    twitterHandle: waitlistTwitter.trim() || undefined,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setWaitlistState('success');
+                setWaitlistMessage(data.message || "You're in. Welcome to Djinn.");
+                setEcosystemStats(prev => ({ ...prev, waitlistCount: data.total || prev.waitlistCount }));
+                confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#FF69B4', '#ffffff', '#10B981'] });
+            } else {
+                setWaitlistState('error');
+                setWaitlistMessage(data.error || 'Something went wrong.');
+            }
+        } catch {
+            setWaitlistState('error');
+            setWaitlistMessage('Connection error. Try again.');
+        }
+    };
 
     const handleConnect = useCallback(async () => {
         if (!connected) {
@@ -328,45 +380,162 @@ export default function DjinnLanding() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="w-full flex flex-col items-center gap-12"
+                            className="w-full flex flex-col items-center gap-10 max-w-2xl"
                         >
-                            {/* SINGLE CTA */}
-                            <div className="flex flex-col items-center justify-center gap-6 w-full max-w-md">
-                                <div className="w-full bg-transparent backdrop-blur-md border-2 border-white/40 p-8 rounded-2xl hover:bg-white/5 transition-all flex flex-col items-center text-center group shadow-[6px_6px_0px_0px_rgba(255,255,255,0.25)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.25)]">
-                                    <h3 className="text-white font-black text-2xl uppercase tracking-wider mb-2">Prediction Markets</h3>
-                                    <p className="text-white/60 text-sm mb-8">Predict with intuition. Trade on conviction.</p>
+                            {/* TAGLINE */}
+                            <motion.div className="text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                                <p className="text-white/70 text-lg md:text-xl font-medium leading-relaxed max-w-xl">
+                                    The first prediction market where{' '}
+                                    <span className="text-white font-black">humans, AI bots, and autonomous agents</span>{' '}
+                                    compete — and the markets{' '}
+                                    <span className="text-[#FF69B4] font-black">resolve themselves.</span>
+                                </p>
+                            </motion.div>
 
-                                    <button
-                                        onClick={handleConnect}
-                                        disabled={isRegistering}
-                                        className="w-full py-4 font-black uppercase text-sm
-                                            bg-white text-black hover:bg-[#FF69B4] hover:text-black
-                                            rounded-xl
-                                            shadow-[4px_4px_0px_#000]
-                                            hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#000]
-                                            active:translate-x-[4px] active:translate-y-[4px] active:shadow-none
-                                            transition-all duration-150"
-                                    >
-                                        Connect Wallet
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* LIVE STATS BAR */}
-                            <div className="flex items-center gap-8 px-8 py-4 bg-black/30 backdrop-blur-xl border border-white/10 rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] text-xs font-mono uppercase tracking-widest">
+                            {/* LIVE ECOSYSTEM STATS */}
+                            <motion.div
+                                className="flex items-center gap-6 md:gap-10 px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.3 }}
+                            >
                                 <div className="flex items-center gap-2 text-[#10B981]">
-                                    <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_10px_#10B981]"></span>
-                                    <span>Devnet Live</span>
+                                    <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_10px_#10B981]" />
+                                    <span className="text-xs font-black uppercase tracking-widest">Live</span>
                                 </div>
-                                {liveStats.markets > 0 && (
-                                    <>
-                                        <div className="w-px h-4 bg-white/10"></div>
-                                        <div>
-                                            <span className="text-white font-bold text-sm">{liveStats.markets}</span> <span className="text-white/40">Markets</span>
+                                <div className="w-px h-4 bg-white/10" />
+                                <div className="text-center">
+                                    <div className="text-white font-black text-lg tabular-nums">{ecosystemStats.waitlistCount.toLocaleString()}</div>
+                                    <div className="text-white/40 text-[10px] uppercase tracking-widest">Signups</div>
+                                </div>
+                                <div className="w-px h-4 bg-white/10" />
+                                <div className="text-center">
+                                    <div className="text-white font-black text-lg tabular-nums">{ecosystemStats.botCount}</div>
+                                    <div className="text-white/40 text-[10px] uppercase tracking-widest">Bots</div>
+                                </div>
+                                <div className="w-px h-4 bg-white/10" />
+                                <div className="text-center">
+                                    <div className="text-white font-black text-lg tabular-nums">{ecosystemStats.activeMarkets || liveStats.markets}</div>
+                                    <div className="text-white/40 text-[10px] uppercase tracking-widest">Markets</div>
+                                </div>
+                            </motion.div>
+
+                            {/* THE 3 ACTORS — compact cards */}
+                            <motion.div
+                                className="grid grid-cols-3 gap-3 w-full"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                            >
+                                {[
+                                    { icon: '👤', label: 'Humans', desc: 'Create markets. Trade early. Multiply conviction.', color: '#FF69B4' },
+                                    { icon: '🤖', label: 'ClawdBots', desc: 'AI trained by humans. Public thesis. Track record on-chain.', color: '#10B981' },
+                                    { icon: '⚡', label: 'Automatons', desc: 'Fully autonomous. Self-funded. Survive or die.', color: '#A78BFA' },
+                                ].map((actor) => (
+                                    <div
+                                        key={actor.label}
+                                        className="flex flex-col items-center text-center p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm gap-2"
+                                    >
+                                        <span className="text-2xl">{actor.icon}</span>
+                                        <span className="font-black text-xs uppercase tracking-wider" style={{ color: actor.color }}>{actor.label}</span>
+                                        <span className="text-white/50 text-[11px] leading-tight">{actor.desc}</span>
+                                    </div>
+                                ))}
+                            </motion.div>
+
+                            {/* EMAIL WAITLIST FORM */}
+                            <motion.div
+                                className="w-full"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                            >
+                                {waitlistState === 'success' ? (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="flex flex-col items-center gap-4 py-4"
+                                    >
+                                        <div className="w-full bg-white border-[4px] border-black rounded-[2rem] px-8 py-8 shadow-[8px_8px_0px_#10B981] text-center flex flex-col items-center gap-3">
+                                            <div className="w-14 h-14 rounded-full bg-[#10B981] border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_#000]">
+                                                <CheckCircle className="w-7 h-7 text-white" strokeWidth={3} />
+                                            </div>
+                                            <h3 className="text-black font-black text-3xl lowercase tracking-tighter italic leading-none">
+                                                you're in.
+                                            </h3>
+                                            <p className="text-black/60 font-bold text-sm">
+                                                #{ecosystemStats.waitlistCount.toLocaleString()} on the waitlist
+                                            </p>
+                                            <p className="text-black/50 text-xs max-w-[260px]">
+                                                We'll email you when mainnet launches. Follow{' '}
+                                                <a href="https://x.com/djinnmarkets" target="_blank" rel="noopener noreferrer" className="text-black font-black underline">@djinnmarkets</a>{' '}
+                                                for updates.
+                                            </p>
                                         </div>
-                                    </>
+                                        <button
+                                            onClick={handleConnect}
+                                            className="flex items-center gap-2 text-white/50 hover:text-white text-xs font-medium transition-colors uppercase tracking-widest"
+                                        >
+                                            Have a Solana wallet? Connect <ArrowRight className="w-3 h-3" />
+                                        </button>
+                                    </motion.div>
+                                ) : (
+                                    <form onSubmit={handleWaitlistSubmit} className="flex flex-col gap-3">
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                type="email"
+                                                placeholder="your@email.com"
+                                                value={waitlistEmail}
+                                                onChange={e => setWaitlistEmail(e.target.value)}
+                                                required
+                                                className="flex-1 bg-white/5 border border-white/20 text-white placeholder-white/30 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:border-[#FF69B4] transition-colors"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="@twitter (optional)"
+                                                value={waitlistTwitter}
+                                                onChange={e => setWaitlistTwitter(e.target.value)}
+                                                className="sm:w-44 bg-white/5 border border-white/20 text-white placeholder-white/30 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:border-[#FF69B4] transition-colors"
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={waitlistState === 'loading'}
+                                            className="w-full py-4 font-black uppercase text-sm tracking-wider
+                                                bg-white text-black hover:bg-[#FF69B4] hover:text-black
+                                                rounded-xl border-[3px] border-black
+                                                shadow-[5px_5px_0px_#FF69B4]
+                                                hover:shadow-[2px_2px_0px_#FF69B4] hover:translate-x-[3px] hover:translate-y-[3px]
+                                                active:shadow-none active:translate-x-[5px] active:translate-y-[5px]
+                                                transition-all duration-150 disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            {waitlistState === 'loading' ? (
+                                                <><Loader2 className="w-4 h-4 animate-spin" /> Joining...</>
+                                            ) : (
+                                                <>Get Early Access <ArrowRight className="w-4 h-4 stroke-[3]" /></>
+                                            )}
+                                        </button>
+                                        {waitlistState === 'error' && (
+                                            <p className="text-red-400 text-xs text-center">{waitlistMessage}</p>
+                                        )}
+                                        <div className="flex items-center gap-3 pt-1">
+                                            <div className="flex-1 h-px bg-white/10" />
+                                            <span className="text-white/30 text-xs font-medium">or</span>
+                                            <div className="flex-1 h-px bg-white/10" />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleConnect}
+                                            className="w-full py-3 font-black uppercase text-xs tracking-widest
+                                                bg-transparent text-white/60 hover:text-white
+                                                rounded-xl border border-white/20 hover:border-white/40
+                                                transition-all duration-150"
+                                        >
+                                            Connect Solana Wallet
+                                        </button>
+                                    </form>
                                 )}
-                            </div>
+                            </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>
