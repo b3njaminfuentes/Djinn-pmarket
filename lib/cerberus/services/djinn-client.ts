@@ -145,8 +145,41 @@ export class DjinnClient {
     resetKnownMarkets(): void {
         this.knownMarketIds.clear();
     }
+
+    /**
+     * Trigger on-chain + Supabase resolution for a market with a known verdict.
+     * Called by the orchestrator after Cerberus reaches a clear outcome.
+     */
+    async triggerResolution(
+        marketSlug: string,
+        verdict: 'YES' | 'NO' | 'VOID'
+    ): Promise<boolean> {
+        const adminSecret = process.env.ADMIN_SECRET;
+        if (!adminSecret) {
+            console.warn('[DJINN] ADMIN_SECRET not set — cannot trigger resolution');
+            return false;
+        }
+        try {
+            const baseUrl = (process.env.CERBERUS_API_URL || this.config.djinnApiUrl).replace('/api', '');
+            const response = await axios.post(
+                `${baseUrl}/api/oracle/resolve`,
+                { market_slug: marketSlug, verdict, force: false },
+                { headers: { 'x-admin-secret': adminSecret } }
+            );
+            if (response.data.resolved) {
+                console.log(`[DJINN] ✅ Resolution triggered: ${marketSlug} → ${verdict} | Tx: ${response.data.on_chain_signature || 'N/A'}`);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.log(`[DJINN] Error triggering resolution for ${marketSlug}: ${error}`);
+            return false;
+        }
+    }
 }
 
 export function createDjinnClient(config: CerberusConfig): DjinnClient {
-    return new DjinnClient(config);
+    // Prefer env var over hardcoded config for production flexibility
+    const djinnApiUrl = process.env.CERBERUS_API_URL || config.djinnApiUrl;
+    return new DjinnClient({ ...config, djinnApiUrl });
 }

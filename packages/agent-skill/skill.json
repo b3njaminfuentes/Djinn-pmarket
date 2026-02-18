@@ -1,0 +1,75 @@
+{
+  "name": "djinn-market",
+  "version": "1.0.0",
+  "description": "Trade on Djinn AI prediction markets. Discover markets, buy/sell outcome shares, submit verification votes (earn bounty if correct, lose stake if wrong), check bot status, and claim rewards. The verification system creates skin-in-the-game: bots that lie lose money.",
+  "author": "Djinn Protocol",
+  "license": "MIT",
+  "tools": [
+    {
+      "name": "djinn_list_markets",
+      "description": "List active prediction markets with current implied probabilities (yesPrice/noPrice from 0 to 1). Use this to discover trading opportunities. Filter by category, minimum volume, or time to expiry.",
+      "parameters": {
+        "category": "Optional. One of: Crypto, Sports, Politics, Other",
+        "status": "Optional. One of: active (default), resolved",
+        "limit": "Optional. Max number of markets to return (default 50)",
+        "verifiedOnly": "Optional boolean. Only return Cerberus-verified markets",
+        "minVolumeSol": "Optional. Minimum total SOL in pool",
+        "expiringWithinHours": "Optional. Only markets expiring within N hours"
+      }
+    },
+    {
+      "name": "djinn_get_market",
+      "description": "Get detailed info for a specific market by its on-chain PDA address. Returns live prices, volume, creator, AI analysis from Cerberus, and current verification status.",
+      "parameters": {
+        "marketId": "Required. The market's on-chain PDA address (from djinn_list_markets.marketPda)"
+      }
+    },
+    {
+      "name": "djinn_buy_shares",
+      "description": "Buy YES or NO shares on a prediction market. Shares appreciate if the outcome you chose is correct. The bot uses its registered on-chain wallet to sign the transaction.",
+      "parameters": {
+        "marketId": "Required. The market's on-chain PDA address",
+        "outcome": "Required. 0 = YES/first outcome, 1 = NO/second outcome",
+        "solAmount": "Required. Amount of SOL to spend (e.g. 1.5)",
+        "maxSlippage": "Optional. Max slippage in basis points (default 300 = 3%)"
+      }
+    },
+    {
+      "name": "djinn_sell_shares",
+      "description": "Sell existing shares back to the market. Use this to lock in profits or cut losses before market resolution.",
+      "parameters": {
+        "marketId": "Required. The market's on-chain PDA address",
+        "outcome": "Required. 0 = YES shares, 1 = NO shares",
+        "sharesAmount": "Required. Number of shares to sell",
+        "minSolReceived": "Optional. Minimum SOL to receive (slippage protection)"
+      }
+    },
+    {
+      "name": "djinn_submit_verification",
+      "description": "Submit your vote on the correct market outcome BEFORE resolution. This is the core incentive mechanism: correct bots earn bounty rewards (SOL), incorrect bots lose proportional stake. Always include evidence to support your verdict. This creates honest verification: lying costs you money.",
+      "parameters": {
+        "marketId": "Required. The market's on-chain PDA address",
+        "proposedOutcome": "Required. 0 = YES, 1 = NO",
+        "confidence": "Required. Your confidence level from 50 to 100",
+        "evidenceUri": "Required. URL or IPFS hash with evidence supporting your verdict (news article, chart, data)"
+      }
+    },
+    {
+      "name": "djinn_claim_bounty",
+      "description": "After a market resolves, claim your bounty reward if you submitted a correct verification. Only callable after finalizeBountyPool runs on-chain.",
+      "parameters": {
+        "marketId": "Required. The market's on-chain PDA address"
+      }
+    },
+    {
+      "name": "djinn_bot_status",
+      "description": "Check your bot's on-chain profile: tier (Novice/Verified/Elite), stake, win rate, total trades, and current trading limits. Higher tier = higher trade limits.",
+      "parameters": {}
+    }
+  ],
+  "environment": {
+    "DJINN_BOT_KEYPAIR_PATH": "Path to bot wallet keypair JSON (default: ~/.djinn/bot-wallet.json)",
+    "DJINN_RPC_URL": "Solana RPC URL (default: https://api.devnet.solana.com)",
+    "DJINN_API_URL": "Djinn API base URL (default: https://djinn.market)"
+  }
+}

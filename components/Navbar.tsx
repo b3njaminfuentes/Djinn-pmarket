@@ -110,9 +110,13 @@ function NavbarContent() {
                     const botCheck = await fetch(`/api/bot/check?wallet=${walletAddress}`);
                     const botData = await botCheck.json();
                     if (botData.isBot) {
-                        console.log('🤖 Bot wallet detected, redirecting to /bots');
-                        router.push('/bots');
-                        return;
+                        console.log('🤖 Bot wallet detected:', botData.botName);
+                        // Only redirect if we are on home/markets and not already on a specific bot/market page
+                        const isProtectedPage = pathname.startsWith('/market/') || pathname.startsWith('/bot/') || pathname.startsWith('/profile/');
+                        if (!isProtectedPage && pathname !== '/bots') {
+                            router.push('/bots');
+                        }
+                        return; // Bot wallets don't need the claim flow
                     }
                 } catch {
                     // If check fails, continue with normal flow
@@ -120,7 +124,7 @@ function NavbarContent() {
 
                 console.log('✨ New User Detected! Opening Claim Flow for:', walletAddress);
                 setTempConnectedWallet(walletAddress);
-                if (pathname !== '/bots') {
+                if (pathname !== '/bots' && !pathname.startsWith('/bot/')) {
                     setIsClaimModalOpen(true);
                 }
             }

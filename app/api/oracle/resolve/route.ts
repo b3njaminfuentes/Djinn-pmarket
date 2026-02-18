@@ -107,7 +107,7 @@ export async function POST(request: Request) {
             });
         }
 
-        // 5. Execute resolution
+        // 5. Execute resolution in Supabase
         await logOracleEvent('system', `🎯 Resolving market: ${market_slug} → ${finalVerdict}`);
 
         const result = await resolveMarket(market_slug, finalVerdict);
@@ -120,17 +120,34 @@ export async function POST(request: Request) {
             );
         }
 
-        // 6. Update verification status to indicate completion
+        // 6. Execute resolution ON-CHAIN (Solana)
+        let onChainSignature: string | null = null;
+        if (market.market_pda) {
+            try {
+                const { resolveMarketOnChain, finalizeBountyPoolOnChain } = await import('../../../../lib/oracle/resolve-onchain');
+                const onChainResult = await resolveMarketOnChain(market.market_pda, finalVerdict);
+                onChainSignature = onChainResult?.signature || null;
+                // Finalize bounty pool so bots can claim their rewards
+                await finalizeBountyPoolOnChain(market.market_pda);
+            } catch (onChainErr: any) {
+                // Log but don't fail — Supabase is already updated
+                await logOracleEvent('error', `On-chain resolve failed for ${market_slug}: ${onChainErr?.message}`);
+                console.error('[ORACLE] On-chain resolution error:', onChainErr);
+            }
+        }
+
+        // 7. Update verification status
         await updateMarketVerificationStatus(market_slug, 'verified', {
             cerberus_verdict: finalVerdict
         });
 
-        await logOracleEvent('system', `✅ Market resolved: ${market_slug} → ${finalVerdict} | Winners: ${result.winningBets}, Pool: ${result.totalPool} SOL`);
+        await logOracleEvent('system', `✅ Market resolved: ${market_slug} → ${finalVerdict} | On-chain: ${onChainSignature || 'N/A'} | Winners: ${result.winningBets}, Pool: ${result.totalPool} SOL`);
 
         return NextResponse.json({
             resolved: true,
             market_slug,
             winning_outcome: finalVerdict,
+            on_chain_signature: onChainSignature,
             total_pool: result.totalPool,
             winning_bets: result.winningBets,
             losing_bets: result.losingBets
