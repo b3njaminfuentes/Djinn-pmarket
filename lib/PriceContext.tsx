@@ -14,24 +14,32 @@ export function PriceProvider({ children }: { children: React.ReactNode }) {
     const fetchPrice = async () => {
         try {
             // 1. Try Jupiter API (Fastest)
+            // v2 often requires an API key now if rate limited.
             const res = await fetch('https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112');
+
+            if (!res.ok) {
+                console.warn(`Jupiter Price API returned ${res.status}. Falling back...`);
+                throw new Error("Jupiter failed");
+            }
+
             const data = await res.json();
             const price = data?.data?.['So11111111111111111111111111111111111111112']?.price;
             if (price) {
                 setSolPrice(parseFloat(price));
                 return;
             }
-            throw new Error("Jupiter failed");
+            throw new Error("Jupiter data invalid");
         } catch (error) {
             // 2. Fallback to CoinGecko
             try {
                 const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+                if (!res.ok) throw new Error("CoinGecko failed");
                 const data = await res.json();
                 if (data.solana.usd) {
                     setSolPrice(data.solana.usd);
                 }
             } catch (e) {
-                console.warn('All price APIs failed');
+                console.warn('All price APIs failed, using last known or $0');
             }
         }
     };

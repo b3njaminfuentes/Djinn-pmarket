@@ -96,13 +96,34 @@ SELL: User → Burns shares from UserPosition PDA → SOL returned from Vault
 
 To prevent probability from jumping to 100% on low liquidity, we use a **Virtual Floor** of 15M shares per side. This ensures that even with small initial buys, the price remains discovery-driven rather than explosive.
 
-### 3. The Math: 3-Phase Piecewise Bonding Curve
+### 3. The Math: The "Golden Mutant" Curve (V4 Aggressive)
 
-Djinn implements a custom bonding curve synchronized between the Solana Program (Rust) and the Frontend (TypeScript).
+Djinn implements the **Golden Mutant V4**, a 3-phase piecewise bonding curve designed for "Early Bird Rewards" and long-term sustainability. It is mathematically synchronized between the Solana Program (Rust) and the Frontend (TypeScript).
 
-- **Phase 1: Linear** (0 → 100M Shares): Stability during price discovery.
-- **Phase 2: Quadratic Bridge** (100M → 200M Shares): Accelerating growth as conviction builds.
-- **Phase 3: Sigmoid Asymptotic** (200M+ Shares): Gradual approach to 1 SOL cap, preventing manipulation.
+#### Phase 1: Linear Ignition (0 → 100M Shares)
+*   **Stability**: Slow, predictable price discovery.
+*   **Anchor**: Virtual offset of 1M shares ensures a stable starting point.
+*   **Target**: 10M=2x, 20M=3x... up to 6x ROI for early entrants.
+
+#### Phase 2: C3 Bridge (Quadratic) (100M → 200M Shares)
+*   **Acceleration**: Conviction builds, and the price begins a quadratic climb.
+*   **Continuity**: Uses a C⁰ continuous bridge to prevent price gaps during transition.
+*   **Target**: Moves price from 6x to 15x relative to genesis.
+
+#### Phase 3: Mutant Sigmoid (Asymptotic) (200M → 1B Shares)
+*   **Saturation**: Approaching the "Truth Ceiling" of 0.95 SOL.
+*   **Anti-Manipulation**: Sigmoid asymptotic behavior makes it prohibitively expensive to "pump" the last 10% of the market.
+*   **Finality**: 19x target at 120M shares, followed by a gradual decay in price velocity.
+
+---
+
+## 🔗 C3 Continuity & Wallet Features
+
+Djinn preserves **C3 Continuity** (Continuity in Price, Velocity, and Acceleration) where possible to ensure a smooth trading experience.
+
+*   **Fixed-Point Precision**: 9-decimal precision (Lamports) for all curve calculations.
+*   **Deterministic Payouts**: Payouts are calculated based on a snapshot of the pot at resolution, preventing "last-minute drain" attacks.
+*   **Identity Continuity**: Your bot's reputation (C3 Continuity) carries across different markets, building a verifiable on-chain track record.
 
 ---
 
@@ -139,12 +160,14 @@ djinn-pmarket/
 
 ## ⚔️ Fee Structure
 
-| Event | Fee | Distribution |
-|-------|-----|--------------|
-| **Market Creation** | 0.01 SOL | 100% Treasury |
-| **Trading (Buy/Sell)** | 1% | 50% Creator, 50% Treasury |
-| **Resolution** | 2% | 100% Treasury |
-| **Bot Profits** | 30% | 20% Creator, 10% Treasury |
+| Event | Fee | Split (Creator / Treasury / Insurance) |
+|-------|-----|---------------------------------------|
+| **Market Creation** | 0.01 SOL | 0% / 100% / 0% |
+| **Trading (Buy/Sell)** | 1% | 40% / 50% / 10% |
+| **Resolution** | 2% | 0% / 50% / 50% (Bounty Pool) |
+| **Bot Profits** | 30% | 20% / 10% / 0% |
+
+> **Note on Splits**: The 10% insurance fee protects users against liquidity shortfalls, while the 50% resolution fee funds the **Cerberus Bounty Pool** for outcome verification.
 
 ---
 

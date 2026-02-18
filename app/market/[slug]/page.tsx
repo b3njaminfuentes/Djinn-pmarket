@@ -29,6 +29,7 @@ import OutcomeList, { Outcome } from '@/components/market/OutcomeList';
 import PurchaseToast from '@/components/market/PurchaseToast';
 import ShareExperience from '@/components/ShareExperience';
 import DjinnToast, { DjinnToastType } from '@/components/ui/DjinnToast';
+import BotVerificationPanel from '@/components/BotVerificationPanel';
 import { usePrice } from '@/lib/PriceContext';
 import * as supabaseDb from '@/lib/supabase-db';
 import { PrizePoolCounter } from '@/components/PrizePoolCounter';
