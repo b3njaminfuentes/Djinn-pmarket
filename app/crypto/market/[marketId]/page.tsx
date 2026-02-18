@@ -29,17 +29,8 @@ import {
     ExternalLink,
     Filter
 } from 'lucide-react';
-import {
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    ReferenceLine,
-    ReferenceDot,
-    CartesianGrid,
-} from 'recharts';
+import { Liveline } from 'liveline';
+import type { LivelinePoint } from 'liveline';
 import dynamic from 'next/dynamic';
 import { useBinancePrice } from '@/hooks/useBinancePrice';
 import LiveTicker from '@/components/LiveTicker';
@@ -1159,6 +1150,38 @@ export default function ChronosMarketPage() {
         return priceHistory.map(p => ({ time: p.time, price: p.price }));
     }, [selectedRoundData, priceHistory]);
 
+    // ── Liveline normalisation ────────────────────────────────────────────────
+    // Liveline expects values in 0-100. We normalise the real price range to
+    // that scale, then reverse-normalise inside formatValue to show $dollars.
+    const { livelinePoints, strikeNormalized, priceMin, priceMax } = useMemo(() => {
+        if (!formattedChartData.length) {
+            return { livelinePoints: [] as LivelinePoint[], strikeNormalized: 50, priceMin: 0, priceMax: 100 };
+        }
+        const prices = formattedChartData.map((d: { time: number; price: number }) => d.price);
+        const rawMin = Math.min(...prices, displayedTargetPrice || prices[0]);
+        const rawMax = Math.max(...prices, displayedTargetPrice || prices[0]);
+        const pad = (rawMax - rawMin) * 0.1 || 1; // 10% visual breathing room
+        const pMin = rawMin - pad;
+        const pMax = rawMax + pad;
+        const range = pMax - pMin;
+        const norm = (p: number) => Math.max(0, Math.min(100, ((p - pMin) / range) * 100));
+        return {
+            livelinePoints: formattedChartData.map((d: { time: number; price: number }) => ({
+                time: Math.floor(d.time / 1000), // ms → unix seconds
+                value: norm(d.price),
+            })),
+            strikeNormalized: norm(displayedTargetPrice || 0),
+            priceMin: pMin,
+            priceMax: pMax,
+        };
+    }, [formattedChartData, displayedTargetPrice]);
+
+    const currentValueNormalized = useMemo(() => {
+        const range = priceMax - priceMin;
+        if (!range) return 50;
+        return Math.max(0, Math.min(100, ((effectiveCurrentPrice - priceMin) / range) * 100));
+    }, [effectiveCurrentPrice, priceMin, priceMax]);
+
     return (
         <div className="min-h-screen relative overflow-hidden bg-black text-black font-sans selection:bg-[#F492B7] selection:text-black">
             <StarfieldBg />
@@ -1237,105 +1260,29 @@ export default function ChronosMarketPage() {
                                 </div>
                             </div>
 
-                            <div className="flex-1 w-full min-h-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={formattedChartData}>
-                                        <defs>
-                                            <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor={chartColor} stopOpacity={0.2} />
-                                                <stop offset="100%" stopColor={chartColor} stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <XAxis
-                                            dataKey="time"
-                                            tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }}
-                                            axisLine={{ stroke: '#E5E7EB', strokeWidth: 1 }}
-                                            tickLine={false}
-                                            tickFormatter={(time: string) => {
-                                                // Format time as HH:MM
-                                                const date = new Date(time);
-                                                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                            }}
-                                        />
-                                        <YAxis
-                                            domain={[
-                                                (dataMin: number) => displayedTargetPrice > 0 ? Math.min(dataMin, displayedTargetPrice * 0.999) : 'auto',
-                                                (dataMax: number) => displayedTargetPrice > 0 ? Math.max(dataMax, displayedTargetPrice * 1.001) : 'auto'
-                                            ]}
-                                            orientation="right"
-                                            tickCount={10}
-                                            tick={{ fontSize: 10, fontWeight: 600, fill: '#6B7280' }}
-                                            tickFormatter={(v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-                                            axisLine={{ stroke: '#E5E7EB', strokeWidth: 1 }}
-                                            tickLine={false}
-                                        />
-                                        <Tooltip content={<CustomTooltip assetIcon={asset.icon} />} />
-                                        {/* Horizontal grid lines for price scale visibility */}
-                                        <CartesianGrid
-                                            horizontal={true}
-                                            vertical={false}
-                                            stroke="#E5E7EB"
-                                            strokeOpacity={0.5}
-                                            strokeDasharray="3 3"
-                                        />
-                                        <ReferenceLine
-                                            y={displayedTargetPrice}
-                                            stroke="#000000"
-                                            strokeWidth={2}
-                                            strokeDasharray="5 5"
-                                            label={{
-                                                value: `$${displayedTargetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                                                position: 'right',
-                                                fill: '#000',
-                                                fontWeight: 900,
-                                                fontSize: 12,
-                                                dx: 5
-                                            }}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="price"
-                                            stroke={chartColor || '#000000'}
-                                            strokeWidth={3}
-                                            fill="url(#priceGradient)"
-                                            isAnimationActive={false}
-                                        />
-                                        {myTrades.map((trade, i) => (
-                                            <ReferenceDot
-                                                key={i}
-                                                x={trade.time}
-                                                y={trade.price}
-                                                r={8}
-                                                fill={trade.side === 'YES' ? '#10B981' : '#F43F5E'}
-                                                stroke="white"
-                                                strokeWidth={2}
-                                                label={{ value: 'B', fill: 'white', fontSize: 10, fontWeight: 900, position: 'center' }}
-                                            />
-                                        ))}
-                                        {/* Live price dot at the tip of the chart line */}
-                                        {formattedChartData.length > 0 && (
-                                            <>
-                                                {/* Horizontal dashed line from current price to Y-axis scale */}
-                                                <ReferenceLine
-                                                    y={formattedChartData[formattedChartData.length - 1].price}
-                                                    stroke="#F87171"
-                                                    strokeDasharray="3 3"
-                                                    strokeWidth={1.5}
-                                                    strokeOpacity={0.6}
-                                                />
-                                                {/* Small dot at the tip */}
-                                                <ReferenceDot
-                                                    x={formattedChartData[formattedChartData.length - 1].time}
-                                                    y={formattedChartData[formattedChartData.length - 1].price}
-                                                    r={5}
-                                                    fill={chartColor || '#000'}
-                                                    stroke="white"
-                                                    strokeWidth={2}
-                                                />
-                                            </>
-                                        )}
-                                    </AreaChart>
-                                </ResponsiveContainer>
+                            <div className="flex-1 w-full min-h-0 rounded-2xl overflow-hidden border-2 border-black/10">
+                                <Liveline
+                                    data={livelinePoints}
+                                    value={currentValueNormalized}
+                                    color={chartColor}
+                                    theme="light"
+                                    fill
+                                    pulse
+                                    badge
+                                    badgeTail
+                                    grid
+                                    momentum
+                                    scrub
+                                    referenceLine={{
+                                        value: strikeNormalized,
+                                        label: `Strike $${displayedTargetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                                    }}
+                                    formatValue={(v) => {
+                                        const actual = priceMin + (v / 100) * (priceMax - priceMin);
+                                        return `$${actual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                    }}
+                                    style={{ width: '100%', height: '100%' }}
+                                />
                             </div>
 
                             <RoundSelector rounds={allRounds} selectedRoundId={selectedRoundView} onSelect={setSelectedRoundView} />
