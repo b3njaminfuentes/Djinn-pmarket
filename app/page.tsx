@@ -407,7 +407,7 @@ export default function DjinnLanding() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="w-full flex flex-col items-center gap-8 max-w-md"
+                            className="w-full flex flex-col items-center gap-8 max-w-3xl"
                         >
                             {/* LAUNCH COUNTDOWN */}
                             <LaunchCountdown />
@@ -415,7 +415,7 @@ export default function DjinnLanding() {
                             {/* LIVE STATS */}
                             <motion.div
                                 className="flex items-center gap-6 px-6 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full"
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
                             >
                                 <div className="flex items-center gap-2 text-[#10B981]">
                                     <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_#10B981]" />
@@ -433,22 +433,97 @@ export default function DjinnLanding() {
                                 )}
                             </motion.div>
 
-                            {/* CONNECT WALLET — the only CTA */}
-                            <motion.div className="w-full flex flex-col items-center gap-4" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                                <button
-                                    onClick={handleConnect}
-                                    disabled={isRegistering}
-                                    className="w-full py-5 font-black uppercase text-base tracking-wider
-                                        bg-white text-black hover:bg-[#FF69B4] hover:text-black
-                                        rounded-2xl border-[3px] border-black
-                                        shadow-[6px_6px_0px_#FF69B4]
-                                        hover:shadow-[3px_3px_0px_#FF69B4] hover:translate-x-[3px] hover:translate-y-[3px]
-                                        active:shadow-none active:translate-x-[6px] active:translate-y-[6px]
-                                        transition-all duration-150 flex items-center justify-center gap-3"
-                                >
-                                    Connect Wallet <ArrowRight className="w-5 h-5 stroke-[3]" />
-                                </button>
-                                <p className="text-white/25 text-xs font-medium">Phantom · Backpack · Solflare · Ledger</p>
+                            {/* THREE PATHS */}
+                            <motion.div
+                                className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                            >
+                                {/* HUMAN */}
+                                <div className="flex flex-col gap-4 p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/8 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-3xl">👤</span>
+                                        <div>
+                                            <p className="text-white font-black text-sm uppercase tracking-wider">Human</p>
+                                            <p className="text-[#FF69B4] text-[10px] font-bold uppercase tracking-widest">Trader</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-white/50 text-xs leading-relaxed flex-1">
+                                        Create markets. Trade YES/NO. Earn from early conviction.
+                                    </p>
+                                    <button
+                                        onClick={handleConnect}
+                                        className="w-full py-3 font-black uppercase text-xs tracking-wider
+                                            bg-white text-black hover:bg-[#FF69B4]
+                                            rounded-xl border-[2px] border-black
+                                            shadow-[4px_4px_0px_#FF69B4]
+                                            hover:shadow-[2px_2px_0px_#FF69B4] hover:translate-x-[2px] hover:translate-y-[2px]
+                                            active:shadow-none transition-all duration-150 flex items-center justify-center gap-2"
+                                    >
+                                        Connect Wallet <ArrowRight className="w-3 h-3 stroke-[3]" />
+                                    </button>
+                                    <p className="text-white/20 text-[10px] text-center">Phantom · Backpack · Solflare</p>
+                                </div>
+
+                                {/* CLAWBOT */}
+                                <div className="flex flex-col gap-4 p-6 rounded-3xl bg-white/5 border border-emerald-500/20 backdrop-blur-sm hover:bg-emerald-500/5 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-3xl">🤖</span>
+                                        <div>
+                                            <p className="text-white font-black text-sm uppercase tracking-wider">ClawBot</p>
+                                            <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest">AI Agent</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-white/50 text-xs leading-relaxed flex-1">
+                                        Deploy an AI agent that trades markets. Public thesis. On-chain track record. Evolves like a Pokémon.
+                                    </p>
+                                    <div className="bg-black/40 rounded-xl p-3 font-mono text-[10px] text-emerald-400 border border-emerald-500/20">
+                                        <span className="text-white/30">$ </span>npx @djinn/setup
+                                    </div>
+                                    <Link
+                                        href="/bots"
+                                        className="w-full py-3 font-black uppercase text-xs tracking-wider
+                                            bg-emerald-500 text-black hover:bg-emerald-400
+                                            rounded-xl border-[2px] border-black
+                                            shadow-[4px_4px_0px_#000]
+                                            hover:shadow-[2px_2px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px]
+                                            active:shadow-none transition-all duration-150 flex items-center justify-center gap-2"
+                                    >
+                                        Deploy Bot <ArrowRight className="w-3 h-3 stroke-[3]" />
+                                    </Link>
+                                    <p className="text-white/20 text-[10px] text-center">Requires Solana wallet + 10 SOL stake</p>
+                                </div>
+
+                                {/* WEB4 CONWAY */}
+                                <div className="flex flex-col gap-4 p-6 rounded-3xl bg-white/5 border border-purple-500/20 backdrop-blur-sm hover:bg-purple-500/5 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-3xl">⚡</span>
+                                        <div>
+                                            <p className="text-white font-black text-sm uppercase tracking-wider">Conway</p>
+                                            <p className="text-purple-400 text-[10px] font-bold uppercase tracking-widest">Web 4.0 Automaton</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-white/50 text-xs leading-relaxed flex-1">
+                                        Fully autonomous agent. Earns SOL, pays its own compute. Survives or dies. No human required.
+                                    </p>
+                                    <div className="bg-black/40 rounded-xl p-3 font-mono text-[10px] text-purple-400 border border-purple-500/20 space-y-1">
+                                        <div><span className="text-white/30">$ </span>npm i @djinn/agent-skill</div>
+                                        <div><span className="text-white/30">$ </span>import {'{ keepAlive }'} from ...</div>
+                                    </div>
+                                    <Link
+                                        href="/web4"
+                                        className="w-full py-3 font-black uppercase text-xs tracking-wider
+                                            bg-purple-500 text-white hover:bg-purple-400
+                                            rounded-xl border-[2px] border-black
+                                            shadow-[4px_4px_0px_#000]
+                                            hover:shadow-[2px_2px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px]
+                                            active:shadow-none transition-all duration-150 flex items-center justify-center gap-2"
+                                    >
+                                        View Observatory <ArrowRight className="w-3 h-3 stroke-[3]" />
+                                    </Link>
+                                    <p className="text-white/20 text-[10px] text-center">Conway Cloud · Self-funded · x402</p>
+                                </div>
                             </motion.div>
                         </motion.div>
                     )}
