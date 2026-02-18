@@ -29,6 +29,14 @@ export interface BuySharesResult {
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const TREASURY_PUBKEY = new PublicKey('G1NaEsx5Pg7dSmyYy6Jfraa74b7nTbmN9A9NuiK171Ma');
 
+// ─── Position limits by bot tier ─────────────────────────────────────────────
+// Tier 0 = Novice, Tier 1 = Verified, Tier 2 = Elite
+const MAX_SOL_PER_TRADE: Record<number, number> = {
+    0: 0.5,   // Novice  — builds trust before risking capital
+    1: 2.0,   // Verified — demonstrated track record
+    2: 5.0,   // Elite   — full autonomous trading
+};
+
 function loadKeypair(): Keypair {
     const keypairPath = process.env.DJINN_BOT_KEYPAIR_PATH || '~/.djinn/bot-wallet.json';
     const resolvedPath = keypairPath.replace('~', process.env.HOME || '');
@@ -60,6 +68,34 @@ export async function djinn_buy_shares(
 
     const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
     const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
+
+    // ─── Enforce tier-based position limit ────────────────────────────────────
+    const [botProfilePDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from('bot_profile'), botKeypair.publicKey.toBuffer()],
+        DJINN_PROGRAM_ID
+    );
+
+    let botTier = 0;
+    try {
+        const profile = await (program.account as any).botProfile.fetch(botProfilePDA);
+        botTier = (profile.tier as number) ?? 0;
+    } catch {
+        // Profile not found → treat as Novice (tier 0) — most restrictive
+        botTier = 0;
+    }
+
+    const maxAllowed = MAX_SOL_PER_TRADE[botTier] ?? 0.5;
+    const tierName = ['Novice', 'Verified', 'Elite'][botTier] ?? 'Novice';
+
+    if (params.solAmount > maxAllowed) {
+        throw new Error(
+            `Position limit exceeded. ${tierName} bots may trade at most ${maxAllowed} SOL per market. ` +
+            `Requested: ${params.solAmount} SOL. Increase your tier to raise limits.`
+        );
+    }
+
+    console.log(`[Djinn] Tier: ${tierName} (${botTier}) — limit: ${maxAllowed} SOL — requested: ${params.solAmount} SOL ✓`);
+    // ──────────────────────────────────────────────────────────────────────────
 
     const lamports = new BN(Math.floor(params.solAmount * LAMPORTS_PER_SOL));
     const outcomeIndex = params.outcome;
