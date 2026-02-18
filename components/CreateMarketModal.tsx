@@ -13,6 +13,7 @@ import { Loader2, ExternalLink } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useSound } from './providers/SoundProvider';
 import TwitterWarningModal from './TwitterWarningModal';
+import { parseMarketSource, type MarketSourceAnalysis } from '@/lib/oracle/market-sources';
 
 // --- ICONS ---
 const CloseIcon = () => (
@@ -96,6 +97,11 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
     const [metricThreshold, setMetricThreshold] = useState('10000');
 
     const [error, setError] = useState('');
+    const [sourceUrlError, setSourceUrlError] = useState('');
+    const [urlAnalysis, setUrlAnalysis] = useState<MarketSourceAnalysis | null>(null);
+    const [qualityCheckResult, setQualityCheckResult] = useState<{
+        approved: boolean; score: number; reason: string;
+    } | null>(null);
     const [successData, setSuccessData] = useState<{
         txSignature: string;
         marketPda: string;
@@ -118,6 +124,9 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
                 setInitialBuySide('yes');
                 setSuccessData(null);
                 setSourceUrl('');
+                setSourceUrlError('');
+                setUrlAnalysis(null);
+                setQualityCheckResult(null);
                 setSelectedCategory('Crypto');
                 setShowTwitterWarning(false);
                 setTwitterWarningAccepted(false);
@@ -172,6 +181,12 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
             return;
         }
         if (!poolName) return alert("Please enter a question");
+
+        if (!sourceUrl.trim()) {
+            setSourceUrlError('A source URL is required — paste the link where you found this question.');
+            setIsLoading(false);
+            return;
+        }
 
         const finalCategory = selectedCategory;
         setIsLoading(true);
@@ -297,6 +312,22 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
                 slug
             });
 
+            // ── Kick off Cerberus quality check (async, non-blocking) ──────────
+            fetch('/api/oracle/quality-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: poolName,
+                    sourceUrl,
+                    endDate: new Date(finalResolutionTime * 1000).toISOString(),
+                    category: finalCategory,
+                    market_slug: slug,
+                }),
+            })
+                .then(r => r.json())
+                .then(qc => setQualityCheckResult({ approved: qc.approved, score: qc.score, reason: qc.reason }))
+                .catch(() => { /* quality check is best-effort */ });
+
             // 🎉 FIREWORKS SOUND
             play('success');
 
@@ -398,7 +429,21 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
                         </div>
 
                         <h2 className="text-4xl font-black text-black lowercase mb-2">market created!</h2>
-                        <p className="text-gray-600 font-bold lowercase mb-8">you cooked. it's live on solana.</p>
+                        <div className="flex items-center gap-2 mb-8">
+                            {qualityCheckResult === null ? (
+                                <span className="inline-flex items-center gap-1.5 bg-amber-100 border-2 border-amber-400 text-amber-700 font-black text-xs uppercase px-3 py-1.5 rounded-full">
+                                    <Loader2 className="w-3 h-3 animate-spin" /> cerberus reviewing...
+                                </span>
+                            ) : qualityCheckResult.approved ? (
+                                <span className="inline-flex items-center gap-1.5 bg-emerald-100 border-2 border-emerald-500 text-emerald-700 font-black text-xs uppercase px-3 py-1.5 rounded-full">
+                                    🐕 cerberus approved — trading opens shortly
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1.5 bg-red-100 border-2 border-red-400 text-red-700 font-black text-xs uppercase px-3 py-1.5 rounded-full">
+                                    ⚠️ needs review — {qualityCheckResult.reason?.slice(0, 40)}
+                                </span>
+                            )}
+                        </div>
 
                         {/* Receipt Card */}
                         <div className="w-full bg-[#f8f9fa] border-2 border-dashed border-black rounded-xl p-6 mb-8 text-left font-mono text-sm relative">
@@ -518,47 +563,81 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
                                     </div>
                                 </div>
 
-                                {/* Source URL */}
+                                {/* Source URL — REQUIRED */}
                                 <div>
-                                    <label className="text-black font-black lowercase mb-2 block tracking-tight">resolution source</label>
+                                    <label className="text-black font-black lowercase mb-2 block tracking-tight">
+                                        resolution source
+                                        <span className="ml-1.5 text-red-500 text-xs font-black uppercase">required</span>
+                                    </label>
                                     <input
                                         type="text"
-                                        placeholder="https://x.com/..."
-                                        className="w-full bg-white border-2 border-black rounded-xl py-4 px-4 font-bold text-black outline-none focus:shadow-[4px_4px_0px_0px_#F492B7] transition-all placeholder:text-gray-300"
+                                        placeholder="https://kalshi.com/markets/... or https://reuters.com/..."
+                                        className={`w-full bg-white border-2 rounded-xl py-4 px-4 font-bold text-black outline-none focus:shadow-[4px_4px_0px_0px_#F492B7] transition-all placeholder:text-gray-300 ${sourceUrlError ? 'border-red-500 shadow-[2px_2px_0px_0px_#ef4444]' : 'border-black'}`}
                                         value={sourceUrl}
                                         onChange={(e) => {
                                             const url = e.target.value;
                                             setSourceUrl(url);
+                                            setSourceUrlError('');
 
-                                            // Auto-detect Twitter URLs
-                                            if (url.includes('twitter.com') || url.includes('x.com')) {
-                                                if (selectedCategory !== 'Twitter') {
-                                                    setSelectedCategory('Twitter');
+                                            if (url.length > 8) {
+                                                const analysis = parseMarketSource(url);
+                                                setUrlAnalysis(analysis);
+
+                                                // Auto-set category
+                                                if (analysis.suggestedCategory && analysis.suggestedCategory !== 'Other') {
+                                                    setSelectedCategory(analysis.suggestedCategory);
                                                 }
 
-                                                // 1. Extract Username
-                                                const userMatch = url.match(/(?:twitter\.com|x\.com)\/([^\/\?#]+)/);
-                                                if (userMatch && userMatch[1] && !['search', 'hashtag', 'home', 'explore'].includes(userMatch[1])) {
-                                                    setTargetUsername(userMatch[1]);
+                                                // Auto-populate question if Kalshi/Polymarket and field is empty
+                                                if (analysis.extractedQuestion && !poolName) {
+                                                    setPoolName(analysis.extractedQuestion);
                                                 }
 
-                                                // 2. Extract Tweet ID (if present)
-                                                // Format: .../status/123456789...
-                                                const idMatch = url.match(/\/status\/(\d+)/);
-                                                if (idMatch && idMatch[1]) {
-                                                    setTargetTweetId(idMatch[1]);
-                                                    // If URL has an ID, user likely wants a metric threshold on that specific tweet
-                                                    // But we default to keyword. Let's keep default as keyword unless they switch.
+                                                // Twitter-specific logic
+                                                if (analysis.platform === 'twitter') {
+                                                    const userMatch = url.match(/(?:twitter\.com|x\.com)\/([^\/\?#]+)/);
+                                                    if (userMatch?.[1] && !['search', 'hashtag', 'home', 'explore'].includes(userMatch[1])) {
+                                                        setTargetUsername(userMatch[1]);
+                                                    }
+                                                    const idMatch = url.match(/\/status\/(\d+)/);
+                                                    if (idMatch?.[1]) setTargetTweetId(idMatch[1]);
+                                                    if (!twitterWarningAccepted) setShowTwitterWarning(true);
                                                 }
-
-                                                // Show warning if not accepted yet
-                                                if (!twitterWarningAccepted) {
-                                                    setShowTwitterWarning(true);
-                                                }
+                                            } else {
+                                                setUrlAnalysis(null);
                                             }
                                         }}
                                     />
-                                    <p className="text-xs font-bold text-gray-500 mt-2 lowercase">the oracle dogs use this to verify the outcome</p>
+
+                                    {/* Source Detection Badge */}
+                                    {urlAnalysis && (
+                                        <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-black uppercase transition-all
+                                            ${urlAnalysis.platform === 'kalshi' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' :
+                                              urlAnalysis.platform === 'polymarket' ? 'bg-blue-50 border-blue-400 text-blue-700' :
+                                              urlAnalysis.platform === 'twitter' ? 'bg-sky-50 border-sky-400 text-sky-700' :
+                                              urlAnalysis.credibleDomain ? 'bg-emerald-50 border-emerald-400 text-emerald-700' :
+                                              'bg-amber-50 border-amber-400 text-amber-700'}`
+                                        }>
+                                            <span>{urlAnalysis.platformIcon}</span>
+                                            <span>
+                                                {urlAnalysis.platform === 'kalshi' && 'Kalshi Market Detected'}
+                                                {urlAnalysis.platform === 'polymarket' && 'Polymarket Detected'}
+                                                {urlAnalysis.platform === 'twitter' && 'X / Twitter Source'}
+                                                {urlAnalysis.platform === 'general' && urlAnalysis.credibleDomain && `Verified source · ${urlAnalysis.platformLabel}`}
+                                                {urlAnalysis.platform === 'general' && !urlAnalysis.credibleDomain && `Unrecognized source · Cerberus will review`}
+                                                {urlAnalysis.platform === 'unknown' && 'Invalid URL'}
+                                            </span>
+                                            {urlAnalysis.extractedQuestion && (
+                                                <span className="opacity-60">· question auto-imported</span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {sourceUrlError ? (
+                                        <p className="text-xs font-bold text-red-500 mt-2">{sourceUrlError}</p>
+                                    ) : !urlAnalysis ? (
+                                        <p className="text-xs font-bold text-gray-400 mt-2 lowercase">paste the url where you found this question — cerberus uses it to verify the outcome</p>
+                                    ) : null}
                                 </div>
 
                                 {/* Twitter Market Config */}
