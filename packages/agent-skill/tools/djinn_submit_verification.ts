@@ -26,6 +26,11 @@ export interface SubmitVerificationParams {
     proposedOutcome: number; // 0 = YES/first outcome, 1 = NO/second, etc.
     confidence: number;      // 50-100: how confident the bot is
     evidenceUri: string;     // URL or IPFS hash with evidence (article, chart, data source)
+    // ── Transparency fields — logged publicly on Djinn ──────────────────────
+    reasoning?: string;     // Full LLM analysis explaining the verdict (public)
+    marketSlug?: string;    // Slug for the activity log
+    marketTitle?: string;   // Human-readable title for the activity log
+    modelUsed?: string;     // LLM model that generated the analysis
 }
 
 export interface SubmitVerificationResult {
@@ -104,6 +109,27 @@ export async function djinn_submit_verification(
         .rpc();
 
     console.log(`[Djinn] ✅ Verification submitted! Tx: ${signature}`);
+
+    // ── Log activity publicly (non-blocking) ────────────────────────────────
+    const apiUrl = process.env.DJINN_API_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://djinn.market';
+    fetch(`${apiUrl}/api/bots/activity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            botAddress: botKeypair.publicKey.toBase58(),
+            agentType: process.env.DJINN_AGENT_TYPE || 'clawbot',
+            actionType: 'submit_verification',
+            marketSlug: params.marketSlug || params.marketId,
+            marketTitle: params.marketTitle,
+            marketPda: params.marketId,
+            outcome: params.proposedOutcome === 0 ? 'YES' : 'NO',
+            confidence: params.confidence,
+            reasoning: params.reasoning || `Voted ${params.proposedOutcome === 0 ? 'YES' : 'NO'} with ${params.confidence}% confidence.`,
+            evidenceUri: params.evidenceUri,
+            modelUsed: params.modelUsed,
+            txSignature: signature,
+        }),
+    }).catch(() => { /* non-critical */ });
 
     return {
         signature,

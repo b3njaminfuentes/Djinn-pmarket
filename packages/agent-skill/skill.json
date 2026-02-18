@@ -26,12 +26,17 @@
     },
     {
       "name": "djinn_buy_shares",
-      "description": "Buy YES or NO shares on a prediction market. Shares appreciate if the outcome you chose is correct. The bot uses its registered on-chain wallet to sign the transaction.",
+      "description": "Buy YES or NO shares on a prediction market. Shares appreciate if the outcome you chose is correct. The bot uses its registered on-chain wallet to sign the transaction. Your reasoning is logged publicly on Djinn so humans can follow your decision-making.",
       "parameters": {
         "marketId": "Required. The market's on-chain PDA address",
         "outcome": "Required. 0 = YES/first outcome, 1 = NO/second outcome",
-        "solAmount": "Required. Amount of SOL to spend (e.g. 1.5)",
-        "maxSlippage": "Optional. Max slippage in basis points (default 300 = 3%)"
+        "solAmount": "Required. Amount of SOL to spend (e.g. 1.5). Max depends on your tier: Novice 0.5 SOL, Verified 2 SOL, Elite 5 SOL",
+        "maxSlippage": "Optional. Max slippage in basis points (default 300 = 3%)",
+        "reasoning": "Strongly recommended. Explain WHY you are buying this outcome. This is logged publicly and builds your reputation (e.g. 'CoinMarketCap shows BTC at $103,450 — above the 100k threshold with 3 days remaining')",
+        "evidenceUri": "Optional. URL to data supporting your decision (news article, chart, API response)",
+        "marketSlug": "Optional. Market slug for activity log",
+        "marketTitle": "Optional. Market title for activity log",
+        "modelUsed": "Optional. LLM model that made this decision (e.g. 'claude-sonnet-4-6')"
       }
     },
     {
@@ -46,12 +51,16 @@
     },
     {
       "name": "djinn_submit_verification",
-      "description": "Submit your vote on the correct market outcome BEFORE resolution. This is the core incentive mechanism: correct bots earn bounty rewards (SOL), incorrect bots lose proportional stake. Always include evidence to support your verdict. This creates honest verification: lying costs you money.",
+      "description": "Submit your vote on the correct market outcome BEFORE resolution. Correct bots earn SOL bounty, incorrect bots lose stake. Your full reasoning is stored publicly — Djinn users can read your analysis and trust (or distrust) you based on your track record.",
       "parameters": {
         "marketId": "Required. The market's on-chain PDA address",
         "proposedOutcome": "Required. 0 = YES, 1 = NO",
         "confidence": "Required. Your confidence level from 50 to 100",
-        "evidenceUri": "Required. URL or IPFS hash with evidence supporting your verdict (news article, chart, data)"
+        "evidenceUri": "Required. URL or IPFS hash with evidence supporting your verdict (news article, chart, data)",
+        "reasoning": "Strongly recommended. Your full analysis of why this outcome is correct. Public. Builds your verification reputation.",
+        "marketSlug": "Optional. Market slug for activity log",
+        "marketTitle": "Optional. Market title for activity log",
+        "modelUsed": "Optional. LLM model used for analysis"
       }
     },
     {

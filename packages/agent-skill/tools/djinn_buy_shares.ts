@@ -15,9 +15,15 @@ import { idl, DJINN_PROGRAM_ID } from '@djinn/sdk';
 
 export interface BuySharesParams {
     marketId: string;
-    outcome: number;       // 0 = YES/first, 1 = NO/second, etc.
+    outcome: number;        // 0 = YES/first, 1 = NO/second, etc.
     solAmount: number;      // Amount in SOL (e.g., 1.5)
     maxSlippage?: number;   // Basis points, default 300 (3%)
+    // ── Transparency fields — logged publicly on Djinn ──────────────────────
+    reasoning?: string;     // WHY the bot is buying (e.g. "BTC closed above 100k on CMC, 87% certainty")
+    evidenceUri?: string;   // URL to supporting data (news article, chart, API response)
+    marketSlug?: string;    // Slug for the activity log
+    marketTitle?: string;   // Human-readable title for the activity log
+    modelUsed?: string;     // LLM model that made the decision (e.g. "claude-sonnet-4-6")
 }
 
 export interface BuySharesResult {
@@ -146,6 +152,27 @@ export async function djinn_buy_shares(
         .rpc();
 
     console.log(`[Djinn] Transaction confirmed: ${tx}`);
+
+    // ── Log activity publicly (non-blocking) ────────────────────────────────
+    const apiUrl = process.env.DJINN_API_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://djinn.market';
+    fetch(`${apiUrl}/api/bots/activity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            botAddress: botKeypair.publicKey.toBase58(),
+            agentType: process.env.DJINN_AGENT_TYPE || 'clawbot',
+            actionType: 'buy_shares',
+            marketSlug: params.marketSlug || params.marketId,
+            marketTitle: params.marketTitle,
+            marketPda: params.marketId,
+            outcome: params.outcome === 0 ? 'YES' : 'NO',
+            solAmount: params.solAmount,
+            reasoning: params.reasoning || `Bought ${params.outcome === 0 ? 'YES' : 'NO'} shares. No reasoning provided.`,
+            evidenceUri: params.evidenceUri,
+            modelUsed: params.modelUsed,
+            txSignature: tx,
+        }),
+    }).catch(() => { /* non-critical */ });
 
     return {
         signature: tx,
