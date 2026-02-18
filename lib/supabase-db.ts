@@ -1927,13 +1927,14 @@ export async function searchGlobal(queryText: string) {
 // ============================================
 
 export type VerificationStatus =
-    | 'none'           // Not yet triggered
-    | 'pending'        // In queue for verification
-    | 'pending_manual' // Bot disabled, needs manual trigger
-    | 'verifying'      // Currently being verified by Cerberus
-    | 'verified'       // Cerberus approved (3-dog passed)
-    | 'flagged'        // Cerberus flagged for review
-    | 'rejected';      // Cerberus rejected
+    | 'none'             // Not yet triggered
+    | 'pending'          // In queue for verification
+    | 'pending_manual'   // Bot disabled, needs manual trigger
+    | 'verifying'        // Currently being verified by Cerberus
+    | 'pre_resolution'   // T-2h: intensive monitoring active, bounty open
+    | 'verified'         // Cerberus approved (3-dog passed)
+    | 'flagged'          // Cerberus flagged for review / stale
+    | 'rejected';        // Cerberus rejected
 
 export type ResolutionStatus =
     | 'active'         // Market is live and trading
