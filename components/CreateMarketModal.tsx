@@ -239,8 +239,7 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
                 txSignature = 'local_fallback';
             }
 
-            // @ts-ignore
-            await createMarket({
+            await (createMarket as any)({
                 slug,
                 title: poolName,
                 creator_wallet: publicKey.toString(),

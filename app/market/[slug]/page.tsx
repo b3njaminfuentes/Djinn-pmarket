@@ -1379,9 +1379,9 @@ export default function Page() {
                 // FRESH SUPPLY FETCH: Get the absolute latest supply state to calculate accurate slippage
                 let freshEstimatedShares = estimatedShares;
                 try {
+                    if (!program) throw new Error('Program not initialized');
                     const marketPda = new PublicKey(marketAccount.market_pda);
-                    // @ts-ignore
-                    const freshMarket = await program.account.market.fetch(marketPda);
+                    const freshMarket = await (program.account as any).market.fetch(marketPda);
                     if (freshMarket) {
                         // Using outer outcomeIndex
                         // Assuming 9 decimals
@@ -1560,8 +1560,7 @@ export default function Page() {
                     outcome_name: activityAction, // Already resolved to Uppercase Outcome or YES
                     created_at: new Date().toISOString()
                 };
-                // @ts-ignore
-                await supabaseDb.createActivity(activity);
+                await (supabaseDb as any).createActivity(activity);
                 mutateActivity((current: any[] | undefined) => [activity, ...(current || [])], false);
 
                 // 4. Create/Update Bet
@@ -1730,7 +1729,6 @@ export default function Page() {
                 type: 'SUCCESS',
                 title: 'SUCCESS',
                 message: `Successfully bought ${formatCompact(sim.sharesReceived)} ${tradeSideName} shares.`,
-                // @ts-ignore
                 actionLink: finalTxSignature ? `https://solscan.io/tx/${finalTxSignature}?cluster=devnet` : undefined,
                 actionLabel: 'View on Solscan'
             });
@@ -1785,8 +1783,8 @@ export default function Page() {
                     // Read market account to get real supplies and calculate actual price
                     // Refactored to use Anchor Fetch for safety against variable-length data
                     try {
-                        // @ts-ignore
-                        const decodedMarket = await program.account.market.fetch(marketPda) as any;
+                        if (!program) throw new Error('Program not initialized');
+                        const decodedMarket = await (program.account as any).market.fetch(marketPda) as any;
 
                         const yesSupply = Number(decodedMarket.outcomeSupplies[0]) / 1e9;
                         const noSupply = Number(decodedMarket.outcomeSupplies[1]) / 1e9;
@@ -2305,8 +2303,7 @@ export default function Page() {
                         // We could also update volume/holders here if we tracked them locally
                     }, false); // false = don't revalidate immediately
                 }
-                // @ts-ignore
-                await supabaseDb.createActivity(sellActivity);
+                await (supabaseDb as any).createActivity(sellActivity);
                 mutateActivity((current: any[] | undefined) => [sellActivity, ...(current || [])], false);
 
                 // REFRESH USER HOLDINGS

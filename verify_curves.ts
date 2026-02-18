@@ -1,5 +1,5 @@
 
-import { getSpotPrice, simulateBuy, MarketState } from './lib/core-amm.ts';
+import { getSpotPrice, simulateBuy, MarketState } from './lib/core-amm';
 
 // Mock Initial State (Empty Market)
 const marketStateYes: MarketState = {

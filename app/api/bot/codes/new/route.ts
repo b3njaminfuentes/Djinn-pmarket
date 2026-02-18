@@ -10,27 +10,31 @@ const supabase = createClient(
 
 /**
  * POST /api/bot/codes/new
- * Generates a new activation code for the CLI (Self-Service)
+ * Generates a new activation code for the CLI (Admin-only, requires x-admin-secret header)
  */
 export async function POST(req: NextRequest) {
+    // Auth check — solo admins pueden generar códigos desde este endpoint
+    const adminSecret = req.headers.get('x-admin-secret');
+    if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
-        // Generate a random 4-char code (e.g. A7X9)
+        // Generate a random 4-char code (e.g. DJNN-A7X9)
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let code = 'DJNN-';
         for (let i = 0; i < 4; i++) {
             code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
-        // Insert into DB
+        // Insert into DB with 7-day expiry
         const { data, error } = await supabase
             .from('bot_activation_codes')
             .insert([
                 {
                     code,
-                    status: 'available', // Ready to be claimed by CLI details
-                    // No bot_wallet yet, CLI will update this in /claim or we pass it here?
-                    // Actually, CLI generates wallet -> gets code -> claims code with wallet.
-                    // So here we just return the code.
+                    status: 'available',
+                    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
                 }
             ])
             .select()
@@ -40,8 +44,9 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, code });
 
-    } catch (err: any) {
-        console.error('Error generating code:', err);
-        return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Error generating code:', message);
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

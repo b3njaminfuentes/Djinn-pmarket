@@ -134,7 +134,7 @@ export const useDjinnProtocol = () => {
 
                     // Expiry check
                     const currentHeight = await connection.getBlockHeight('processed');
-                    if (currentHeight > lastValidBlockHeight) throw new Error("TX Expired. Devnet is extremely slow right now.");
+                    if (currentHeight > lastValidBlockHeight) throw new Error("TX Expired. The network is congested — please try again.");
 
                     await new Promise(r => setTimeout(r, 2000));
                 }
@@ -308,8 +308,7 @@ export const useDjinnProtocol = () => {
                 [Buffer.from("user_pos"), marketPda.toBuffer(), publicKey.toBuffer(), Buffer.from([outcomeIndex])],
                 program.programId
             );
-            // @ts-ignore
-            const posAccount = await program.account.userPosition.fetch(userPositionPda);
+            const posAccount = await (program.account as any).userPosition.fetch(userPositionPda);
             return posAccount ? Number(posAccount.shares) / 1e9 : 0;
         } catch (e) {
             return 0;
@@ -336,11 +335,9 @@ export const useDjinnProtocol = () => {
 
             let onChainSharesRaw = BigInt(0);
             try {
-                // @ts-ignore
-                const posAccount = await program.account.userPosition.fetch(userPositionPda);
+                const posAccount = await (program.account as any).userPosition.fetch(userPositionPda);
                 if (posAccount) {
-                    // @ts-ignore
-                    onChainSharesRaw = BigInt(posAccount.shares.toString());
+                    onChainSharesRaw = BigInt((posAccount.shares as { toString(): string }).toString());
                 }
             } catch (e) { console.error(e); }
 

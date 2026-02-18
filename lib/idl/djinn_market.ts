@@ -528,7 +528,7 @@ export const IDL: DjinnMarket = {
             "name": "createMarket",
             "accounts": [
                 {
-                    " name": "market",
+                    "name": "market",
                     "isMut": true,
                     "isSigner": false
                 },

@@ -76,8 +76,8 @@ export async function djinn_get_market(marketId: string): Promise<GetMarketResul
             aiAnalysis: offChainData.ai_analysis || offChainData.description || null,
             cerberusVerdict: offChainData.status === 'VERIFIED' ? 'VERIFIED' : 'PENDING'
         };
-    } catch (e) {
-        throw new Error(`Market not found: ${e.message}`);
+    } catch (e: any) {
+        throw new Error(`Market not found: ${e?.message}`);
     }
 }
 

@@ -26,10 +26,10 @@ const TIER_MAP = ['Novice', 'Verified', 'Elite'];
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const botId = params.id;
+        const { id: botId } = await params;
         const { searchParams } = new URL(request.url);
         const include = searchParams.get('include') || ''; // trades,theses,vault
 

@@ -57,13 +57,13 @@ export async function getWhitelistStatus(walletAddress?: string): Promise<Whitel
                 // Not found, correct behavior
                 isRegistered = false;
             } else if (regError) {
-                console.warn('[Whitelist] Supabase Check Error (Using Fallback True):', regError.message);
-                // FAIL SAFE: Allow entry if DB is broken
-                isRegistered = true;
+                console.error('[Whitelist] Supabase Check Error (Fail Closed):', regError.message);
+                // FAIL CLOSED: If DB is broken, deny access to protect whitelist integrity
+                isRegistered = false;
             }
         } catch (e) {
-            console.warn('[Whitelist] Exception (Using Fallback True):', e);
-            isRegistered = true;
+            console.error('[Whitelist] Exception (Fail Closed):', e);
+            isRegistered = false;
         }
     }
 

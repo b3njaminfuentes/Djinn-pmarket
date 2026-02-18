@@ -2,6 +2,8 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
+import Image from 'next/image';
+import confetti from 'canvas-confetti';
 import { Canvas, extend, useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';

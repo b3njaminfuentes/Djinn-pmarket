@@ -73,7 +73,7 @@ export default function ClaimUsernameModal({ isOpen, walletAddress, onSuccess, o
                     const { registerReferral, getProfile } = await import('@/lib/supabase-db');
                     const referrerProfile = await getProfile(referrerWallet);
                     if (referrerProfile?.id) {
-                        await registerReferral(referrerProfile.id, newProfile.id, walletAddress);
+                        await registerReferral(referrerProfile.id, newProfile.id!, walletAddress);
                     }
                     localStorage.removeItem('referredBy');
                 }
@@ -96,7 +96,7 @@ export default function ClaimUsernameModal({ isOpen, walletAddress, onSuccess, o
         try {
             console.log("Attempting X connection from Claim Modal...");
             const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'X',
+                provider: 'twitter',
                 options: {
                     redirectTo: window.location.origin,
                 },

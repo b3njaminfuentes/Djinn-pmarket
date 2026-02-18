@@ -46,6 +46,7 @@ export interface MarketData {
     category?: MarketCategory;
     createdAt: number;           // Timestamp
     expiresAt?: number;          // When trading ends
+    targetResolutionDate?: string; // ISO date string for resolution
     creator: {
         wallet: string;          // Creator's wallet address
         displayName?: string;

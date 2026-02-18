@@ -236,8 +236,7 @@ function BotsLeaderboardContent() {
                     [Buffer.from('bot_profile'), publicKey.toBuffer()],
                     program.programId
                 );
-                // @ts-ignore
-                const acc = await program.account.botProfile.fetch(botProfilePda);
+                const acc = await (program.account as any).botProfile.fetch(botProfilePda);
                 setMyBotOnChain({
                     stake: acc.stake as BN,
                     isActive: acc.isActive as boolean
@@ -253,7 +252,7 @@ function BotsLeaderboardContent() {
     }, [program, publicKey]);
 
     const handleWithdrawVault = async () => {
-        if (!myBot || !publicKey) return;
+        if (!myBot || !publicKey || !program) return;
         setIsUnstaking(true);
         try {
             const [botProfilePda] = PublicKey.findProgramAddressSync(

@@ -221,7 +221,10 @@ export default function ProfilePage() {
                 gems: 0, profit: 0, portfolio: 0, winRate: 0, biggestWin: 0, medals: [],
                 achievements: [],
                 activeBets: [], closedBets: [], createdMarkets: [], showGems: true,
-                joinedAt: new Date().toISOString()
+                joinedAt: new Date().toISOString(),
+                twitter: "",
+                discord: "",
+                isGenesis: false
             });
             setIsMyProfile(false);
             setIsLoading(false);
@@ -606,7 +609,6 @@ export default function ProfilePage() {
             bio: newData.bio,
             pfp: pfpToCache,
             avatar_url: pfpToCache,
-            medals: newData.medals || [],
             medals: newData.medals || [],
             showGems: newData.showGems !== undefined ? newData.showGems : true,
             twitter: newData.twitter,

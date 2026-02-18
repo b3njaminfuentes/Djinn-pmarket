@@ -7,7 +7,11 @@ import { clusterApiUrl } from '@solana/web3.js';
 import { WalletAuthWrapper } from './WalletAuthWrapper';
 
 export function SolanaProvider({ children }: { children: React.ReactNode }) {
-    const network = WalletAdapterNetwork.Devnet;
+    const network = process.env.NEXT_PUBLIC_SOLANA_NETWORK === 'mainnet-beta'
+        ? WalletAdapterNetwork.Mainnet
+        : process.env.NEXT_PUBLIC_SOLANA_NETWORK === 'testnet'
+            ? WalletAdapterNetwork.Testnet
+            : WalletAdapterNetwork.Devnet;
 
     const endpoint = useMemo(() => {
         if (process.env.NEXT_PUBLIC_RPC_URL) {

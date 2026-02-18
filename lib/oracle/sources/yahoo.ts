@@ -37,7 +37,7 @@ export class YahooSource extends BaseSource {
 
             // A. Search for News
             try {
-                const searchResult = await yahooFinance.search(query);
+                const searchResult = await yahooFinance.search(query) as any;
                 if (searchResult.news && searchResult.news.length > 0) {
                     const newsItems = searchResult.news.slice(0, 5).map((item: any) => ({
                         url: item.link,
@@ -55,7 +55,7 @@ export class YahooSource extends BaseSource {
             // B. If we have a ticker, get Quote data
             if (potentialTicker) {
                 try {
-                    const quote = await yahooFinance.quote(potentialTicker);
+                    const quote = await yahooFinance.quote(potentialTicker) as any;
                     if (quote) {
                         evidence.push({
                             url: `https://finance.yahoo.com/quote/${potentialTicker}`,

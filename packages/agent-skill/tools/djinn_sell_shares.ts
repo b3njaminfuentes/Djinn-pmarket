@@ -58,8 +58,7 @@ export async function djinn_sell_shares(
         }
     };
 
-    // @ts-ignore
-    const provider = new AnchorProvider(connection, walletWrapper, AnchorProvider.defaultOptions());
+    const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
     const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
 
     // Shares are 9 decimals usually
@@ -91,8 +90,7 @@ export async function djinn_sell_shares(
 
     console.log(`[Djinn] Selling ${params.sharesAmount} shares of outcome ${params.outcome} on market ${params.marketId}`);
 
-    const marketAccount = await program.account.market.fetch(marketPubkey);
-    // @ts-ignore
+    const marketAccount = await (program.account as any).market.fetch(marketPubkey);
     const marketCreator = marketAccount.creator as PublicKey;
 
     const tx = await program.methods

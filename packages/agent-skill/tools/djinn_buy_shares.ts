@@ -58,8 +58,7 @@ export async function djinn_buy_shares(
         }
     };
 
-    // @ts-ignore
-    const provider = new AnchorProvider(connection, walletWrapper, AnchorProvider.defaultOptions());
+    const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
     const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
 
     const lamports = new BN(Math.floor(params.solAmount * LAMPORTS_PER_SOL));
@@ -93,8 +92,7 @@ export async function djinn_buy_shares(
     console.log(`[Djinn] Buying ${params.solAmount} SOL of outcome ${params.outcome} on market ${params.marketId}`);
 
     // Fetch market creator from on-chain account
-    const marketAccount = await program.account.market.fetch(marketPubkey);
-    // @ts-ignore
+    const marketAccount = await (program.account as any).market.fetch(marketPubkey);
     const marketCreator = marketAccount.creator as PublicKey;
 
     const tx = await program.methods

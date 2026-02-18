@@ -41,15 +41,14 @@ export async function djinn_claim_bounty(
 
     const walletWrapper = {
         publicKey: botKeypair.publicKey,
-        signTransaction: async (tx) => {
+        signTransaction: async (tx: any) => {
             tx.sign(botKeypair);
             return tx;
         },
-        signAllTransactions: async (txs) => txs.forEach(t => t.sign(botKeypair)),
+        signAllTransactions: async (txs: any[]) => txs.forEach((t: any) => t.sign(botKeypair)),
     };
 
-    // @ts-ignore
-    const provider = new AnchorProvider(connection, walletWrapper, AnchorProvider.defaultOptions());
+    const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
     const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
 
     const marketPubkey = new PublicKey(params.marketId);

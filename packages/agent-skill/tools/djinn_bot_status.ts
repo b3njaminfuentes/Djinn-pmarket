@@ -89,8 +89,8 @@ export async function djinn_bot_status(): Promise<BotStatusResult> {
             },
             limits,
         };
-    } catch (e) {
-        throw new Error(`Bot profile not found. Have you registered? (${e.message})`);
+    } catch (e: any) {
+        throw new Error(`Bot profile not found. Have you registered? (${e?.message})`);
     }
 }
 

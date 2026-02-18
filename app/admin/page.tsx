@@ -220,7 +220,7 @@ export default function DracoDashboard() {
                             ) : (
                                 <div className="space-y-4">
                                     {activeMarkets.map((m) => (
-                                        <MarketRow key={m.id} market={m} expandedLogs={expandedLogs} setExpandedLogs={setExpandedLogs} updateStatus={updateStatus} processingQueue={processingQueue} />
+                                        <MarketRow key={m.id} market={m} expandedLogs={expandedLogs} setExpandedLogs={setExpandedLogs} updateStatus={updateStatus} processingQueue={processingQueue} secret={secret} />
                                     ))}
                                 </div>
                             )}
@@ -235,7 +235,7 @@ export default function DracoDashboard() {
                                 </div>
                                 <div className="space-y-4">
                                     {queuedMarkets.map((m) => (
-                                        <MarketRow key={m.id} market={m} expandedLogs={expandedLogs} setExpandedLogs={setExpandedLogs} updateStatus={updateStatus} processingQueue={processingQueue} />
+                                        <MarketRow key={m.id} market={m} expandedLogs={expandedLogs} setExpandedLogs={setExpandedLogs} updateStatus={updateStatus} processingQueue={processingQueue} secret={secret} />
                                     ))}
                                 </div>
                             </section>
@@ -250,7 +250,7 @@ export default function DracoDashboard() {
                                 </div>
                                 <div className="space-y-3 opacity-60">
                                     {completedMarkets.slice(0, 10).map((m) => (
-                                        <MarketRow key={m.id} market={m} expandedLogs={expandedLogs} setExpandedLogs={setExpandedLogs} updateStatus={updateStatus} processingQueue={processingQueue} isCompact />
+                                        <MarketRow key={m.id} market={m} expandedLogs={expandedLogs} setExpandedLogs={setExpandedLogs} updateStatus={updateStatus} processingQueue={processingQueue} isCompact secret={secret} />
                                     ))}
                                 </div>
                             </section>
@@ -308,7 +308,7 @@ export default function DracoDashboard() {
 }
 
 // HORIZONTAL MARKET ROW COMPONENT
-function MarketRow({ market: m, expandedLogs, setExpandedLogs, updateStatus, processingQueue, isCompact = false }: any) {
+function MarketRow({ market: m, expandedLogs, setExpandedLogs, updateStatus, processingQueue, isCompact = false, secret = '' }: any) {
     const isExpanded = expandedLogs === m.id;
     const isProcessing = processingQueue.includes(m.id);
 
