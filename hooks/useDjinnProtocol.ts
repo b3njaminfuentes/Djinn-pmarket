@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useEffect } from 'react';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Program, AnchorProvider, Idl, BN, web3, utils } from '@coral-xyz/anchor';
+import { Program, AnchorProvider, Idl, BN, web3, utils } from '@project-serum/anchor';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction } from '@solana/spl-token';
 
@@ -228,6 +228,10 @@ export const useDjinnProtocol = () => {
                 program.programId
             );
 
+            if (outcome === 'void') {
+                throw new Error("On-chain VOID resolution is not supported by resolveMarket. Use off-chain refund flow.");
+            }
+
             const winningOutcome = outcome === 'yes' ? 0 : 1;
             const tx = new web3.Transaction();
             const ix = await program.methods
@@ -308,7 +312,9 @@ export const useDjinnProtocol = () => {
                 [Buffer.from("user_pos"), marketPda.toBuffer(), publicKey.toBuffer(), Buffer.from([outcomeIndex])],
                 program.programId
             );
-            const posAccount = await (program.account as any).userPosition.fetch(userPositionPda);
+            const userPositionClient = (program.account as any)?.userPosition;
+            if (!userPositionClient?.fetch) return 0;
+            const posAccount = await userPositionClient.fetch(userPositionPda);
             return posAccount ? Number(posAccount.shares) / 1e9 : 0;
         } catch (e) {
             return 0;
@@ -335,11 +341,16 @@ export const useDjinnProtocol = () => {
 
             let onChainSharesRaw = BigInt(0);
             try {
-                const posAccount = await (program.account as any).userPosition.fetch(userPositionPda);
-                if (posAccount) {
-                    onChainSharesRaw = BigInt((posAccount.shares as { toString(): string }).toString());
+                const userPositionClient = (program.account as any)?.userPosition;
+                if (!userPositionClient?.fetch) {
+                    onChainSharesRaw = BigInt(Math.floor(sharesAmount * 1e9));
+                } else {
+                    const posAccount = await userPositionClient.fetch(userPositionPda);
+                    if (posAccount) {
+                        onChainSharesRaw = BigInt((posAccount.shares as { toString(): string }).toString());
+                    }
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { }
 
             let sharesToBurnBN: BN;
             if (sellMax || sharesAmount >= Number(onChainSharesRaw) / 1e9 * 0.99) {
@@ -359,7 +370,7 @@ export const useDjinnProtocol = () => {
                 program.programId
             );
 
-            const ix = await program.methods.sellShares(outcomeIndex, sharesToBurnBN, new BN(minSolOut))
+            const ix = await program.methods.sellShares(outcomeIndex, sharesToBurnBN, new BN(Math.floor(minSolOut * 1e9)))
                 .accounts({
                     market: marketPda,
                     marketVault: PublicKey.findProgramAddressSync([Buffer.from("market_vault"), marketPda.toBuffer()], program.programId)[0],

@@ -97,8 +97,8 @@ export default function Home() {
         }
 
         // Dedupe: Use slug as unique key
-        const slugSet = new Set(finalMarkets.map((m: any) => m.slug));
-        const uniqueLocal = localMarkets.filter((m: any) => !slugSet.has(m.slug));
+        const slugSet = new Set(finalMarkets.map( (m: any) => m.slug));
+        const uniqueLocal = localMarkets.filter( (m: any) => !slugSet.has(m.slug));
 
         finalMarkets = [...uniqueLocal, ...finalMarkets];
 
@@ -157,11 +157,11 @@ export default function Home() {
           justArrived: true // Flag for pump animation (10s)
         };
 
-        setMarkets(prev => [newMarket, ...prev]);
+        setMarkets( (prev: any) => [newMarket, ...prev]);
 
         // Remove pump flag after 10 seconds
         setTimeout(() => {
-          setMarkets(prev => prev.map(m =>
+          setMarkets( (prev: any) => prev.map( (m: any) =>
             m.slug === newMarket.slug ? { ...m, justArrived: false } : m
           ));
         }, 10000);
@@ -178,7 +178,7 @@ export default function Home() {
     const handleMarketCreated = (event: any) => {
       if (event.detail) {
         console.log("⚡ Optimistic UI Update: New Market", event.detail);
-        setMarkets(prev => [event.detail, ...prev]);
+        setMarkets( (prev: any) => [event.detail, ...prev]);
       } else {
         loadMarkets();
       }
@@ -201,7 +201,7 @@ export default function Home() {
     const applyUpdates = () => {
       if (Object.keys(updatesRef.current).length === 0) return;
 
-      setMarkets(prev => prev.map(m => {
+      setMarkets( (prev: any) => prev.map( (m: any) => {
         const update = updatesRef.current[m.slug];
         if (update) {
           return {
@@ -233,7 +233,7 @@ export default function Home() {
         color: newMarket.outcome_colors?.[idx]
       }))
     };
-    setMarkets(prev => [marketWithTimestamp, ...prev]);
+    setMarkets( (prev: any) => [marketWithTimestamp, ...prev]);
 
     try {
       const savedMarkets = JSON.parse(localStorage.getItem('djinn_markets') || '[]');
@@ -302,7 +302,7 @@ export default function Home() {
   };
 
   const sortedMarkets = useMemo(() => {
-    return [...filteredMarkets].sort((a, b) => {
+    return [...filteredMarkets].sort((a: any, b: any) => {
       // NEW: Strictly by Time (Newest First)
       if (activeCategory === 'New') {
         return (b.createdAt || 0) - (a.createdAt || 0);
@@ -356,7 +356,7 @@ export default function Home() {
   // Calculate top 3 markets for The Great Pyramid Podium
   const top3Markets = useMemo(() => {
     if (markets.length === 0) return null;
-    const sorted = [...markets].sort((a, b) => {
+    const sorted = [...markets].sort((a: any, b: any) => {
       // Same algorithm as main list
       const volA = parseVolume(a.volume);
       const volB = parseVolume(b.volume);
@@ -373,7 +373,7 @@ export default function Home() {
       return (b.createdAt || 0) - (a.createdAt || 0);
     });
 
-    return sorted.slice(0, 3).map(m => ({
+    return sorted.slice(0, 3).map( (m: any) => ({
       ...m,
       betsCount: m.betsCount || Math.floor(Math.random() * 5000) + 500 // Mock if missing
     }));

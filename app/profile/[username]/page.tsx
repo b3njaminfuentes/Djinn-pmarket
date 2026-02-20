@@ -475,15 +475,15 @@ export default function ProfilePage() {
                         try {
                             const localMarkets = JSON.parse(localStr);
                             // Dedupe
-                            const existingIds = new Set(finalCreated.map((m: any) => m.slug));
-                            const uniqueLocal = localMarkets.filter((m: any) => !existingIds.has(m.slug));
+                            const existingIds = new Set(finalCreated.map( (m: any) => m.slug));
+                            const uniqueLocal = localMarkets.filter( (m: any) => !existingIds.has(m.slug));
                             finalCreated = [...uniqueLocal, ...finalCreated];
                         } catch (e) { console.error(e) }
                     }
                 }
 
                 // Format for UI
-                const uiMarkets = finalCreated.map((m: any) => ({
+                const uiMarkets = finalCreated.map( (m: any) => ({
                     id: m.id,
                     slug: m.slug,
                     title: m.title,
@@ -493,7 +493,7 @@ export default function ProfilePage() {
                     createdAt: m.created_at || m.createdAt
                 }));
 
-                setProfile(prev => ({ ...prev, createdMarkets: uiMarkets }));
+                setProfile( (prev: any) => ({ ...prev, createdMarkets: uiMarkets }));
 
             } catch (error) {
                 console.error("Error loading created markets", error);
@@ -510,9 +510,7 @@ export default function ProfilePage() {
         if (!targetWalletAddress) return;
 
         // A. Increment View (Once per mount per unique session potentially, but basic here)
-        supabaseDb.incrementProfileViews(targetWalletAddress).then(newVal => {
-            setViewCount(newVal);
-        });
+        supabaseDb.incrementProfileViews(targetWalletAddress);
 
         // B. Subscribe to Realtime Updates
         const channel = supabase
@@ -582,7 +580,7 @@ export default function ProfilePage() {
                 Promise.all(claimedBets.map(formatBet))
             ]);
 
-            setProfile(prev => ({ ...prev, activeBets: formattedActive, closedBets: formattedClosed }));
+            setProfile( (prev: any) => ({ ...prev, activeBets: formattedActive, closedBets: formattedClosed }));
         } catch (error) {
             console.error('Error loading bets:', error);
         }
@@ -621,7 +619,7 @@ export default function ProfilePage() {
         } catch (e) {
             if (e instanceof Error && e.name === 'QuotaExceededError') {
                 // Wipe all djinn caches if full
-                Object.keys(localStorage).forEach(k => {
+                Object.keys(localStorage).forEach( (k: any) => {
                     if (k.startsWith('djinn_profile_')) localStorage.removeItem(k);
                 });
                 try { localStorage.setItem(dynamicKey, JSON.stringify(toSave)); } catch (err) { }
@@ -731,14 +729,14 @@ export default function ProfilePage() {
                 console.log(`[Follow] Unfollow result for ${targetWalletAddress}:`, ok);
                 if (ok) {
                     setIsFollowingUser(false);
-                    setFollowersCount(prev => Math.max(0, prev - 1));
+                    setFollowersCount( (prev: any) => Math.max(0, prev - 1));
                 }
             } else {
                 const ok = await supabaseDb.followUser(myWallet, targetWalletAddress);
                 console.log(`[Follow] Follow result for ${targetWalletAddress}:`, ok);
                 if (ok) {
                     setIsFollowingUser(true);
-                    setFollowersCount(prev => prev + 1);
+                    setFollowersCount( (prev: any) => prev + 1);
                     // Create notification for the target user (fire-and-forget, don't block follow)
                     try {
                         supabaseDb.createNotification(targetWalletAddress, 'follow', myWallet, 'started following you');
@@ -760,7 +758,7 @@ export default function ProfilePage() {
                 try {
                     const balance = await connection.getBalance(publicKey);
                     const solBalance = balance / LAMPORTS_PER_SOL;
-                    setProfile(prev => ({ ...prev, portfolio: solBalance }));
+                    setProfile( (prev: any) => ({ ...prev, portfolio: solBalance }));
                 } catch (error) {
                     console.error("Error fetching balance:", error);
                 }
@@ -965,7 +963,7 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
                     <ProfitLossCard profit={profile.profit} activeBets={profile.activeBets.filter((b: any) => !b.market_slug?.includes('mkjm2hmf'))} walletAddress={targetWalletAddress || publicKey?.toBase58() || ''} />
                     <CreatorRewardsCard
-                        createdMarkets={profile.createdMarkets.filter((m: any) => !m.slug?.includes('mkjm2hmf'))}
+                        createdMarkets={profile.createdMarkets.filter( (m: any) => !m.slug?.includes('mkjm2hmf'))}
                         isMyProfile={isMyProfile}
                         creatorStats={creatorStats}
                     />
@@ -998,7 +996,7 @@ export default function ProfilePage() {
                         <ActivityTable walletAddress={targetWalletAddress || publicKey?.toBase58() || ''} />
                     )}
                     {activeTab === 'markets' && (
-                        <MyMarketsList markets={profile.createdMarkets.filter((m: any) => !m.slug?.includes('mkjm2hmf'))} />
+                        <MyMarketsList markets={profile.createdMarkets.filter( (m: any) => !m.slug?.includes('mkjm2hmf'))} />
                     )}
                 </div>
 
@@ -1013,9 +1011,9 @@ export default function ProfilePage() {
                                 if (error) throw error;
                                 alert('✅ Payout claimed successfully!');
                                 // Remove from local state
-                                setUnclaimedPayouts(prev => prev.filter(p => p.id !== betId));
+                                setUnclaimedPayouts( (prev: any) => prev.filter( (p: any) => p.id !== betId));
                                 // Update balance (simulated)
-                                setProfile(prev => ({ ...prev, portfolio: prev.portfolio + amount }));
+                                setProfile( (prev: any) => ({ ...prev, portfolio: prev.portfolio + amount }));
                             } catch (e: any) {
                                 console.error(e);
                                 alert('Error claiming payout: ' + e.message);
@@ -1484,7 +1482,7 @@ function ProfitLossCard({ profit, activeBets, walletAddress }: { profit: number;
         // Sort oldest first for cumulative calculation
         const sorted = [...activities]
             .filter(a => new Date(a.created_at || 0) >= cutoff)
-            .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+            .sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
 
         if (sorted.length === 0) return {
             chartData: [{ y: 50, val: 0 }, { y: 50, val: 0 }],
@@ -1853,7 +1851,7 @@ function UnclaimedWinningsCard({ payouts, onClaim }: { payouts: any[], onClaim: 
 
     // Batch claim handler
     const handleClaimAll = () => {
-        payouts.forEach(p => onClaim(p.id, parseFloat(p.payout)));
+        payouts.forEach( (p: any) => onClaim(p.id, parseFloat(p.payout)));
     };
 
     return (

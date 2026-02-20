@@ -73,7 +73,7 @@ export async function djinn_buy_shares(
     };
 
     const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
-    const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
+    const program = new Program(idl as any, provider);
 
     // ─── Enforce tier-based position limit ────────────────────────────────────
     const [botProfilePDA] = PublicKey.findProgramAddressSync(

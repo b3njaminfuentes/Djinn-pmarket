@@ -30,7 +30,7 @@ export function MarketMonitor({ onAddLink }: MarketMonitorProps) {
             const res = await fetch('/api/markets?resolved=false&limit=20');
             if (res.ok) {
                 const data = await res.json();
-                setMarkets(data.map((m: any) => ({
+                setMarkets(data.map( (m: any) => ({
                     slug: m.slug,
                     title: m.question || m.title,
                     isMonitoring: Math.random() > 0.5, // TODO: Get real monitoring status
@@ -57,7 +57,7 @@ export function MarketMonitor({ onAddLink }: MarketMonitorProps) {
     };
 
     const toggleMonitoring = (slug: string) => {
-        setMarkets(prev => prev.map(m =>
+        setMarkets( (prev: any) => prev.map( (m: any) =>
             m.slug === slug ? { ...m, isMonitoring: !m.isMonitoring } : m
         ));
     };

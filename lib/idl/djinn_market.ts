@@ -1,6 +1,7 @@
 export type DjinnMarket = {
     "version": "0.1.0",
     "name": "djinn_market",
+    "address": "A8pVMgP6vwjGqcbYh1WGWDjXq9uwQRoF9Lz1siLmD7nm",
     "instructions": [
         {
             "name": "initializeProtocol",
@@ -490,13 +491,14 @@ export type DjinnMarket = {
         }
     ],
     "metadata": {
-        "address": "BFgyP2Hba1kD6ZgzusZgSMuYmxnb6C1ne78sxvWxAHGk"
+        "address": "A8pVMgP6vwjGqcbYh1WGWDjXq9uwQRoF9Lz1siLmD7nm"
     }
 };
 
 export const IDL: DjinnMarket = {
     "version": "0.1.0",
     "name": "djinn_market",
+    "address": "A8pVMgP6vwjGqcbYh1WGWDjXq9uwQRoF9Lz1siLmD7nm",
     "instructions": [
         {
             "name": "initializeProtocol",
@@ -986,6 +988,6 @@ export const IDL: DjinnMarket = {
         }
     ],
     "metadata": {
-        "address": "BFgyP2Hba1kD6ZgzusZgSMuYmxnb6C1ne78sxvWxAHGk"
+        "address": "A8pVMgP6vwjGqcbYh1WGWDjXq9uwQRoF9Lz1siLmD7nm"
     }
 };

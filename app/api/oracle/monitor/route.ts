@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
     try {
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
                     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://127.0.0.1:3002';
                     const localRes = await fetch(`${baseUrl}/api/markets`);
                     const localMarkets = await localRes.json();
-                    const localM = localMarkets.find((m: any) => m.id === slug);
+                    const localM = localMarkets.find( (m: any) => m.id === slug);
                     if (localM) market = { title: localM.title } as any;
                 } catch (e) { }
             }

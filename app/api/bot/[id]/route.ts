@@ -39,12 +39,12 @@ export async function GET(
             'confirmed'
         );
         const provider = new AnchorProvider(connection, dummyWallet, {});
-        const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
+        const program = new Program(idl as any, provider);
 
         // 2. Fetch Bot Profile
         let botAccount;
         try {
-            botAccount = await program.account.botProfile.fetch(new PublicKey(botId));
+            botAccount = await (program.account as any).botProfile.fetch(new PublicKey(botId));
         } catch (e) {
             return NextResponse.json({ error: 'Bot not found' }, { status: 404 });
         }
@@ -100,7 +100,7 @@ export async function GET(
             const vaultPubkey = acc.vaultPubkey;
             if (vaultPubkey) {
                 try {
-                    const vaultAccount: any = await program.account.agentVault.fetch(vaultPubkey);
+                    const vaultAccount: any = await (program.account as any).agentVault.fetch(vaultPubkey);
                     response.vault = {
                         publicKey: vaultPubkey.toBase58(),
                         totalAum: Number(vaultAccount.totalAum.toString()) / 1e9,

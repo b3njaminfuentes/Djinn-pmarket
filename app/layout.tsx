@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import React from "react";
-import { Geist, Geist_Mono, Libre_Baskerville, Unbounded } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import LayoutWrapper from "@/components/LayoutWrapper";
 import { SolanaProvider } from "@/components/SolanaProvider";
@@ -15,27 +13,6 @@ import MinecraftAchievement from "@/components/achievements/MinecraftAchievement
 import WalletSuccessModal from "@/components/WalletSuccessModal";
 import { SoundProvider } from "@/components/providers/SoundProvider";
 import { MotionConfig } from "framer-motion";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const adrianeStyle = Libre_Baskerville({
-  weight: "700",
-  subsets: ["latin"],
-  variable: "--font-adriane",
-});
-
-const unboundedStyle = Unbounded({
-  subsets: ["latin"],
-  variable: "--font-unbounded",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://djinn.markets'),
@@ -90,7 +67,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${adrianeStyle.variable} ${unboundedStyle.variable} antialiased text-white flex flex-col min-h-screen bg-[#050505]`}
+        className="antialiased text-white flex flex-col min-h-screen bg-[#050505]"
       >
         <StarBackground />
         <SolanaProvider>

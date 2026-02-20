@@ -1,7 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --font-geist-sans: "Inter", "SF Pro Text", "Segoe UI", sans-serif;
+  --font-geist-mono: "IBM Plex Mono", "SFMono-Regular", "Menlo", "Monaco", monospace;
+  --font-adriane: "Libre Baskerville", "Georgia", "Times New Roman", serif;
+  --font-unbounded: "Trebuchet MS", "Arial Rounded MT Bold", "Arial", sans-serif;
+}
 
 html,
 body {

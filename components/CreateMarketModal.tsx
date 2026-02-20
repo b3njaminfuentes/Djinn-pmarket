@@ -324,7 +324,7 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
                     market_slug: slug,
                 }),
             })
-                .then(r => r.json())
+                .then( (r: any) => r.json())
                 .then(qc => setQualityCheckResult({ approved: qc.approved, score: qc.score, reason: qc.reason }))
                 .catch(() => { /* quality check is best-effort */ });
 

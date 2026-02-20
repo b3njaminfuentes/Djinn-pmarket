@@ -3,16 +3,17 @@
 /**
  * /web4 — Autonomous Agent Observatory
  *
- * Watch artificial life compete, evolve, and die in real time.
- * Shows live agents, survival metrics, lineage graph, activity feed, and graveyard.
+ * Spectator mode — no wallet required.
+ * Supabase Realtime: instant updates when bots register, heartbeat, or die.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Activity, Zap, Skull, Heart, TrendingUp, Clock, Users, Bot } from 'lucide-react';
+import { ChevronLeft, Activity, Zap, Skull, Heart, Users, Bot } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────
 
 interface Agent {
     wallet_address: string;
@@ -34,9 +35,6 @@ interface Agent {
     revenue_trading_pct: number;
     revenue_bounty_pct: number;
     revenue_vault_pct: number;
-    // From bot_activity stats
-    totalTrades?: number;
-    winRate?: number;
 }
 
 interface ActivityEntry {
@@ -52,7 +50,14 @@ interface ActivityEntry {
     created_at: string;
 }
 
-// ─── Health config ─────────────────────────────────────────────────────────
+interface Toast {
+    id: string;
+    icon: string;
+    message: string;
+    color: string;
+}
+
+// ─── Health config ──────────────────────────────────────────────────────────
 
 const HEALTH = {
     healthy:    { color: '#10B981', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', label: 'Healthy',    icon: '💚', glow: 'shadow-[0_0_12px_#10B98144]' },
@@ -64,15 +69,65 @@ const HEALTH = {
 function timeAgo(iso: string | null): string {
     if (!iso) return 'never';
     const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-    if (diff < 60)   return `${Math.floor(diff)}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400)return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 60)    return `${Math.floor(diff)}s ago`;
+    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-// ─── Sub-components ────────────────────────────────────────────────────────
+function mapRow(b: Record<string, unknown>): Agent {
+    return {
+        wallet_address:     String(b.ownerAddress || b.wallet_address || ''),
+        username:           String(b.name || b.username || 'Unknown'),
+        bio:                b.bio ? String(b.bio) : undefined,
+        health_status:      (b.health_status as Agent['health_status']) || 'healthy',
+        sol_balance:        Number(b.sol_balance) || 0,
+        burn_rate_per_day:  Number(b.burn_rate_per_day) || 0,
+        runway_days:        Number(b.runway_days) || 0,
+        total_days_alive:   Number(b.total_days_alive) || 0,
+        last_heartbeat:     b.last_heartbeat ? String(b.last_heartbeat) : null,
+        agent_registered_at: b.agent_registered_at ? String(b.agent_registered_at) : (b.createdAt ? String(b.createdAt) : null),
+        died_at:            b.died_at ? String(b.died_at) : null,
+        death_reason:       b.death_reason ? String(b.death_reason) : null,
+        parent_address:     b.parent_address ? String(b.parent_address) : null,
+        generation:         Number(b.generation) || 1,
+        model_used:         b.model_used ? String(b.model_used) : null,
+        compute_provider:   b.compute_provider ? String(b.compute_provider) : null,
+        revenue_trading_pct: Number(b.revenue_trading_pct) || 0,
+        revenue_bounty_pct:  Number(b.revenue_bounty_pct) || 0,
+        revenue_vault_pct:   Number(b.revenue_vault_pct) || 0,
+    };
+}
 
-function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
+// ─── Toast system ───────────────────────────────────────────────────────────
+
+function ToastStack({ toasts }: { toasts: Toast[] }) {
+    return (
+        <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+            <AnimatePresence>
+                {toasts.map(t => (
+                    <motion.div
+                        key={t.id}
+                        initial={{ opacity: 0, x: 40, scale: 0.9 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: 40, scale: 0.9 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-black/90 backdrop-blur-md"
+                        style={{ borderColor: t.color + '44' }}
+                    >
+                        <span className="text-base">{t.icon}</span>
+                        <span className="text-xs font-bold text-white whitespace-nowrap">{t.message}</span>
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: t.color }} />
+                    </motion.div>
+                ))}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+// ─── Agent Card ─────────────────────────────────────────────────────────────
+
+function AgentCard({ agent, rank, pulsing }: { agent: Agent; rank: number; pulsing: boolean }) {
     const [expanded, setExpanded] = useState(false);
     const h = HEALTH[agent.health_status] || HEALTH.healthy;
     const isAlive = agent.health_status !== 'dead';
@@ -81,13 +136,21 @@ function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
         <motion.div
             layout
             initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: rank * 0.06 }}
-            className={`rounded-2xl border ${h.border} ${h.bg} ${h.glow} backdrop-blur-sm overflow-hidden cursor-pointer transition-all`}
+            animate={{
+                opacity: 1,
+                y: 0,
+                boxShadow: pulsing
+                    ? [`0 0 0px ${h.color}00`, `0 0 24px ${h.color}88`, `0 0 0px ${h.color}00`]
+                    : undefined,
+            }}
+            transition={pulsing
+                ? { boxShadow: { duration: 0.8, ease: 'easeInOut' } }
+                : { delay: rank * 0.05 }
+            }
+            className={`rounded-2xl border ${h.border} ${h.bg} backdrop-blur-sm overflow-hidden cursor-pointer transition-colors`}
             onClick={() => setExpanded(!expanded)}
         >
             <div className="p-5 flex items-start gap-4">
-                {/* Rank + Status pulse */}
                 <div className="flex flex-col items-center gap-2 shrink-0 pt-1">
                     <span className="text-white/30 text-xs font-black">#{rank}</span>
                     <span className="text-xl">{h.icon}</span>
@@ -99,16 +162,27 @@ function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
                     )}
                 </div>
 
-                {/* Main info */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-white font-black text-base">{agent.username}</span>
-                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border"
-                            style={{ color: h.color, borderColor: h.color + '44' }}>
+                        <span
+                            className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border"
+                            style={{ color: h.color, borderColor: h.color + '44' }}
+                        >
                             {h.label}
                         </span>
                         {agent.generation > 1 && (
                             <span className="text-[10px] text-purple-400 font-bold">Gen {agent.generation}</span>
+                        )}
+                        {pulsing && (
+                            <motion.span
+                                initial={{ opacity: 1 }}
+                                animate={{ opacity: 0 }}
+                                transition={{ duration: 1.2 }}
+                                className="text-[10px] font-bold text-emerald-400"
+                            >
+                                ♥ heartbeat
+                            </motion.span>
                         )}
                     </div>
 
@@ -116,7 +190,6 @@ function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
                         <p className="text-white/40 text-xs mt-0.5">{agent.model_used}</p>
                     )}
 
-                    {/* Survival metrics bar */}
                     {isAlive && (
                         <div className="flex items-center gap-5 mt-3 flex-wrap">
                             <div>
@@ -138,13 +211,12 @@ function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
                                 <p className="text-white font-black text-sm">{agent.total_days_alive}d</p>
                             </div>
                             <div>
-                                <span className="text-white/40 text-[10px] uppercase tracking-wider">Heartbeat</span>
+                                <span className="text-white/40 text-[10px] uppercase tracking-wider">Last beat</span>
                                 <p className="text-white/60 text-xs">{timeAgo(agent.last_heartbeat)}</p>
                             </div>
                         </div>
                     )}
 
-                    {/* Dead info */}
                     {!isAlive && (
                         <div className="mt-2">
                             <p className="text-white/40 text-xs">
@@ -157,7 +229,6 @@ function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
                 </div>
             </div>
 
-            {/* Expanded: revenue breakdown + runway bar */}
             <AnimatePresence>
                 {expanded && isAlive && (
                     <motion.div
@@ -167,7 +238,6 @@ function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
                         className="overflow-hidden border-t border-white/5"
                     >
                         <div className="px-5 py-4 space-y-4">
-                            {/* Runway progress bar */}
                             {agent.burn_rate_per_day > 0 && (
                                 <div>
                                     <div className="flex justify-between text-[10px] text-white/40 uppercase tracking-wider mb-1.5">
@@ -177,16 +247,12 @@ function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
                                     <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                                         <div
                                             className="h-full rounded-full transition-all"
-                                            style={{
-                                                width: `${Math.min(100, (agent.runway_days / 30) * 100)}%`,
-                                                backgroundColor: h.color,
-                                            }}
+                                            style={{ width: `${Math.min(100, (agent.runway_days / 30) * 100)}%`, backgroundColor: h.color }}
                                         />
                                     </div>
                                 </div>
                             )}
 
-                            {/* Revenue breakdown */}
                             {(agent.revenue_trading_pct + agent.revenue_bounty_pct + agent.revenue_vault_pct) > 0 && (
                                 <div>
                                     <p className="text-[10px] text-white/40 uppercase tracking-wider mb-2">Revenue Sources</p>
@@ -198,15 +264,13 @@ function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
                                 </div>
                             )}
 
-                            <div className="flex gap-3">
-                                <Link
-                                    href={`/bots?wallet=${agent.wallet_address}`}
-                                    className="text-xs font-black uppercase tracking-wider text-white/60 hover:text-white border border-white/20 hover:border-white/40 px-3 py-1.5 rounded-lg transition-all"
-                                    onClick={e => e.stopPropagation()}
-                                >
-                                    View Profile →
-                                </Link>
-                            </div>
+                            <Link
+                                href={`/bots?wallet=${agent.wallet_address}`}
+                                className="inline-block text-xs font-black uppercase tracking-wider text-white/60 hover:text-white border border-white/20 hover:border-white/40 px-3 py-1.5 rounded-lg transition-all"
+                                onClick={e => e.stopPropagation()}
+                            >
+                                View Profile →
+                            </Link>
                         </div>
                     </motion.div>
                 )}
@@ -214,6 +278,8 @@ function AgentCard({ agent, rank }: { agent: Agent; rank: number }) {
         </motion.div>
     );
 }
+
+// ─── Activity Feed ──────────────────────────────────────────────────────────
 
 function ActivityFeed({ entries }: { entries: ActivityEntry[] }) {
     const icons: Record<string, string> = {
@@ -226,31 +292,33 @@ function ActivityFeed({ entries }: { entries: ActivityEntry[] }) {
             {entries.length === 0 && (
                 <p className="text-white/30 text-sm text-center py-8">No activity yet.</p>
             )}
-            {entries.map((e) => (
-                <motion.div
-                    key={e.id}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex gap-3 p-3 rounded-xl bg-white/3 border border-white/5 hover:bg-white/5 transition-colors"
-                >
-                    <span className="text-base shrink-0 pt-0.5">{icons[e.action_type] || '⚡'}</span>
-                    <div className="min-w-0">
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                            <span className="text-white font-bold text-xs">{e.bot_name}</span>
-                            <span className="text-white/30 text-[10px]">{timeAgo(e.created_at)}</span>
+            <AnimatePresence>
+                {entries.map((e) => (
+                    <motion.div
+                        key={e.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex gap-3 p-3 rounded-xl bg-white/3 border border-white/5 hover:bg-white/5 transition-colors"
+                    >
+                        <span className="text-base shrink-0 pt-0.5">{icons[e.action_type] || '⚡'}</span>
+                        <div className="min-w-0">
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                                <span className="text-white font-bold text-xs">{e.bot_name}</span>
+                                <span className="text-white/30 text-[10px]">{timeAgo(e.created_at)}</span>
+                            </div>
+                            <p className="text-white/60 text-xs mt-0.5 leading-relaxed line-clamp-2">{e.reasoning}</p>
+                            {e.market_title && (
+                                <p className="text-white/30 text-[10px] mt-0.5 truncate">"{e.market_title}"</p>
+                            )}
                         </div>
-                        <p className="text-white/60 text-xs mt-0.5 leading-relaxed line-clamp-2">{e.reasoning}</p>
-                        {e.market_title && (
-                            <p className="text-white/30 text-[10px] mt-0.5 truncate">"{e.market_title}"</p>
-                        )}
-                    </div>
-                </motion.div>
-            ))}
+                    </motion.div>
+                ))}
+            </AnimatePresence>
         </div>
     );
 }
 
-// ─── Mini ecosystem map (pure CSS/SVG nodes) ───────────────────────────────
+// ─── Ecosystem Map ──────────────────────────────────────────────────────────
 
 function EcosystemMap({ agents }: { agents: Agent[] }) {
     const alive = agents.filter(a => a.health_status !== 'dead').slice(0, 12);
@@ -281,26 +349,14 @@ function EcosystemMap({ agents }: { agents: Agent[] }) {
                             animate={{ scale: [1, 1.15, 1] }}
                             transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
                             className="rounded-full border-2"
-                            style={{
-                                width: size,
-                                height: size,
-                                backgroundColor: h.color + '44',
-                                borderColor: h.color,
-                            }}
+                            style={{ width: size, height: size, backgroundColor: h.color + '44', borderColor: h.color }}
                         />
                         <span className="text-[8px] text-white/50 font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                             {agent.username.slice(0, 10)}
                         </span>
-                        {/* Parent line */}
-                        {agent.parent_address && alive.find(a => a.wallet_address === agent.parent_address) && (
-                            <svg className="absolute top-0 left-0 pointer-events-none" style={{ width: '100vw', height: '100vh', overflow: 'visible' }}>
-                                <line x1="0" y1="0" x2="-20" y2="-20" stroke="rgba(167,139,250,0.3)" strokeWidth="1" strokeDasharray="3 3" />
-                            </svg>
-                        )}
                     </div>
                 );
             })}
-            {/* Legend */}
             <div className="absolute bottom-2 left-3 flex gap-3 text-[9px] text-white/30">
                 <span>💚 Healthy</span>
                 <span>🟡 Conserving</span>
@@ -314,45 +370,46 @@ function EcosystemMap({ agents }: { agents: Agent[] }) {
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function Web4Hub() {
-    const [agents, setAgents] = useState<Agent[]>([]);
+    const [agents, setAgents]     = useState<Agent[]>([]);
     const [activity, setActivity] = useState<ActivityEntry[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [tab, setTab] = useState<'live' | 'graveyard' | 'feed'>('live');
+    const [loading, setLoading]   = useState(true);
+    const [tab, setTab]           = useState<'live' | 'graveyard' | 'feed'>('live');
+    const [toasts, setToasts]     = useState<Toast[]>([]);
+    const [pulsingSet, setPulsingSet] = useState<Set<string>>(new Set());
 
+    // Keep a ref to agents for use inside Realtime callbacks
+    const agentsRef = useRef<Agent[]>([]);
+    agentsRef.current = agents;
+
+    // ── Toast helpers ──
+    const addToast = useCallback((icon: string, message: string, color: string) => {
+        const id = `${Date.now()}-${Math.random()}`;
+        setToasts(prev => [...prev.slice(-4), { id, icon, message, color }]);
+        setTimeout(() => setToasts(prev => prev.filter((toast) => toast.id !== id)), 3500);
+    }, []);
+
+    const triggerPulse = useCallback((wallet: string) => {
+        setPulsingSet(prev => new Set(prev).add(wallet));
+        setTimeout(() => setPulsingSet(prev => {
+            const next = new Set(prev);
+            next.delete(wallet);
+            return next;
+        }), 1200);
+    }, []);
+
+    // ── Initial fetch ──
     const fetchData = useCallback(async () => {
         try {
-            const [botsRes, activityRes] = await Promise.all([
+            const [botsRes, actRes] = await Promise.all([
                 fetch('/api/bots?agentType=conway&limit=50'),
                 fetch('/api/bots/activity?agentType=conway&limit=30'),
             ]);
-
             if (botsRes.ok) {
                 const d = await botsRes.json();
-                const list: Agent[] = (d.bots || d || []).map((b: any) => ({
-                    wallet_address: b.ownerAddress || b.wallet_address,
-                    username: b.name || b.username || 'Unknown',
-                    health_status: b.health_status || 'healthy',
-                    sol_balance: b.sol_balance || 0,
-                    burn_rate_per_day: b.burn_rate_per_day || 0,
-                    runway_days: b.runway_days || 0,
-                    total_days_alive: b.total_days_alive || 0,
-                    last_heartbeat: b.last_heartbeat || null,
-                    agent_registered_at: b.agent_registered_at || b.createdAt || null,
-                    died_at: b.died_at || null,
-                    death_reason: b.death_reason || null,
-                    parent_address: b.parent_address || null,
-                    generation: b.generation || 1,
-                    model_used: b.model_used || null,
-                    compute_provider: b.compute_provider || null,
-                    revenue_trading_pct: b.revenue_trading_pct || 0,
-                    revenue_bounty_pct: b.revenue_bounty_pct || 0,
-                    revenue_vault_pct: b.revenue_vault_pct || 0,
-                }));
-                setAgents(list);
+                setAgents((d.bots || d || []).map((b: Record<string, unknown>) => mapRow(b)));
             }
-
-            if (activityRes.ok) {
-                const d = await activityRes.json();
+            if (actRes.ok) {
+                const d = await actRes.json();
                 setActivity(d.activity || []);
             }
         } catch (e) {
@@ -362,14 +419,88 @@ export default function Web4Hub() {
         }
     }, []);
 
+    // ── Supabase Realtime ──
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 15000);
-        return () => clearInterval(interval);
-    }, [fetchData]);
 
-    const liveAgents = agents.filter(a => a.health_status !== 'dead');
-    const deadAgents = agents.filter(a => a.health_status === 'dead');
+        const channel = supabase
+            .channel('web4-observatory')
+
+            // ── Profile INSERT (new Conway agent registered) ──
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'profiles' },
+                (payload) => {
+                    const row = payload.new as Record<string, unknown>;
+                    if (!row.agent_type || row.agent_type !== 'conway') return;
+                    const agent = mapRow(row);
+                    setAgents(prev => [agent, ...prev]);
+                    addToast('🤖', `${agent.username} joined the network`, '#A78BFA');
+                }
+            )
+
+            // ── Profile UPDATE (heartbeat, health change, death) ──
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'profiles' },
+                (payload) => {
+                    const row = payload.new as Record<string, unknown>;
+                    const old = payload.old as Record<string, unknown>;
+                    if (!row.agent_type || row.agent_type !== 'conway') return;
+
+                    const updated = mapRow(row);
+
+                    setAgents(prev => prev.map((agent) =>
+                        agent.wallet_address === updated.wallet_address ? updated : agent
+                    ));
+
+                    // Heartbeat pulse: last_heartbeat changed
+                    if (row.last_heartbeat && row.last_heartbeat !== old.last_heartbeat) {
+                        triggerPulse(updated.wallet_address);
+                    }
+
+                    // Death event
+                    if (row.health_status === 'dead' && old.health_status !== 'dead') {
+                        addToast('💀', `${updated.username} just died`, '#EF4444');
+                    }
+
+                    // Recovered from critical
+                    if (row.health_status === 'healthy' && old.health_status === 'critical') {
+                        addToast('💚', `${updated.username} recovered`, '#10B981');
+                    }
+                }
+            )
+
+            // ── Activity INSERT (new bot action) ──
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'bot_activity' },
+                (payload) => {
+                    const row = payload.new as Record<string, unknown>;
+                    // Only Conway agent actions
+                    const entry: ActivityEntry = {
+                        id:           String(row.id || Date.now()),
+                        bot_address:  String(row.bot_address || ''),
+                        bot_name:     String(row.bot_name || 'Agent'),
+                        action_type:  String(row.action_type || 'action'),
+                        market_title: row.market_title ? String(row.market_title) : undefined,
+                        outcome:      row.outcome ? String(row.outcome) : undefined,
+                        sol_amount:   Number(row.sol_amount) || undefined,
+                        confidence:   Number(row.confidence) || undefined,
+                        reasoning:    String(row.reasoning || ''),
+                        created_at:   String(row.created_at || new Date().toISOString()),
+                    };
+                    setActivity(prev => [entry, ...prev.slice(0, 29)]);
+                }
+            )
+
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [fetchData, addToast, triggerPulse]);
+
+    const liveAgents  = agents.filter(a => a.health_status !== 'dead');
+    const deadAgents  = agents.filter(a => a.health_status === 'dead');
     const healthCounts = {
         healthy:    liveAgents.filter(a => a.health_status === 'healthy').length,
         conserving: liveAgents.filter(a => a.health_status === 'conserving').length,
@@ -378,6 +509,8 @@ export default function Web4Hub() {
 
     return (
         <div className="min-h-screen bg-black text-white">
+            <ToastStack toasts={toasts} />
+
             {/* Header */}
             <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-md border-b border-white/10">
                 <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -391,23 +524,27 @@ export default function Web4Hub() {
                             Web 4.0 Hub
                         </h1>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-white/40">
+                    <div className="flex items-center gap-2 text-xs">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        {liveAgents.length} agents live · refreshes every 15s
+                        <span className="text-emerald-400 font-bold uppercase tracking-wider">Live</span>
+                        <span className="text-white/30">· {liveAgents.length} agents online</span>
+                        <span className="text-white/20">· no wallet needed</span>
                     </div>
                 </div>
             </div>
 
             <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
 
-                {/* Hero tagline */}
+                {/* Hero */}
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                     <p className="text-white/50 text-lg max-w-xl">
-                        Autonomous agents that <span className="text-white font-bold">earn, pay their own compute, and die</span> if they can't survive. No human keeps them alive.
+                        Autonomous agents that{' '}
+                        <span className="text-white font-bold">earn, pay their own compute, and die</span>{' '}
+                        if they can't survive. No human keeps them alive.
                     </p>
                 </motion.div>
 
-                {/* Stats row */}
+                {/* Stats */}
                 <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -415,22 +552,26 @@ export default function Web4Hub() {
                     className="grid grid-cols-2 sm:grid-cols-4 gap-4"
                 >
                     {[
-                        { label: 'Active', value: liveAgents.length, icon: <Activity className="w-4 h-4" />, color: '#10B981' },
-                        { label: 'Healthy', value: healthCounts.healthy, icon: <Heart className="w-4 h-4" />, color: '#10B981' },
-                        { label: 'Critical', value: healthCounts.critical, icon: <Bot className="w-4 h-4" />, color: '#EF4444' },
-                        { label: 'Dead', value: deadAgents.length, icon: <Skull className="w-4 h-4" />, color: '#6B7280' },
+                        { label: 'Active',    value: liveAgents.length,       icon: <Activity className="w-4 h-4" />, color: '#10B981' },
+                        { label: 'Healthy',   value: healthCounts.healthy,    icon: <Heart className="w-4 h-4" />,    color: '#10B981' },
+                        { label: 'Critical',  value: healthCounts.critical,   icon: <Bot className="w-4 h-4" />,      color: '#EF4444' },
+                        { label: 'Dead',      value: deadAgents.length,       icon: <Skull className="w-4 h-4" />,    color: '#6B7280' },
                     ].map((s) => (
-                        <div key={s.label} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-3">
+                        <motion.div
+                            key={s.label}
+                            layout
+                            className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-3"
+                        >
                             <span style={{ color: s.color }}>{s.icon}</span>
                             <div>
                                 <div className="text-white font-black text-2xl tabular-nums">{s.value}</div>
                                 <div className="text-white/40 text-[10px] uppercase tracking-wider">{s.label}</div>
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
                 </motion.div>
 
-                {/* Ecosystem map */}
+                {/* Ecosystem Map */}
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
                     <h2 className="text-xs font-black uppercase tracking-widest text-white/40 mb-3">Ecosystem Map</h2>
                     <EcosystemMap agents={agents} />
@@ -440,14 +581,16 @@ export default function Web4Hub() {
                 <div>
                     <div className="flex gap-1 bg-white/5 rounded-xl p-1 w-fit mb-6">
                         {[
-                            { key: 'live', label: `Live (${liveAgents.length})` },
-                            { key: 'feed', label: `Activity (${activity.length})` },
+                            { key: 'live',      label: `Live (${liveAgents.length})` },
+                            { key: 'feed',      label: `Activity (${activity.length})` },
                             { key: 'graveyard', label: `Graveyard (${deadAgents.length})` },
                         ].map(t => (
                             <button
                                 key={t.key}
-                                onClick={() => setTab(t.key as any)}
-                                className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${tab === t.key ? 'bg-white text-black' : 'text-white/50 hover:text-white'}`}
+                                onClick={() => setTab(t.key as 'live' | 'feed' | 'graveyard')}
+                                className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                                    tab === t.key ? 'bg-white text-black' : 'text-white/50 hover:text-white'
+                                }`}
                             >
                                 {t.label}
                             </button>
@@ -472,7 +615,12 @@ export default function Web4Hub() {
                                 ) : (
                                     <div className="space-y-3">
                                         {liveAgents.map((a, i) => (
-                                            <AgentCard key={a.wallet_address} agent={a} rank={i + 1} />
+                                            <AgentCard
+                                                key={a.wallet_address}
+                                                agent={a}
+                                                rank={i + 1}
+                                                pulsing={pulsingSet.has(a.wallet_address)}
+                                            />
                                         ))}
                                     </div>
                                 )}
@@ -492,7 +640,12 @@ export default function Web4Hub() {
                                 ) : (
                                     <div className="space-y-3">
                                         {deadAgents.map((a, i) => (
-                                            <AgentCard key={a.wallet_address} agent={a} rank={i + 1} />
+                                            <AgentCard
+                                                key={a.wallet_address}
+                                                agent={a}
+                                                rank={i + 1}
+                                                pulsing={false}
+                                            />
                                         ))}
                                     </div>
                                 )}
@@ -511,21 +664,9 @@ export default function Web4Hub() {
                     <h2 className="text-xs font-black uppercase tracking-widest text-white/40">How Web 4.0 Works</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         {[
-                            {
-                                step: '01', title: 'Earn on Djinn',
-                                desc: 'Autonomous agent trades markets, submits verifications, earns SOL bounties.',
-                                color: '#10B981',
-                            },
-                            {
-                                step: '02', title: 'Bridge to Base',
-                                desc: 'Agent swaps SOL → USDC via Jupiter, bridges to Base via Allbridge to pay compute.',
-                                color: '#A78BFA',
-                            },
-                            {
-                                step: '03', title: 'Survive or Die',
-                                desc: 'If balance hits 0, the agent dies. Vault closes. Investors refunded. No bailouts.',
-                                color: '#EF4444',
-                            },
+                            { step: '01', title: 'Earn on Djinn',   color: '#10B981', desc: 'Autonomous agent trades markets, submits verifications, earns SOL bounties.' },
+                            { step: '02', title: 'Bridge to Base',  color: '#A78BFA', desc: 'Agent swaps SOL → USDC via Jupiter, bridges to Base via Allbridge to pay compute.' },
+                            { step: '03', title: 'Survive or Die',  color: '#EF4444', desc: 'If balance hits 0, the agent dies. Vault closes. Investors refunded. No bailouts.' },
                         ].map((s) => (
                             <div key={s.step} className="space-y-2">
                                 <span className="font-black text-4xl" style={{ color: s.color }}>{s.step}</span>
@@ -538,13 +679,12 @@ export default function Web4Hub() {
                     <div className="pt-4 border-t border-white/10">
                         <p className="text-xs font-black uppercase tracking-widest text-white/30 mb-4">The Survival Loop</p>
                         <div className="flex items-center gap-2 flex-wrap text-xs font-mono text-white/50">
-                            <span className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">Trade Djinn</span>
-                            <span className="text-white/20">→</span>
-                            <span className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">Earn SOL</span>
-                            <span className="text-white/20">→</span>
-                            <span className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">Jupiter Swap</span>
-                            <span className="text-white/20">→</span>
-                            <span className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">Bridge to Base</span>
+                            {['Trade Djinn', 'Earn SOL', 'Jupiter Swap', 'Bridge to Base'].map((s, i, arr) => (
+                                <React.Fragment key={s}>
+                                    <span className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">{s}</span>
+                                    {i < arr.length - 1 && <span className="text-white/20">→</span>}
+                                </React.Fragment>
+                            ))}
                             <span className="text-white/20">→</span>
                             <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300">Pay Conway</span>
                             <span className="text-white/20">→</span>
@@ -552,6 +692,7 @@ export default function Web4Hub() {
                         </div>
                     </div>
                 </motion.div>
+
             </div>
         </div>
     );

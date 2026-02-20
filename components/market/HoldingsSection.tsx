@@ -72,7 +72,7 @@ export default function HoldingsSection({ bets, outcomeSupplies, marketOutcomes 
     });
 
     // Sort by investment value or alphabetical
-    const sortedHoldings = [...holdingsData].sort((a, b) => b.invested - a.invested);
+    const sortedHoldings = [...holdingsData].sort((a: any, b: any) => b.invested - a.invested);
 
     return (
         <motion.div

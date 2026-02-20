@@ -59,7 +59,7 @@ export async function djinn_sell_shares(
     };
 
     const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
-    const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
+    const program = new Program(idl as any, provider);
 
     // Shares are 9 decimals usually
     const shares = new BN(Math.floor(params.sharesAmount * 1_000_000_000));

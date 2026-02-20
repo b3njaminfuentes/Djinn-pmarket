@@ -77,8 +77,8 @@ export async function GET(request: Request) {
 
         // Build machine-readable market list with pricing
         const markets = rawMarkets
-            .filter((m: any) => !m.resolved)
-            .map((m: any) => {
+            .filter( (m: any) => !m.resolved)
+            .map( (m: any) => {
                 const yesSol = Number(m.total_yes_pool || 0);
                 const noSol = Number(m.total_no_pool || 0);
                 const total = yesSol + noSol;

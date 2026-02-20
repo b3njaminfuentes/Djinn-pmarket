@@ -1,38 +1,39 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-// Initialize Supabase admin client to bypass RLS when saving secure config
-// MOVED INSIDE HANDLER to prevent build-time crash if env vars missing
-
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+    const expectedAdminSecret = process.env.ADMIN_SECRET;
+    const providedAdminSecret = request.headers.get('x-admin-secret');
+
+    if (!expectedAdminSecret) {
+        console.error('[ORACLE-CONFIG] ADMIN_SECRET is not configured');
+        return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
+
+    if (!providedAdminSecret || providedAdminSecret !== expectedAdminSecret) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
 
     try {
-        const { source, config, wallet } = await request.json();
+        const { source, config } = await request.json();
 
-        // Verify authority (basic check, in prod verify signature)
-        const { data: configAuth } = await supabaseAdmin
-            .from('oracle_config')
-            .select('value')
-            .eq('key', 'protocol_authority')
-            .single();
-
-        if (configAuth?.value !== wallet) {
-            // For beta, we might be lenient or the wallet might be passed from client
-            // Ideally check session. For now, we trust the client-side check + secure admin route pattern
-            // BUT for security, let's just proceed. The user is the admin.
+        if (!source || !config) {
+            return NextResponse.json({ error: 'source and config are required' }, { status: 400 });
         }
 
         if (source === 'custom_urls') {
-            // Handle custom URLs list
-            // We might store this in a specific row in oracle_sources or a new table
-            // For simplicity, let's assume a source named 'custom' exists or we create it
+            if (!Array.isArray(config.urls)) {
+                return NextResponse.json({ error: 'config.urls must be an array for custom_urls' }, { status: 400 });
+            }
+
             const { error } = await supabaseAdmin
                 .from('oracle_sources')
                 .upsert({
@@ -45,7 +46,6 @@ export async function POST(request: Request) {
             if (error) throw error;
 
         } else {
-            // Update standard sources
             const { error } = await supabaseAdmin
                 .from('oracle_sources')
                 .update({

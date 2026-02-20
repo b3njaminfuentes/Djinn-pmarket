@@ -1,11 +1,11 @@
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { AnchorProvider, Program, Idl, BN, web3 } from "@coral-xyz/anchor";
+import { AnchorProvider, Program, Idl, BN, web3 } from "@project-serum/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { useMemo, useCallback } from "react";
 import idl from "@/lib/idl/djinn_market.json";
 
 // Load IDL from JSON
-const IDL: Idl = idl as Idl;
+const IDL = idl as any;
 
 const PROGRAM_ID = new PublicKey("76HyPe3NMY39BXYaYPTq3QUmvxriXNhfEBZBXBxwxghB");
 const TREASURY = new PublicKey("G1NaEsx5Pg7dSmyYy6Jfraa74b7nTbmN9A9NuiK171Ma");
@@ -98,7 +98,7 @@ export function useChronosProgram() {
 
         try {
             // Fetch all ChronosPosition accounts owned by the user
-            const accounts = await program.account.chronosPosition.all([
+            const accounts = await (program.account as any).chronosPosition.all([
                 {
                     memcmp: {
                         offset: 8, // Discriminator (8 bytes)
@@ -107,7 +107,7 @@ export function useChronosProgram() {
                 }
             ]);
 
-            return accounts.map(a => ({
+            return accounts.map((a: any) => ({
                 publicKey: a.publicKey,
                 account: a.account
             }));
@@ -120,8 +120,8 @@ export function useChronosProgram() {
     const fetchAllMarkets = useCallback(async () => {
         if (!program) return [];
         try {
-            const accounts = await program.account.chronosMarket.all();
-            return accounts.map(a => ({
+            const accounts = await (program.account as any).chronosMarket.all();
+            return accounts.map((a: any) => ({
                 publicKey: a.publicKey,
                 account: a.account
             }));

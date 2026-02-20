@@ -81,7 +81,7 @@ export default function DracoDashboard() {
     };
 
     const updateStatus = async (id: string, status: string) => {
-        setProcessingQueue(prev => [...prev, id]);
+        setProcessingQueue( (prev: any) => [...prev, id]);
         await fetch('/api/markets', {
             method: 'PUT',
             headers: {
@@ -90,7 +90,7 @@ export default function DracoDashboard() {
             },
             body: JSON.stringify({ id, status }),
         });
-        setProcessingQueue(prev => prev.filter(p => p !== id));
+        setProcessingQueue( (prev: any) => prev.filter( (p: any) => p !== id));
         fetchMarkets();
     };
 
@@ -160,9 +160,9 @@ export default function DracoDashboard() {
     }
 
     // 🐉 PANTALLA 3: DASHBOARD PRINCIPAL - HORIZONTAL LAYOUT
-    const activeMarkets = markets.filter(m => m.status === 'PENDING' || m.status === 'ANALYZING').slice(0, 2);
-    const queuedMarkets = markets.filter(m => m.status !== 'PENDING' && m.status !== 'ANALYZING' && m.status !== 'VERIFIED' && m.status !== 'REJECTED');
-    const completedMarkets = markets.filter(m => m.status === 'VERIFIED' || m.status === 'REJECTED');
+    const activeMarkets = markets.filter( (m: any) => m.status === 'PENDING' || m.status === 'ANALYZING').slice(0, 2);
+    const queuedMarkets = markets.filter( (m: any) => m.status !== 'PENDING' && m.status !== 'ANALYZING' && m.status !== 'VERIFIED' && m.status !== 'REJECTED');
+    const completedMarkets = markets.filter( (m: any) => m.status === 'VERIFIED' || m.status === 'REJECTED');
 
     return (
         <div className="min-h-screen bg-[#030303] text-white font-sans pt-28 px-6 pb-12 selection:bg-green-500/30">

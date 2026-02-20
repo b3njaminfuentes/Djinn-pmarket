@@ -62,9 +62,9 @@ const CustomTooltip = React.memo(({ active, payload, label }: any) => {
             )}
             <div className="flex flex-col gap-2 items-start">
                 {payload
-                    .filter((p: any) => p.value !== undefined && p.value !== null && typeof p.value === 'number')
+                    .filter( (p: any) => p.value !== undefined && p.value !== null && typeof p.value === 'number')
                     .sort((a: any, b: any) => (b.value ?? 0) - (a.value ?? 0))
-                    .map((p: any) => (
+                    .map( (p: any) => (
                         <div key={p.name} className="flex flex-col">
                             <span className="text-[10px] font-black uppercase tracking-wider mb-0.5" style={{ color: p.stroke }}>
                                 {p.name}

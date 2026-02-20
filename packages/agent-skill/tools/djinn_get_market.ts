@@ -34,14 +34,14 @@ export async function djinn_get_market(marketId: string): Promise<GetMarketResul
         signAllTransactions: async (txs) => txs,
     }, AnchorProvider.defaultOptions());
 
-    const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
+    const program = new Program(idl as any, provider);
     const marketPubkey = new PublicKey(marketId);
 
     console.log(`[Djinn] Fetching market ${marketId}...`);
 
     try {
         // 1. Fetch On-Chain Data
-        const onChainMarket = await program.account.market.fetch(marketPubkey);
+        const onChainMarket = await (program.account as any).market.fetch(marketPubkey);
 
         // 2. Fetch Off-Chain Data (Cerberus/API)
         let offChainData: any = {};

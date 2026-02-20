@@ -71,7 +71,7 @@ export default function SearchBar() {
                 const searchResults: SearchResult[] = [];
 
                 // Process Markets
-                markets.forEach((m: any) => {
+                markets.forEach( (m: any) => {
                     searchResults.push({
                         type: 'market',
                         id: m.slug,
@@ -83,7 +83,7 @@ export default function SearchBar() {
                 });
 
                 // Process Profiles
-                profiles.forEach((p: any) => {
+                profiles.forEach( (p: any) => {
                     searchResults.push({
                         type: 'profile',
                         id: p.wallet_address,

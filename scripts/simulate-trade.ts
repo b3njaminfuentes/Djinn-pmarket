@@ -22,7 +22,7 @@ async function main() {
 
     // 0. Initialize Protocol (if needed)
     try {
-        await program.account.protocolState.fetch(protocolState);
+        await (program.account as any).protocolState.fetch(protocolState);
         console.log("✅ Protocol already initialized");
     } catch {
         console.log("⚠️ Protocol NOT initialized. Initializing...");

@@ -92,7 +92,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                         // LocalStorage quota handling
                         if (e instanceof Error && e.name === 'QuotaExceededError') {
                             try {
-                                Object.keys(localStorage).forEach(k => {
+                                Object.keys(localStorage).forEach( (k: any) => {
                                     if (k.startsWith('djinn_profile_')) {
                                         localStorage.removeItem(k);
                                     }
@@ -119,7 +119,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         const checkAccess = async () => {
             // Only enforce on internal pages (skip for /markets to allow seamless experience)
             const protectedPaths = ['/admin', '/bets', '/profile'];
-            const isProtected = protectedPaths.some(p => pathname.startsWith(p));
+            const isProtected = protectedPaths.some( (p: any) => pathname.startsWith(p));
 
             if (isProtected && connected && publicKey) {
                 try {

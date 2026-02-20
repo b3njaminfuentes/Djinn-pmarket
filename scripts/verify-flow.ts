@@ -86,7 +86,7 @@ async function main() {
 
     // Ensure Protocol is initialized (Treasury check)
     try {
-        const state = await program.account.protocolState.fetch(protocolStatePda) as any;
+        const state = await (program.account as any).protocolState.fetch(protocolStatePda) as any;
         log(`Protocol State found. Authority: ${state.authority.toBase58()}`);
     } catch (e) {
         log("Protocol State not found. Initializing...");
@@ -194,7 +194,7 @@ async function main() {
     }
 
     // Check Creator Claimable
-    const marketAccount = await program.account.market.fetch(marketPda);
+    const marketAccount = await (program.account as any).market.fetch(marketPda);
     const claimable = (marketAccount as any).creatorFeesClaimable.toNumber();
     log(`Market Creator Fees Claimable: ${claimable / LAMPORTS_PER_SOL} SOL`);
 

@@ -13,7 +13,7 @@ export default function SimulationPanel({ marketPda, marketSlug }: { marketPda: 
     const [isLoading, setIsLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
 
-    const log = (msg: string) => setLogs(prev => [`[${new Date().toISOString().slice(11, 19)}] ${msg}`, ...prev]);
+    const log = (msg: string) => setLogs( (prev: any) => [`[${new Date().toISOString().slice(11, 19)}] ${msg}`, ...prev]);
 
     // 1. PUMP TO THRESHOLD
     const runPump = async (side: 'YES' | 'NO', amountSol: number = 0.5) => { // Increased amount to hit threshold faster
@@ -24,7 +24,7 @@ export default function SimulationPanel({ marketPda, marketSlug }: { marketPda: 
         const outcomeIndex = side === 'YES' ? 0 : 1;
 
         try {
-            const marketAccount = await program.account.market.fetch(new PublicKey(marketPda));
+            const marketAccount = await (program.account as any).market.fetch(new PublicKey(marketPda));
             const marketCreator = marketAccount.creator as PublicKey;
 
             const tx = await buyShares(

@@ -91,7 +91,7 @@ export async function POST(request: Request) {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
         // Fetch existing to calculate days_alive
@@ -119,11 +119,11 @@ export async function POST(request: Request) {
 
         if (revenueBreakdown) {
             updateData.revenue_trading_pct = revenueBreakdown.tradingPct || 0;
-            updateData.revenue_bounty_pct  = revenueBreakdown.bountyPct  || 0;
-            updateData.revenue_vault_pct   = revenueBreakdown.vaultPct   || 0;
+            updateData.revenue_bounty_pct = revenueBreakdown.bountyPct || 0;
+            updateData.revenue_vault_pct = revenueBreakdown.vaultPct || 0;
         }
         if (computeProvider) updateData.compute_provider = computeProvider;
-        if (modelUsed)        updateData.model_used = modelUsed;
+        if (modelUsed) updateData.model_used = modelUsed;
 
         // Mark death if just died
         if (health === 'dead' && existing?.health_status !== 'dead') {
@@ -174,7 +174,7 @@ export async function GET() {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();

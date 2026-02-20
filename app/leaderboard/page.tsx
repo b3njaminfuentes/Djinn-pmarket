@@ -165,8 +165,8 @@ export default function LeaderboardPage() {
                             all_time: { profit: profile.profit || 0, volume: (profile.profit || 0) * 15 },
                         };
 
-                        setLiveTraders(prev => {
-                            const exists = prev.find(p => p.slug === profile.username.toLowerCase() || (publicKey && p.slug === publicKey.toBase58()));
+                        setLiveTraders( (prev: any) => {
+                            const exists = prev.find( (p: any) => p.slug === profile.username.toLowerCase() || (publicKey && p.slug === publicKey.toBase58()));
                             if (exists) return prev;
 
                             return [...prev, {
@@ -192,7 +192,7 @@ export default function LeaderboardPage() {
             currentProfit: t.stats[period].profit,
             currentVolume: t.stats[period].volume
         }))
-        .sort((a, b) => b.currentProfit - a.currentProfit)
+        .sort((a: any, b: any) => b.currentProfit - a.currentProfit)
         .map((t, i) => ({ ...t, rank: i + 1 }));
 
     const filteredTraders = sortedTraders.filter(t =>

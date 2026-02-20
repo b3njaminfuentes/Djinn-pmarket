@@ -139,7 +139,7 @@ export default function CerberusThought() {
 
                     {activeNodes.map(node => {
                         if (!node.parentId) return null;
-                        const parent = nodesDatabase.find(p => p.id === node.parentId);
+                        const parent = nodesDatabase.find( (p: any) => p.id === node.parentId);
                         if (!parent) return null;
 
                         const isError = node.status === 'error' && phase < 6;

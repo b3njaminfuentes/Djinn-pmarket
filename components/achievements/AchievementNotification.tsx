@@ -38,7 +38,7 @@ export default function AchievementNotification() {
                         .single();
 
                     if (achievement) {
-                        setQueue(prev => [...prev, achievement]);
+                        setQueue( (prev: any) => [...prev, achievement]);
                     }
                 }
             )
@@ -53,7 +53,7 @@ export default function AchievementNotification() {
     useEffect(() => {
         if (queue.length > 0 && !current) {
             setCurrent(queue[0]);
-            setQueue(prev => prev.slice(1));
+            setQueue( (prev: any) => prev.slice(1));
             setIsVisible(true);
 
             // Auto hide after 5 seconds

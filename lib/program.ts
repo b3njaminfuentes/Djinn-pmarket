@@ -1,9 +1,9 @@
-import { AnchorProvider, Program, BN } from '@project-serum/anchor';
+import { AnchorProvider, Program, BN } from '@coral-xyz/anchor';
 import { WalletContextState } from '@solana/wallet-adapter-react';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PROGRAM_ID, PROTOCOL_AUTHORITY, RPC_ENDPOINT } from './program-config';
-import { IDL, DjinnMarket } from './idl/djinn_market';
+import { IDL, type DjinnMarket } from './idl/djinn_market';
 
 /**
  * Get Anchor provider from wallet
@@ -25,8 +25,8 @@ export function getProvider(wallet: WalletContextState): AnchorProvider | null {
 /**
  * Get Anchor Program instance
  */
-export function getProgram(provider: AnchorProvider): Program<DjinnMarket> {
-    return new Program<DjinnMarket>(IDL, PROGRAM_ID, provider);
+export function getProgram(provider: AnchorProvider): any {
+    return new Program(IDL as any, provider);
 }
 
 /**

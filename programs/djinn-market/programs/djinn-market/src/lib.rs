@@ -222,13 +222,7 @@ pub mod djinn_market {
         market.resolution_time = resolution_time;
         market.winning_outcome = None;
         market.bump = ctx.bumps.market;
-        
-        // Calculate vault bump
-        let (_, vault_bump) = Pubkey::find_program_address(
-            &[b"market_vault", market.key().as_ref()],
-            ctx.program_id
-        );
-        market.vault_bump = vault_bump;
+        market.vault_bump = ctx.bumps.market_vault;
         
         // CREATION FEE: ~$2 USD → ~0.01 SOL → 10_000_000 Lamports
         // Transfer from creator to G1 treasury
@@ -590,7 +584,33 @@ pub mod djinn_market {
 
             market.vault_balance = market.vault_balance.checked_sub(resolution_fee).unwrap();
         }
-        
+
+        // HOUSE WIN: if no shares exist for the winning outcome, treasury takes the pot.
+        let total_winning_shares = market.outcome_supplies[winning_outcome as usize];
+        if total_winning_shares == 0 && market.vault_balance > 0 {
+            let market_key = market.key();
+            let seeds = &[
+                b"market_vault",
+                market_key.as_ref(),
+                &[market.vault_bump],
+            ];
+            let signer = &[&seeds[..]];
+
+            anchor_lang::system_program::transfer(
+                CpiContext::new_with_signer(
+                    ctx.accounts.system_program.to_account_info(),
+                    anchor_lang::system_program::Transfer {
+                        from: ctx.accounts.market_vault.to_account_info(),
+                        to: ctx.accounts.protocol_treasury.to_account_info(),
+                    },
+                    signer,
+                ),
+                market.vault_balance as u64,
+            )?;
+
+            market.vault_balance = 0;
+        }
+
         // (Point 2) Snapshot the Pot Balance for fair Claiming
         market.total_pot_at_resolution = market.vault_balance as u64;
 
@@ -1137,6 +1157,7 @@ pub mod djinn_market {
         pool.is_finalized = false;
         pool.created_at = clock.unix_timestamp;
         pool.expires_at = clock.unix_timestamp + 172800; // 48 hours
+        pool.vault_bump = ctx.bumps.bounty_vault;
         pool.bump = ctx.bumps.bounty_pool;
 
         // Transfer bounty from market vault to bounty pool vault
@@ -1293,7 +1314,7 @@ pub mod djinn_market {
                 let seeds = &[
                     b"bounty_vault",
                     pool_key.as_ref(),
-                    &[pool.bump],
+                    &[pool.vault_bump],
                 ];
                 let signer = &[&seeds[..]];
 
@@ -1348,7 +1369,7 @@ pub mod djinn_market {
             let seeds = &[
                 b"bounty_vault",
                 pool_key.as_ref(),
-                &[pool.bump],
+                &[pool.vault_bump],
             ];
             let signer = &[&seeds[..]];
 
@@ -1823,13 +1844,15 @@ pub struct InitializeMarket<'info> {
     )]
     pub market: Box<Account<'info, Market>>,
     
-    /// CHECK: Vault PDA (will be created on first buy)
+    /// CHECK: Vault PDA
     #[account(
-        mut,
+        init,
+        payer = creator,
+        space = 0,
         seeds = [b"market_vault", market.key().as_ref()],
         bump
     )]
-    pub market_vault: AccountInfo<'info>,
+    pub market_vault: SystemAccount<'info>,
     
     #[account(mut)]
     pub creator: Signer<'info>,
@@ -1848,8 +1871,12 @@ pub struct BuyShares<'info> {
     pub market: Box<Account<'info, Market>>,
     
     /// CHECK: Vault PDA
-    #[account(mut)]
-    pub market_vault: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [b"market_vault", market.key().as_ref()],
+        bump = market.vault_bump
+    )]
+    pub market_vault: SystemAccount<'info>,
     
     #[account(
         init_if_needed,
@@ -1892,8 +1919,12 @@ pub struct SellShares<'info> {
     pub market: Box<Account<'info, Market>>,
     
     /// CHECK: Vault PDA
-    #[account(mut)]
-    pub market_vault: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [b"market_vault", market.key().as_ref()],
+        bump = market.vault_bump
+    )]
+    pub market_vault: SystemAccount<'info>,
     
     #[account(
         mut,
@@ -1933,8 +1964,12 @@ pub struct ResolveMarket<'info> {
     pub market: Box<Account<'info, Market>>,
     
     /// CHECK: Vault PDA
-    #[account(mut)]
-    pub market_vault: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [b"market_vault", market.key().as_ref()],
+        bump = market.vault_bump
+    )]
+    pub market_vault: SystemAccount<'info>,
     
     /// CHECK: Only treasury/oracle can resolve
     #[account(address = G1_TREASURY)]
@@ -1962,8 +1997,12 @@ pub struct ClaimWinnings<'info> {
     pub market: Box<Account<'info, Market>>,
     
     /// CHECK: Vault PDA
-    #[account(mut)]
-    pub market_vault: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [b"market_vault", market.key().as_ref()],
+        bump = market.vault_bump
+    )]
+    pub market_vault: SystemAccount<'info>,
     
     #[account(
         mut,
@@ -2249,11 +2288,13 @@ pub struct InitializeBountyPool<'info> {
 
     /// CHECK: Bounty vault PDA
     #[account(
-        mut,
+        init,
+        payer = authority,
+        space = 0,
         seeds = [b"bounty_vault", bounty_pool.key().as_ref()],
         bump
     )]
-    pub bounty_vault: AccountInfo<'info>,
+    pub bounty_vault: SystemAccount<'info>,
 
     #[account(mut)]
     pub market: Box<Account<'info, Market>>,
@@ -2714,6 +2755,7 @@ pub struct BountyPool {
     pub is_finalized: bool,         // 1
     pub created_at: i64,            // 8
     pub expires_at: i64,            // 8  (48h after creation)
+    pub vault_bump: u8,             // 1
     pub bump: u8,                   // 1
 }
 
@@ -2928,5 +2970,4 @@ pub enum DjinnError {
     #[msg("Insufficient deposit to withdraw")]
     InsufficientDeposit,
 }
-
 

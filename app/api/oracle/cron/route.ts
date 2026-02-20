@@ -9,6 +9,17 @@ async function getSupabaseModule() {
     return await import('../../../../lib/supabase-db');
 }
 
+interface OracleMarketRecord {
+    slug: string;
+    title: string;
+    end_date: string;
+    resolved?: boolean;
+    verification_status?: string | null;
+    cerberus_verdict?: 'YES' | 'NO' | 'VOID' | null;
+    cerberus_confidence?: number | null;
+    market_pda?: string | null;
+}
+
 /**
  * GET /api/oracle/cron
  *
@@ -42,12 +53,16 @@ export async function GET(request: Request) {
 
     try {
         // ─── SECURITY ────────────────────────────────────────────────────────
-        const cronSecret = request.headers.get('x-cron-secret') || request.headers.get('x-admin-secret');
-        const expectedCronSecret = process.env.CRON_SECRET;
-        const expectedAdminSecret = process.env.ADMIN_SECRET;
+        const providedSecret = request.headers.get('x-cron-secret') || request.headers.get('x-admin-secret');
+        const configuredSecrets = [process.env.CRON_SECRET, process.env.ADMIN_SECRET]
+            .filter((value): value is string => Boolean(value && value.length > 0));
 
-        if ((expectedCronSecret && cronSecret !== expectedCronSecret) &&
-            (expectedAdminSecret && cronSecret !== expectedAdminSecret)) {
+        if (configuredSecrets.length === 0) {
+            console.error('[CRON] No CRON_SECRET/ADMIN_SECRET configured');
+            return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+        }
+
+        if (!providedSecret || !configuredSecrets.includes(providedSecret)) {
             console.warn('[CRON] Unauthorized access attempt');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -55,7 +70,7 @@ export async function GET(request: Request) {
         const { logOracleEvent, getOracleConfig } = await getOracleModule();
         const {
             getActiveMarketsForMcapMonitoring,
-            getMarketsPendingResolution,
+            getUnresolvedMarketsForOraclePipeline,
             getApprovedSuggestions,
             updateMarketVerificationStatus,
             resolveMarket,
@@ -102,9 +117,9 @@ export async function GET(request: Request) {
         // PHASE 2 — PRE-RESOLUTION MONITORING (T-2h window)
         // Cerberus switches to active scraping mode for markets approaching expiry
         // ═══════════════════════════════════════════════════════════════════════
-        const pendingResolution = await getMarketsPendingResolution(); // returns non-resolved markets
+        const unresolvedMarkets = await getUnresolvedMarketsForOraclePipeline();
 
-        const preResMarkets = pendingResolution.filter(m => {
+        const preResMarkets = (unresolvedMarkets as OracleMarketRecord[]).filter((m) => {
             const phase = getMarketPhase(m.end_date, m.resolved || false);
             return phase === 'pre_resolution';
         });
@@ -140,7 +155,7 @@ export async function GET(request: Request) {
         // PHASE 3 — RESOLUTION WINDOW (T to T+2h)
         // Collect all bot votes from chain + Cerberus verdict → weighted consensus
         // ═══════════════════════════════════════════════════════════════════════
-        const inWindowMarkets = pendingResolution.filter(m => {
+        const inWindowMarkets = (unresolvedMarkets as OracleMarketRecord[]).filter((m) => {
             const phase = getMarketPhase(m.end_date, m.resolved || false);
             return phase === 'resolution_window';
         });
@@ -150,6 +165,11 @@ export async function GET(request: Request) {
 
         for (const market of inWindowMarkets) {
             try {
+                // Only resolve markets that already entered the oracle flow.
+                if (!['verified', 'pre_resolution', 'verifying', 'pending'].includes(market.verification_status || 'none')) {
+                    continue;
+                }
+
                 // Determine Cerberus verdict (from DB)
                 let cerberusVote: 'YES' | 'NO' | null = null;
                 let cerberusConfidence = 80;
@@ -200,9 +220,9 @@ export async function GET(request: Request) {
                                 await logOracleEvent('system',
                                     `✅ [P3] Resolved on-chain: ${market.slug} → ${consensus.outcome} | Tx: ${onChainResult?.signature || 'N/A'}`
                                 );
-                            } catch (onChainErr: any) {
+                            } catch (onChainErr: unknown) {
                                 await logOracleEvent('error',
-                                    `⚠️ [P3] On-chain resolution failed for ${market.slug}: ${onChainErr?.message}`
+                                    `⚠️ [P3] On-chain resolution failed for ${market.slug}: ${String(onChainErr)}`
                                 );
                             }
                         }
@@ -224,7 +244,7 @@ export async function GET(request: Request) {
         // PHASE 4 — STALE CLEANUP (T+2h with no verdict)
         // Markets that passed the window without consensus → flag for manual review
         // ═══════════════════════════════════════════════════════════════════════
-        const staleMarkets = pendingResolution.filter(m => {
+        const staleMarkets = (unresolvedMarkets as OracleMarketRecord[]).filter((m) => {
             const phase = getMarketPhase(m.end_date, m.resolved || false);
             return phase === 'stale';
         });

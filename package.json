@@ -11,7 +11,7 @@
     "cerberus": "ts-node scripts/run-cerberus.ts"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.28.0",
+    "@coral-xyz/anchor": "^0.32.1",
     "@google/generative-ai": "^0.24.1",
     "@project-serum/anchor": "^0.26.0",
     "@react-three/drei": "^10.7.7",
@@ -84,6 +84,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "tailwindcss": "3.4.16",
-    "typescript": "^5"
+    "typescript": "^5",
+    "zod": "^4.3.6"
   }
 }

@@ -5,17 +5,27 @@ import Link from 'next/link';
 import { Send, Image as ImageIcon, MessageSquare, Heart, X, CornerDownRight, Loader2 } from 'lucide-react';
 import * as supabaseDb from '@/lib/supabase-db';
 
+interface MarketOutcome {
+    title: string;
+    color?: string;
+}
+
+type CommentWithTime = Omit<supabaseDb.Comment, 'replies'> & {
+    timeAgo: string;
+    replies?: CommentWithTime[];
+};
+
 interface CommentsSectionProps {
     marketSlug: string;
     publicKey: string | null;
     userProfile: { username: string; avatarUrl: string };
-    marketOutcomes: any[]; // Passed from parent to determine colors
+    marketOutcomes: MarketOutcome[]; // Passed from parent to determine colors
     myHeldPosition: string | null;
     myHeldAmount: string | null;
 }
 
 // Helper for dynamic colors (replicated from page.tsx for consistency)
-const getOutcomeColor = (title: string, outcomes: any[]) => {
+const getOutcomeColor = (title: string, outcomes: MarketOutcome[]) => {
     if (!title) return '#9CA3AF'; // Gray
     const normalized = title.toUpperCase();
     if (normalized === 'YES') return '#10B981';
@@ -56,7 +66,7 @@ function formatTimeAgo(timestamp: string): string {
 }
 
 export default function CommentsSection({ marketSlug, publicKey, userProfile, myHeldPosition, myHeldAmount }: CommentsSectionProps) {
-    const [comments, setComments] = useState<any[]>([]);
+    const [comments, setComments] = useState<CommentWithTime[]>([]);
     const [newCommentText, setNewCommentText] = useState("");
     const [newCommentImage, setNewCommentImage] = useState<string | null>(null);
     const [replyText, setReplyText] = useState("");
@@ -138,8 +148,8 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
                 const formatted = data.map(c => ({
                     ...c,
                     timeAgo: formatTimeAgo(c.created_at || ''),
-                    replies: c.replies?.map((r: any) => ({ ...r, timeAgo: formatTimeAgo(r.created_at || '') })) || []
-                }));
+                    replies: (c.replies || []).map((r) => ({ ...r, timeAgo: formatTimeAgo(r.created_at || ''), replies: [] }))
+                })) as CommentWithTime[];
                 setComments(formatted);
             } else {
                 setComments([]);
@@ -158,7 +168,7 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
         loadComments();
 
         // Suscripción Realtime
-        const channel = supabaseDb.subscribeToComments(marketSlug, (payload: any) => {
+        const channel = supabaseDb.subscribeToComments(marketSlug, (payload: { new?: unknown; old?: unknown }) => {
             // Recargar todo si hay cambios (para simplificar replies y estado)
             if ((payload?.new || payload?.old) && !isPostingCommentRef.current) {
                 loadComments().catch(err => console.error('Error reloading comments:', err));
@@ -170,7 +180,7 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
             setComments(prev => prev.map(c => ({
                 ...c,
                 timeAgo: formatTimeAgo(c.created_at || ''),
-                replies: c.replies?.map((r: any) => ({ ...r, timeAgo: formatTimeAgo(r.created_at || '') })) || []
+                replies: (c.replies || []).map((r) => ({ ...r, timeAgo: formatTimeAgo(r.created_at || '') }))
             })));
         }, 60000);
 
@@ -192,12 +202,15 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
         // Optimistic UI update
         const tempComment = {
             id: tempId,
+            market_slug: marketSlug,
+            wallet_address: publicKey,
             username: userProfile.username,
             avatar_url: userProfile.avatarUrl,
             text: newCommentText,
             image_url: newCommentImage,
             position: myHeldPosition,
             position_amount: myHeldAmount,
+            parent_id: null,
             created_at: new Date().toISOString(),
             timeAgo: 'Just now',
             likes_count: 0,
@@ -250,13 +263,14 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
                 setComments(prev => prev.filter(c => c.id !== tempId));
                 alert(`Error al guardar el comentario: ${error?.message || JSON.stringify(error)}`);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error creating comment:', error);
             // Restaurar el input y remover el comentario temporal
             setNewCommentText(savedText);
             setNewCommentImage(savedImage);
             setComments(prev => prev.filter(c => c.id !== tempId));
-            alert(`Error detallado: ${error.message || JSON.stringify(error, null, 2)}`);
+            const errorMessage = error instanceof Error ? error.message : JSON.stringify(error, null, 2);
+            alert(`Error detallado: ${errorMessage}`);
         } finally {
             isPostingCommentRef.current = false;
         }
@@ -306,11 +320,12 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
                 setReplyImage(savedReplyImage);
                 alert(`Error al guardar la respuesta: ${error?.message || JSON.stringify(error)}`);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error creating reply:', error);
             setReplyText(savedReplyText);
             setReplyImage(savedReplyImage);
-            alert(`Error al guardar la respuesta: ${error.message || JSON.stringify(error)}`);
+            const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+            alert(`Error al guardar la respuesta: ${errorMessage}`);
         } finally {
             isPostingCommentRef.current = false;
         }
@@ -323,7 +338,7 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
         setComments(prev => prev.map(c => {
             if (c.id === commentId) return { ...c, likes_count: c.liked_by_me ? c.likes_count - 1 : c.likes_count + 1, liked_by_me: !c.liked_by_me };
             if (c.replies) {
-                const updatedReplies = c.replies.map((r: any) => {
+                const updatedReplies = c.replies.map((r) => {
                     if (r.id === commentId) return { ...r, likes_count: r.liked_by_me ? r.likes_count - 1 : r.likes_count + 1, liked_by_me: !r.liked_by_me };
                     return r;
                 });
@@ -462,7 +477,11 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
                                     )}
 
                                     <div className="flex items-center gap-6">
-                                        <button onClick={() => handleLike(comment.id)} className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${comment.liked_by_me ? 'text-pink-500' : 'text-gray-500 hover:text-pink-400'}`}>
+                                        <button
+                                            onClick={() => comment.id && handleLike(comment.id)}
+                                            className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${comment.liked_by_me ? 'text-pink-500' : 'text-gray-500 hover:text-pink-400'}`}
+                                            disabled={!comment.id}
+                                        >
                                             <Heart size={14} fill={comment.liked_by_me ? "currentColor" : "none"} /> {comment.likes_count || 0}
                                         </button>
                                         <button
@@ -472,7 +491,7 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
                                                     setReplyImage(null); // ✅ Clear image when closing
                                                     setReplyText(''); // ✅ Clear text too
                                                 } else {
-                                                    setActiveReplyId(comment.id);
+                                                    if (comment.id) setActiveReplyId(comment.id);
                                                 }
                                             }}
                                             className="text-xs font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5"
@@ -494,7 +513,11 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
                                                             placeholder="Write a reply..."
                                                             value={replyText}
                                                             onChange={(e) => setReplyText(e.target.value)}
-                                                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handlePostReply(comment.id)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' && !e.shiftKey && comment.id) {
+                                                                    handlePostReply(comment.id);
+                                                                }
+                                                            }}
                                                         />
                                                         {replyImage && (
                                                             <div className="relative inline-block mt-2">
@@ -510,7 +533,7 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
                                                             </button>
                                                             <input type="file" ref={replyFileInputRef} className="hidden" onChange={handleReplyImageUpload} accept="image/*" />
                                                             <button
-                                                                onClick={() => handlePostReply(comment.id)}
+                                                                onClick={() => comment.id && handlePostReply(comment.id)}
                                                                 disabled={!replyText.trim() && !replyImage}
                                                                 className="bg-[#F492B7] text-black px-4 py-1.5 rounded-lg text-xs font-black uppercase hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                                                             >
@@ -526,7 +549,7 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
                                     {/* REPLIES LIST */}
                                     {comment.replies && comment.replies.length > 0 && (
                                         <div className="mt-4 space-y-4 pl-4 border-l-2 border-white/5">
-                                            {comment.replies.map((reply: any) => (
+                                            {comment.replies.map((reply) => (
                                                 <div key={reply.id} className="flex gap-3">
                                                     <div className="shrink-0">
                                                         {reply.avatar_url ? (
@@ -555,7 +578,11 @@ export default function CommentsSection({ marketSlug, publicKey, userProfile, my
                                                         {reply.image_url && (
                                                             <img src={reply.image_url} alt="Reply attachment" className="rounded-lg max-h-40 border border-white/10 mt-2" />
                                                         )}
-                                                        <button onClick={() => handleLike(reply.id)} className={`mt-2 flex items-center gap-1 text-[10px] font-bold transition-colors ${reply.liked_by_me ? 'text-pink-500' : 'text-gray-600 hover:text-pink-400'}`}>
+                                                        <button
+                                                            onClick={() => reply.id && handleLike(reply.id)}
+                                                            className={`mt-2 flex items-center gap-1 text-[10px] font-bold transition-colors ${reply.liked_by_me ? 'text-pink-500' : 'text-gray-600 hover:text-pink-400'}`}
+                                                            disabled={!reply.id}
+                                                        >
                                                             <Heart size={10} fill={reply.liked_by_me ? "currentColor" : "none"} /> {reply.likes_count || 0}
                                                         </button>
                                                     </div>

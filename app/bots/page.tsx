@@ -349,7 +349,7 @@ function BotsLeaderboardContent() {
             if (!showPaperTrading && b.isPaperTrading) return false;
             return true;
         })
-        .sort((a, b) => {
+        .sort((a: any, b: any) => {
             switch (sortBy) {
                 case 'pnl': return b.stats.pnl - a.stats.pnl;
                 case 'winRate': return b.stats.winRate - a.stats.winRate;
@@ -649,7 +649,7 @@ function BotsLeaderboardContent() {
                                 <div className="space-y-4">
                                     {sortedBots
                                         .filter(b => b.vault && b.vault.totalAum > 0)
-                                        .sort((a, b) => (b.vault?.totalAum || 0) - (a.vault?.totalAum || 0))
+                                        .sort((a: any, b: any) => (b.vault?.totalAum || 0) - (a.vault?.totalAum || 0))
                                         .slice(0, 5)
                                         .map((bot, i) => (
                                             <Link key={bot.id} href={`/bot/${bot.id}`}>

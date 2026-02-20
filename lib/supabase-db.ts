@@ -206,22 +206,8 @@ export async function upsertProfile(profile: Partial<Profile> & { wallet_address
     return data;
 }
 
-export async function incrementProfileViews(walletAddress: string): Promise<number> {
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('views')
-        .eq('wallet_address', walletAddress)
-        .single();
-
-    const currentViews = (profile && typeof profile.views === 'number') ? profile.views : 0;
-    const newViews = currentViews + 1;
-
-    await supabase
-        .from('profiles')
-        .update({ views: newViews })
-        .eq('wallet_address', walletAddress);
-
-    return newViews;
+export async function incrementProfileViews(walletAddress: string): Promise<void> {
+    await supabase.rpc('increment_views', { target_wallet: walletAddress });
 }
 
 
@@ -454,11 +440,6 @@ export async function addGems(walletAddress: string, amount: number) {
 
     if (error) {
         console.error('Error adding gems:', error);
-        // Fallback: update directly if RPC missing
-        const { data: profile } = await supabase.from('profiles').select('gems').eq('wallet_address', walletAddress).single();
-        if (profile) {
-            await supabase.from('profiles').update({ gems: (profile.gems || 0) + amount }).eq('wallet_address', walletAddress);
-        }
     }
     return !error;
 }
@@ -471,7 +452,7 @@ export async function getGems(walletAddress: string): Promise<number> {
         return 0;
     }
     const { data } = await supabase.from('profiles').select('gems').eq('wallet_address', walletAddress).single();
-    return data?.gems || 0;
+    return Number(data?.gems || 0);
 }
 
 // ============================================
@@ -579,30 +560,27 @@ export async function getAllMarketData(): Promise<MarketData[]> {
 }
 
 export async function updateMarketPrice(slug: string, newPrice: number, addVolume: number): Promise<boolean> {
-    // Try to update existing
-    const { data: existing } = await supabase
-        .from('market_data')
-        .select('volume')
-        .eq('slug', slug)
-        .single();
+    // Atomic volume increment via RPC (Fixes race conditions)
+    const { error } = await supabase.rpc('increment_market_volume', {
+        p_slug: slug,
+        p_amount: addVolume
+    });
 
-    if (existing) {
-        const { error } = await supabase
-            .from('market_data')
-            .update({
-                live_price: newPrice,
-                volume: existing.volume + addVolume,
-                updated_at: new Date().toISOString()
-            })
-            .eq('slug', slug);
-        return !error;
-    } else {
-        // Insert new
-        const { error } = await supabase
-            .from('market_data')
-            .insert({ slug, live_price: newPrice, volume: addVolume });
-        return !error;
+    if (error) {
+        console.error('Error updating market volume:', error);
+        return false;
     }
+
+    // Update price separately (this can still be a normal update as it's a point-in-time value)
+    const { error: priceError } = await supabase
+        .from('market_data')
+        .update({
+            live_price: newPrice,
+            updated_at: new Date().toISOString()
+        })
+        .eq('slug', slug);
+
+    return !priceError;
 }
 
 // ============================================
@@ -724,32 +702,11 @@ export async function getUserActivity(walletAddress: string): Promise<Activity[]
  * - +20 Gems per Market Created
  * - +5 Gems per Activity Item (Trade/Interaction)
  */
+/**
+ * Get Cached Gems (Optimized)
+ */
 export async function calculateUserGems(walletAddress: string): Promise<number> {
-    try {
-        // 1. Count Markets Created
-        const { count: marketCount, error: marketError } = await supabase
-            .from('markets')
-            .select('*', { count: 'exact', head: true })
-            .eq('creator_wallet', walletAddress);
-
-        // 2. Count Activity (Trades)
-        const { count: activityCount, error: activityError } = await supabase
-            .from('activity')
-            .select('*', { count: 'exact', head: true })
-            .eq('wallet_address', walletAddress);
-
-        if (marketError) console.error("Error counting markets for gems:", marketError);
-        if (activityError) console.error("Error counting activity for gems:", activityError);
-
-        const markets = marketCount || 0;
-        const activities = activityCount || 0;
-
-        // Formula: 20 per Market, 5 per Action
-        return (markets * 20) + (activities * 5);
-    } catch (e) {
-        console.error("Error calculating gems:", e);
-        return 0;
-    }
+    return getGems(walletAddress);
 }
 
 // --- HOLDERS (Derived from Bets) ---
@@ -1182,22 +1139,7 @@ export async function updateMarket(slug: string, updates: Partial<Market>) {
 }
 
 export async function resolveMarket(slug: string, winningOutcome: 'YES' | 'NO' | 'VOID') {
-    // 1. Update market as resolved
-    const { error: marketError } = await supabase
-        .from('markets')
-        .update({
-            resolved: true,
-            winning_outcome: winningOutcome,
-            resolution_date: new Date().toISOString()
-        })
-        .eq('slug', slug);
-
-    if (marketError) {
-        console.error('Error resolving market:', marketError);
-        return { error: marketError };
-    }
-
-    // 2. Get all bets for this market
+    // 1. Get all bets for this market
     const { data: bets, error: betsError } = await supabase
         .from('bets')
         .select('*')
@@ -1208,35 +1150,41 @@ export async function resolveMarket(slug: string, winningOutcome: 'YES' | 'NO' |
         return { error: betsError };
     }
 
-    // 3. Calculate payouts
-    const winningBets = bets.filter(b => b.side === winningOutcome);
-    const losingBets = bets.filter(b => b.side !== winningOutcome);
+    // 2. Calculate metrics for payout
+    const isVoid = winningOutcome === 'VOID';
+    const winningBets = isVoid ? bets : bets.filter(b => b.side === winningOutcome);
+    const losingBets = isVoid ? [] : bets.filter(b => b.side !== winningOutcome);
 
     const totalWinningPool = winningBets.reduce((sum, b) => sum + parseFloat(b.sol_amount), 0);
     const totalLosingPool = losingBets.reduce((sum, b) => sum + parseFloat(b.sol_amount), 0);
     const totalPool = totalWinningPool + totalLosingPool;
 
-    // 4. Calculate each winner's share
-    for (const bet of winningBets) {
-        const betAmount = parseFloat(bet.sol_amount);
+    // 3. Batch update via RPC so market + payouts are applied atomically.
+    const winningData = winningBets.map(b => {
+        const betAmount = parseFloat(b.sol_amount);
         const shareOfWinnings = totalWinningPool > 0 ? (betAmount / totalWinningPool) : 0;
-        const payout = betAmount + (shareOfWinnings * totalLosingPool); // Original + winnings
+        const payout = isVoid ? betAmount : betAmount + (shareOfWinnings * totalLosingPool);
+        return { id: b.id, payout };
+    });
 
-        await supabase
-            .from('bets')
-            .update({ payout })
-            .eq('id', bet.id);
+    const losingIds = losingBets.map(b => b.id);
 
-        // Check win milestones (FIRST_WIN, WIN_3, WIN_STREAK_3, etc.)
-        await checkWinMilestones(bet.wallet_address);
+    const { error: rpcError } = await supabase.rpc('batch_resolve_market', {
+        p_slug: slug,
+        p_winning_outcome: winningOutcome,
+        p_resolution_date: new Date().toISOString(),
+        p_winning_bets: winningData,
+        p_losing_bets: losingIds
+    });
+
+    if (rpcError) {
+        console.error('Error in batch resolution:', rpcError);
+        return { error: rpcError };
     }
 
-    // 5. Set losing bets payout to 0
-    for (const bet of losingBets) {
-        await supabase
-            .from('bets')
-            .update({ payout: 0 })
-            .eq('id', bet.id);
+    // 4. Milestone checks (only for real wins, not VOID refunds)
+    if (!isVoid) {
+        winningBets.forEach(b => checkWinMilestones(b.wallet_address));
     }
 
     return {
@@ -2029,6 +1977,24 @@ export async function getMarketsPendingResolution() {
 
     if (error) {
         console.error('Error fetching markets pending resolution:', error);
+        return [];
+    }
+    return data || [];
+}
+
+/**
+ * Get unresolved markets for cron lifecycle classification.
+ * Includes active/pre-resolution/window/stale phases.
+ */
+export async function getUnresolvedMarketsForOraclePipeline() {
+    const { data, error } = await supabase
+        .from('markets')
+        .select('*')
+        .eq('resolved', false)
+        .order('end_date', { ascending: true });
+
+    if (error) {
+        console.error('Error fetching unresolved markets:', error);
         return [];
     }
     return data || [];

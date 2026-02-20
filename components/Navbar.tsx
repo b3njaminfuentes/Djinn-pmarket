@@ -291,7 +291,10 @@ function NavbarContent() {
                         <div className="relative w-16 h-16 md:w-24 md:h-24 transition-transform duration-500 group-hover:scale-110 -mr-3">
                             <Image src="/djinn-logo.png" alt="Djinn Logo" fill className="object-contain" priority />
                         </div>
-                        <span className="text-3xl md:text-5xl text-white mt-1 relative z-10" style={{ fontFamily: 'var(--font-adriane), serif', fontWeight: 700 }}>
+                        <span
+                            className="text-3xl md:text-5xl text-white mt-1 relative z-10"
+                            style={{ fontFamily: '"Didot", "Bodoni 72", "Baskerville", "Times New Roman", serif', fontWeight: 700, letterSpacing: '-0.02em' }}
+                        >
                             Djinn
                         </span>
                     </Link>

@@ -16,7 +16,7 @@ export default function GlobalActivityFeed() {
         // Subscribe to real-time updates
         const channel = supabaseDb.subscribeToActivity((payload: any) => {
             if (payload.new) {
-                setActivities(prev => [payload.new, ...prev].slice(0, 50));
+                setActivities( (prev: any) => [payload.new, ...prev].slice(0, 50));
             }
         });
 

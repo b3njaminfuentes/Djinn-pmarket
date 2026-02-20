@@ -185,7 +185,7 @@ export default function PaperArena({ className = '' }: { className?: string }) {
       ...bot,
       stats: calcBotStats(bot.id, predictions),
     }))
-    .sort((a, b) => b.stats.accuracy - a.stats.accuracy);
+    .sort((a: any, b: any) => b.stats.accuracy - a.stats.accuracy);
 
   return (
     <div className={`space-y-4 ${className}`}>

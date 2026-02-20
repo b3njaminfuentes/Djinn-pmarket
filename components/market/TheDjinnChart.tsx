@@ -111,7 +111,7 @@ const DebugPanel = ({ data, outcomeNames, filteredData, outcomeColors }: any) =>
         {
             name: 'Data has outcomes',
             pass: data.length > 0 && outcomeNames.every((n: string) => data[0].hasOwnProperty(n)),
-            value: data.length > 0 ? Object.keys(data[0]).filter(k => k !== 'time').join(', ') : 'N/A'
+            value: data.length > 0 ? Object.keys(data[0]).filter( (k: any) => k !== 'time').join(', ') : 'N/A'
         },
         {
             name: 'Values in range',
@@ -228,10 +228,10 @@ export default function TheDjinnChart({
             outcomeName: tradeEvent.outcome
         };
 
-        setBubbles(prev => [...prev, newBubble]);
+        setBubbles((prev) => [...prev, newBubble]);
 
         const timer = setTimeout(() => {
-            setBubbles(prev => prev.filter(b => b.id !== newBubble.id));
+            setBubbles((prev) => prev.filter((bubble) => bubble.id !== newBubble.id));
         }, 3000);
 
         return () => clearTimeout(timer);

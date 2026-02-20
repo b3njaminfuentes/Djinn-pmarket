@@ -38,7 +38,7 @@ export function WalletAuthWrapper({ children }: { children: React.ReactNode }) {
             } catch (quotaError) {
                 if (quotaError instanceof Error && (quotaError.name === 'QuotaExceededError' || quotaError.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
                     console.warn('[Auth] LocalStorage full, purging...');
-                    Object.keys(localStorage).forEach(k => {
+                    Object.keys(localStorage).forEach( (k: any) => {
                         if (k.startsWith('djinn_pfp_') ||
                             k.startsWith('djinn_profile_') ||
                             k.startsWith('djinn_markets') ||
@@ -50,7 +50,7 @@ export function WalletAuthWrapper({ children }: { children: React.ReactNode }) {
                         localStorage.setItem(key, encodeBS58(signature));
                     } catch (retryError) {
                         console.error('[Auth] Still cannot save after purge');
-                        Object.keys(localStorage).forEach(k => {
+                        Object.keys(localStorage).forEach( (k: any) => {
                             if (k.startsWith('djinn_')) localStorage.removeItem(k);
                         });
                         localStorage.setItem(key, encodeBS58(signature));

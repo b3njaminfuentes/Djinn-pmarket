@@ -73,7 +73,7 @@ function TheDjinnChart({
             };
             setBubbles([newBubble]); // Replace all bubbles with just the new one
             setTimeout(() => {
-                setBubbles(prev => prev.filter(b => b.id !== newBubble.id));
+                setBubbles(prev => prev.filter((bubble) => bubble.id !== newBubble.id));
             }, 3500);
         }
     }, [tradeEvent, lastProcessedEventId]);
@@ -105,15 +105,15 @@ function TheDjinnChart({
 
         // Case-insensitive normalization map
         const suppliesMapNormalized: Record<string, number> = {};
-        Object.keys(outcomeSupplies).forEach(k => {
+        Object.keys(outcomeSupplies).forEach( (k: any) => {
             suppliesMapNormalized[k.toLowerCase()] = outcomeSupplies[k];
         });
 
         // For binary (YES/NO), use the core-amm function directly
         const outcomeKeys = outcomes.map(o => typeof o === 'string' ? o : o.title);
         if (outcomeKeys.length === 2) {
-            const yesKey = outcomeKeys.find(k => k.toUpperCase() === 'YES') || outcomeKeys[0];
-            const noKey = outcomeKeys.find(k => k.toUpperCase() === 'NO') || outcomeKeys[1];
+            const yesKey = outcomeKeys.find( (k: any) => k.toUpperCase() === 'YES') || outcomeKeys[0];
+            const noKey = outcomeKeys.find( (k: any) => k.toUpperCase() === 'NO') || outcomeKeys[1];
 
             const yesSupply = Number(outcomeSupplies[yesKey] || suppliesMapNormalized[yesKey.toLowerCase()] || 0);
             const noSupply = Number(outcomeSupplies[noKey] || suppliesMapNormalized[noKey.toLowerCase()] || 0);
@@ -170,4 +170,3 @@ function TheDjinnChart({
 }
 
 export default React.memo(TheDjinnChart);
-

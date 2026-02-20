@@ -33,7 +33,7 @@ export default function CustomWalletModal({ isOpen, onClose }: CustomWalletModal
             }
         }
 
-        return list.sort((a, b) => {
+        return list.sort((a: any, b: any) => {
             const idxA = preferredOrder.indexOf(a.adapter.name);
             const idxB = preferredOrder.indexOf(b.adapter.name);
             return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);

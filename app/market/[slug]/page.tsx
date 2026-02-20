@@ -406,7 +406,7 @@ export default function Page() {
     // Update historyState when chartData changes (for persistence)
     useEffect(() => {
         if (chartData.length > 0) {
-            setHistoryState(prev => ({ ...prev, probability: chartData }));
+            setHistoryState( (prev: any) => ({ ...prev, probability: chartData }));
         }
     }, [chartData]);
 
@@ -450,7 +450,7 @@ export default function Page() {
         try {
             const profile = await supabaseDb.getProfile(walletAddress);
             if (profile) {
-                setUserProfile(prev => {
+                setUserProfile( (prev: any) => {
                     // Start with what we have (likely cached)
                     const newState = { ...prev };
                     let changed = false;
@@ -532,7 +532,7 @@ export default function Page() {
 
     const normalizeShares = (val: number) => val;
     const updateMyShares = (index: number, amount: number) => {
-        setMyShares(prev => ({ ...prev, [index]: amount }));
+        setMyShares( (prev: any) => ({ ...prev, [index]: amount }));
     };
 
 
@@ -585,7 +585,7 @@ export default function Page() {
             }
             // 2. Otherwise fetch explicitly
             else {
-                supabaseDb.getProfile(marketAccount.creator_wallet).then(p => {
+                supabaseDb.getProfile(marketAccount.creator_wallet).then( (p: any) => {
                     if (p) {
                         setCreatorProfile({
                             username: p.username,
@@ -648,7 +648,7 @@ export default function Page() {
 
             // Generate Initial "Inception" History if empty
             // This mocks a "Launch Day" history: Flat candles at 0.000001 SOL, 50/50 probability
-            setHistoryState(prev => {
+            setHistoryState( (prev: any) => {
                 if (prev.probability.length > 0) return prev;
 
                 const outcomes = initialOutcomes.map(o => o.title);
@@ -729,7 +729,7 @@ export default function Page() {
 
                             console.log("📜 Seeding Chart with Price:", seedYes);
 
-                            setHistoryState(prev => {
+                            setHistoryState( (prev: any) => {
                                 // De-dup if already seeded
                                 if (prev.probability.length > 0 && Math.abs(prev.probability[prev.probability.length - 1].YES - seedYes) < 0.1) return prev;
 
@@ -1011,7 +1011,7 @@ export default function Page() {
             supabaseDb.getProfile(publicKey.toBase58()).then(async (p) => {
                 if (p) {
                     // Only overwrite if DB has data, otherwise keep LocalStorage
-                    setUserProfile(prev => ({
+                    setUserProfile( (prev: any) => ({
                         username: p.username || prev.username,
                         avatarUrl: p.avatar_url || prev.avatarUrl
                     }));
@@ -1042,7 +1042,7 @@ export default function Page() {
         // GLOBAL SYNC
         const handleProfileUpdate = () => {
             if (publicKey) {
-                supabaseDb.getProfile(publicKey.toBase58()).then(p => {
+                supabaseDb.getProfile(publicKey.toBase58()).then( (p: any) => {
                     if (p) setUserProfile({ username: p.username || '', avatarUrl: p.avatar_url || '' });
                 });
             }
@@ -1155,7 +1155,7 @@ export default function Page() {
                                 setLivePrice(newPrice);
 
                                 // Update History State (Charts) - ONLY if not locked
-                                setHistoryState(prev => {
+                                setHistoryState( (prev: any) => {
                                     const now = Math.floor(Date.now() / 1000);
                                     const lastProbTime = prev.probability.length > 0 ? prev.probability[prev.probability.length - 1].time : (now - 60);
                                     const currentTime = Math.max(now, (lastProbTime || 0) + 1);
@@ -1475,7 +1475,7 @@ export default function Page() {
                 });
 
                 // Simulate delay
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise( (r: any) => setTimeout(r, 1000));
             }
 
             // --- COMMON UPDATES (DB, UI) ---
@@ -1584,7 +1584,7 @@ export default function Page() {
             }
 
             // 5. Update UI State
-            setSolBalance(prev => prev - amountNum);
+            setSolBalance( (prev: any) => prev - amountNum);
 
             // REFRESH USER HOLDINGS (Critical for UI update)
             window.dispatchEvent(new Event('bet-updated'));
@@ -1746,7 +1746,7 @@ export default function Page() {
             setPurchaseBubbles(prev => [...prev, { id: bubbleId, side: selectedSide, amount: sim.sharesReceived }]);
             // Auto-dismiss after 3 seconds
             setTimeout(() => {
-                setPurchaseBubbles(prev => prev.filter(b => b.id !== bubbleId));
+                setPurchaseBubbles(prev => prev.filter((bubble) => bubble.id !== bubbleId));
             }, 3000);
 
             setIsSuccess(true);
@@ -1798,7 +1798,7 @@ export default function Page() {
                             const actualPrice = calculateImpliedProbability(yesSupply, noSupply);
                             setLivePrice(actualPrice);
                             // Update History State (Charts)
-                            setHistoryState(prev => {
+                            setHistoryState( (prev: any) => {
                                 const now = Math.floor(Date.now() / 1000);
                                 const lastProbTime = prev.probability.length > 0 ? prev.probability[prev.probability.length - 1].time : (now - 60);
                                 const currentTime = Math.max(now, (lastProbTime || 0) + 1);
@@ -2186,7 +2186,7 @@ export default function Page() {
                     }
                 } else {
                     console.log("🔮 Simulated Sell");
-                    await new Promise(r => setTimeout(r, 1000));
+                    await new Promise( (r: any) => setTimeout(r, 1000));
                 }
 
                 // --- COMMON UPDATES ---
@@ -2311,7 +2311,7 @@ export default function Page() {
                 window.dispatchEvent(new Event('bet-updated'));
 
                 // 4. Update UI Local State
-                setSolBalance(prev => prev + netSolReturn);
+                setSolBalance( (prev: any) => prev + netSolReturn);
 
                 // Update specific share count
                 const outcomeIndex = isMultiOutcome
@@ -2886,7 +2886,7 @@ export default function Page() {
 
                 <DjinnToast
                     isVisible={djinnToast.isVisible}
-                    onClose={() => setDjinnToast(prev => ({ ...prev, isVisible: false }))}
+                    onClose={() => setDjinnToast( (prev: any) => ({ ...prev, isVisible: false }))}
                     type={djinnToast.type}
                     title={djinnToast.title}
                     message={djinnToast.message}

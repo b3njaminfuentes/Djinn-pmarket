@@ -22,7 +22,7 @@ export default function AchievementToast({ achievements, onClose }: AchievementT
 
     useEffect(() => {
         if (achievements.length > 0) {
-            setQueue(prev => [...prev, ...achievements]);
+            setQueue( (prev: any) => [...prev, ...achievements]);
         }
     }, [achievements]);
 
@@ -30,7 +30,7 @@ export default function AchievementToast({ achievements, onClose }: AchievementT
         if (!current && queue.length > 0) {
             const next = queue[0];
             setCurrent(next);
-            setQueue(prev => prev.slice(1));
+            setQueue( (prev: any) => prev.slice(1));
 
             // Auto hide after 6 seconds
             const timer = setTimeout(() => {

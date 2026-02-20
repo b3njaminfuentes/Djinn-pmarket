@@ -49,7 +49,7 @@ export async function djinn_claim_bounty(
     };
 
     const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
-    const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
+    const program = new Program(idl as any, provider);
 
     const marketPubkey = new PublicKey(params.marketId);
 

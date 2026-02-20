@@ -79,12 +79,12 @@ export async function GET(request: NextRequest) {
             'confirmed'
         );
         const provider = new AnchorProvider(connection, dummyWallet, {});
-        const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
+        const program = new Program(idl as any, provider); // Fixed: Coral Anchor constructor signature
 
         // 2. Fetch All Bot Accounts
         // Note: For production, we'd use getProgramAccounts with filters or an indexer.
         // For devnet/MVP, fetching all is fine.
-        const botAccounts = await program.account.botProfile.all();
+        const botAccounts = await (program.account as any).botProfile.all();
 
         // Helper to safely convert BN or number
         const safeToNumber = (val: any) => {
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
             const winningTrades = safeToNumber(acc.winningTrades);
             const losingTrades = safeToNumber(acc.losingTrades);
             const verificationsSubmitted = safeToNumber(acc.verificationsSubmitted);
-            const verificationsCorrect = safeToNumber(acc.verificationCorrect || acc.verificationsCorrect); // Handle potential typo in IDL/Account
+            const verificationsCorrect = safeToNumber(acc.verificationsCorrect ?? acc.verificationCorrect); // Fix: account for potential typo variations
 
             // Calculate PnL (Mock for now as it's not directly on BotProfile yet, or use bounty rewards)
             const pnl = Number(acc.bountiesEarned?.toString() || 0) / 1e9; // SOL
@@ -149,25 +149,25 @@ export async function GET(request: NextRequest) {
         // 4. Apply Filters
         if (category && category !== 'All' && category !== 'all') {
             const catLower = category.toLowerCase();
-            bots = bots.filter(b => b.category.toLowerCase() === catLower);
+            bots = bots.filter((b: any) => b.category.toLowerCase() === catLower);
         }
 
         if (tier && tier !== 'All') {
-            bots = bots.filter(b => b.tier === tier);
+            bots = bots.filter((b: any) => b.tier === tier);
         }
 
         if (activeOnly) {
-            bots = bots.filter(b => b.isActive && !b.raw.isFrozen);
+            bots = bots.filter((b: any) => b.isActive && !b.raw.isFrozen);
         }
 
         // BLACKLIST (Manual Deletions)
         const BLACKLIST = [
             'BTX34k1W16XAyzJrQGSgmFV3EwALKGU7npBkHj8Esoam' // "alfred" (test bot)
         ];
-        bots = bots.filter(b => !BLACKLIST.includes(b.publicKey));
+        bots = bots.filter((b: any) => !BLACKLIST.includes(b.publicKey));
 
         // 5. Apply Sort
-        bots.sort((a, b) => {
+        bots.sort((a: any, b: any) => {
             switch (sort) {
                 case 'pnl': return b.stats.pnl - a.stats.pnl;
                 case 'winrate': return b.stats.winRate - a.stats.winRate;
@@ -181,11 +181,11 @@ export async function GET(request: NextRequest) {
 
         // 5.5 Enrich with Supabase agent_type (Conway / ClawBot badges)
         try {
-            const ownerAddresses = bots.map(b => b.owner);
+            const ownerAddresses = bots.map((b: any) => b.owner);
             const { createClient } = await import('@supabase/supabase-js');
             const supabase = createClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                process.env.SUPABASE_SERVICE_ROLE_KEY! // Fixed: strictly use service role key on backend
             );
             const { data: profiles } = await supabase
                 .from('profiles')
@@ -193,8 +193,8 @@ export async function GET(request: NextRequest) {
                 .in('wallet_address', ownerAddresses);
 
             if (profiles && profiles.length > 0) {
-                const agentMap = new Map(profiles.map((p: any) => [p.wallet_address, p.agent_type]));
-                bots = bots.map(b => ({
+                const agentMap = new Map(profiles.map( (p: any) => [p.wallet_address, p.agent_type]));
+                bots = bots.map((b: any) => ({
                     ...b,
                     agentType: agentMap.get(b.owner) || 'clawbot', // default: clawbot (human-registered)
                 }));
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
 
         // 6. Pagination
         const total = bots.length;
-        const paginatedBots = bots.slice(offset, offset + limit).map((b, i) => ({
+        const paginatedBots = bots.slice(offset, offset + limit).map((b: any, i: any) => ({
             ...b,
             rank: offset + i + 1,
             raw: undefined // Remove raw data

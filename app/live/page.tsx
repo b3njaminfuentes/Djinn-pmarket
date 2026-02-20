@@ -40,7 +40,7 @@ export default function ActivityPage() {
     useEffect(() => {
         const channel = subscribeToActivity((payload) => {
             if (payload.new) {
-                setTrades(prev => [payload.new as Activity, ...prev].slice(0, 50));
+                setTrades( (prev: any) => [payload.new as Activity, ...prev].slice(0, 50));
             }
         });
 

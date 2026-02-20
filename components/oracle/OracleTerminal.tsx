@@ -154,7 +154,7 @@ export function OracleTerminal({ initialLogs }: OracleTerminalProps) {
                                     message: `> ${cmd}`,
                                     created_at: new Date().toISOString()
                                 };
-                                setLogs(prev => [newLog as OracleLog, ...prev]);
+                                setLogs( (prev: any) => [newLog as OracleLog, ...prev]);
 
                                 // Process Command (Mock logic for UI interaction)
                                 let responseMsg = '';
@@ -208,7 +208,7 @@ export function OracleTerminal({ initialLogs }: OracleTerminalProps) {
 
                                 // Add response to logs
                                 setTimeout(() => {
-                                    setLogs(prev => [{
+                                    setLogs( (prev: any) => [{
                                         id: Math.random().toString(),
                                         type: 'system',
                                         source: 'oracle',

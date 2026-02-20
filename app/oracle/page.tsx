@@ -92,7 +92,7 @@ export default function OraclePage() {
             }),
         });
         if (res.ok) {
-            setSuggestions(prev => prev.filter(s => s.id !== id));
+            setSuggestions(prev => prev.filter((suggestion) => suggestion.id !== id));
             await fetchData();
         }
     };
@@ -109,7 +109,7 @@ export default function OraclePage() {
             }),
         });
         if (res.ok) {
-            setSuggestions(prev => prev.filter(s => s.id !== id));
+            setSuggestions(prev => prev.filter((suggestion) => suggestion.id !== id));
         }
     };
 

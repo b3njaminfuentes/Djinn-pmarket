@@ -21,9 +21,9 @@ export const P_50 = 0.000025;         // 25000 lamports - High Slope
 export const P_90 = 0.00025;          // 250000 lamports - Quadratic steepness
 const P_MAX = 0.95;            // 0.95 SOL
 
-// SIGMOID CALIBRATION - ORIGINAL "GRADUAL GROWTH" DESIGN
-// ⚠️ LINEAR APPROXIMATION: norm_sig = k * x (not full sigmoid!)
-const K_SIGMOID = 0.00047; // 4.7e-4 - Original gradual curve
+// SIGMOID CALIBRATION - Piecewise slope
+// Validated Slope: 1.25 (Matches Contract)
+const PHASE3_SLOPE = 1.25;
 
 // LEGACY/COMPATIBILITY
 export const TOTAL_SUPPLY_CHAINHEAD = TOTAL_SUPPLY;
@@ -134,7 +134,7 @@ export function getSpotPrice(sharesSupply: number): number {
         const x_rel = effectiveSupply - PHASE3_START;
         // K_SIGMOID: Need norm_sig to reach 1e9 when x_rel is 800M
         // 1.25 * 800M = 1B. (Matched with contract K_SIGMOID_SCALED = 1.25e9 / 1e18)
-        const kz = 1.25 * x_rel;
+        const kz = PHASE3_SLOPE * x_rel;
         const norm_sig = Math.min(1_000_000_000, Math.max(0, kz));
         const price_delta = (P_MAX - P_90) * norm_sig / 1_000_000_000;
         return P_90 + price_delta;
@@ -328,9 +328,9 @@ export function getSupplyFromPrice(priceSol: number): number {
         if (price_delta <= 0) return PHASE3_START;
 
         // norm_sig = price_delta / (P_MAX - P_90)
-        // x_rel = norm_sig * 1e9 / k
+        // x_rel = norm_sig * 1e9 / PHASE3_SLOPE
         const norm_sig = price_delta / (P_MAX - P_90);
-        const x_rel = norm_sig * 1_000_000_000 / K_SIGMOID;
+        const x_rel = (norm_sig * 1_000_000_000) / PHASE3_SLOPE;
         return PHASE3_START + Math.min(x_rel, TOTAL_SUPPLY - PHASE3_START);
     }
 }

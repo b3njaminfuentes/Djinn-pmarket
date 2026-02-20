@@ -128,19 +128,32 @@ export default function QuickBetModal({ isOpen, onClose, market, outcome }: Quic
                 return;
             }
 
-            // WE NEED MARKET CREATOR. FETCH IT.
+            // 1. Fetch Actual Share Supplies for Accurate Math
             if (!program) throw new Error("Protocol not ready");
-            const marketAccount = await program.account.market.fetch(new PublicKey(market.marketPDA));
-            const marketCreator = marketAccount.creator as PublicKey;
-
+            const marketPdaPubkey = new PublicKey(market.marketPDA);
+            const marketAccount = await (program.account as any).market.fetch(marketPdaPubkey);
             const outcomeIndex = outcome === 'yes' ? 0 : 1;
 
+            // Re-calculate simulation with REAL on-chain supplies
+            const currentSupply = Number(marketAccount.outcomeSupplies[outcomeIndex]);
+            const realSim = simulateBuy(amount, {
+                totalSharesMinted: currentSupply / 1e9, // simulateBuy expects shares (not lamports)
+                virtualSolReserves: 0,
+                virtualShareReserves: 0,
+                realSolReserves: 0
+            });
+
+            const marketCreator = marketAccount.creator as PublicKey;
+
+            // Enforce 1% slippage
+            const minSharesOut = realSim.sharesReceived * 0.99;
+
             const signature = await buyShares(
-                new PublicKey(market.marketPDA),
+                marketPdaPubkey,
                 outcomeIndex,
                 amount,
                 marketCreator,
-                0 // minSharesOut
+                minSharesOut
             );
 
             console.log('📡 TX Broadcast:', signature);

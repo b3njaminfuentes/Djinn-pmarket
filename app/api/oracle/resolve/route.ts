@@ -192,7 +192,7 @@ export async function GET() {
 
         return NextResponse.json({
             pending_count: marketsWithVerdicts.length,
-            ready_to_resolve: marketsWithVerdicts.filter(m => m.ready_to_resolve).length,
+            ready_to_resolve: marketsWithVerdicts.filter( (m: any) => m.ready_to_resolve).length,
             markets: marketsWithVerdicts
         });
 

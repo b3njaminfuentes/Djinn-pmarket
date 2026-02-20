@@ -144,6 +144,35 @@ class ChronosKeeper {
     }
 
     /**
+     * Sync round numbers from blockchain to avoid desync on restart
+     */
+    async syncRounds(): Promise<void> {
+        console.log("🔄 Syncing round numbers from blockchain...");
+        try {
+            const accounts = await (this.(program.account as any).as any).chronosMarket.all();
+
+            for (const account of accounts) {
+                const market = account.account as any;
+                const assetName = AssetType[market.asset];
+                const intervalName = market.interval === MarketInterval.OneHour ? "1H" : "15M";
+                const key = `${assetName}_${intervalName}`;
+
+                const roundNumber = BigInt(market.roundNumber.toString());
+                const currentMax = this.roundNumbers.get(key) || BigInt(0);
+
+                if (roundNumber >= currentMax) {
+                    this.roundNumbers.set(key, roundNumber + BigInt(1));
+                }
+            }
+            console.log("   Current round states:", Object.fromEntries(
+                Array.from(this.roundNumbers.entries()).map(([k, v]) => [k, v.toString()])
+            ));
+        } catch (error) {
+            console.error("   ❌ Failed to sync rounds:", error);
+        }
+    }
+
+    /**
      * Create a new Chronos market
      */
     async createMarket(
@@ -241,7 +270,7 @@ class ChronosKeeper {
         console.log("\n🔍 Scanning for expired markets...");
 
         // Fetch all Chronos market accounts
-        const accounts = await this.program.account.chronosMarket.all();
+        const accounts = await (this.(program.account as any).as any).chronosMarket.all();
 
         const now = Math.floor(Date.now() / 1000);
         let resolvedCount = 0;
@@ -286,6 +315,9 @@ class ChronosKeeper {
         console.log(`Keeper: ${this.keeper.publicKey.toBase58()}`);
         console.log(`Program: ${PROGRAM_ID.toBase58()}`);
         console.log("");
+
+        // Sync rounds before starting
+        await this.syncRounds();
 
         // Initial market creation
         await this.createAllMarkets();
@@ -378,7 +410,7 @@ async function main() {
     }
 
     const idl = JSON.parse(fs.readFileSync(idlPath, "utf-8"));
-    const program = new Program(idl, PROGRAM_ID, provider);
+    const program = new Program(idl, provider);
 
     // Start keeper
     const keeper = new ChronosKeeper(connection, program, keeperKeypair);

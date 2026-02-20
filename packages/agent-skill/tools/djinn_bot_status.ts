@@ -50,7 +50,7 @@ export async function djinn_bot_status(): Promise<BotStatusResult> {
         signAllTransactions: async (txs) => txs,
     }, AnchorProvider.defaultOptions());
 
-    const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
+    const program = new Program(idl as any, provider);
 
     const [botProfilePDA] = PublicKey.findProgramAddressSync(
         [Buffer.from('bot_profile'), botKeypair.publicKey.toBuffer()],
@@ -60,7 +60,7 @@ export async function djinn_bot_status(): Promise<BotStatusResult> {
     console.log(`[Djinn] Fetching status for bot ${botKeypair.publicKey.toBase58()}...`);
 
     try {
-        const profile = await program.account.botProfile.fetch(botProfilePDA);
+        const profile = await (program.account as any).botProfile.fetch(botProfilePDA);
 
         // Map account data to result
         // Note: Anchor returns BNs for u64 specific fields

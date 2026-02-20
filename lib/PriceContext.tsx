@@ -13,30 +13,30 @@ export function PriceProvider({ children }: { children: React.ReactNode }) {
 
     const fetchPrice = async () => {
         try {
-            // 1. Try Jupiter API (Fastest)
-            // v2 often requires an API key now if rate limited.
-            const res = await fetch('https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112');
+            // 1. Try Binance API (Matches Chart for consistency)
+            const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT');
 
             if (!res.ok) {
-                console.warn(`Jupiter Price API returned ${res.status}. Falling back...`);
-                throw new Error("Jupiter failed");
+                console.warn(`Binance Price API returned ${res.status}. Falling back...`);
+                throw new Error("Binance failed");
             }
 
             const data = await res.json();
-            const price = data?.data?.['So11111111111111111111111111111111111111112']?.price;
+            const price = data?.price;
             if (price) {
                 setSolPrice(parseFloat(price));
                 return;
             }
-            throw new Error("Jupiter data invalid");
+            throw new Error("Binance data invalid");
         } catch (error) {
-            // 2. Fallback to CoinGecko
+            // 2. Fallback to Jupiter
             try {
-                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
-                if (!res.ok) throw new Error("CoinGecko failed");
+                const res = await fetch('https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112');
+                if (!res.ok) throw new Error("Jupiter failed");
                 const data = await res.json();
-                if (data.solana.usd) {
-                    setSolPrice(data.solana.usd);
+                const price = data?.data?.['So11111111111111111111111111111111111111112']?.price;
+                if (price) {
+                    setSolPrice(parseFloat(price));
                 }
             } catch (e) {
                 console.warn('All price APIs failed, using last known or $0');

@@ -32,7 +32,7 @@ export async function GET(request: Request) {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
         const votes: BotVoteEntry[] = [];
@@ -94,7 +94,7 @@ export async function GET(request: Request) {
         }
 
         // Sort: Cerberus first, then by confidence desc
-        votes.sort((a, b) => {
+        votes.sort((a: any, b: any) => {
             if (a.isCerberus && !b.isCerberus) return -1;
             if (!a.isCerberus && b.isCerberus) return 1;
             return b.confidence - a.confidence;

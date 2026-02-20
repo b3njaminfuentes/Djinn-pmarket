@@ -11,7 +11,7 @@ export default function StressTestWidget({ marketPda }: { marketPda: string }) {
     const [logs, setLogs] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    const log = (msg: string) => setLogs(prev => [...prev, `${new Date().toISOString().slice(11, 19)} ${msg}`]);
+    const log = (msg: string) => setLogs( (prev: any) => [...prev, `${new Date().toISOString().slice(11, 19)} ${msg}`]);
 
     const runStressTest = async (side: 'YES' | 'NO', iterations: number) => {
         if (!marketPda || !program || !publicKey) return;
@@ -23,7 +23,7 @@ export default function StressTestWidget({ marketPda }: { marketPda: string }) {
 
         try {
             // Fetch creator
-            const marketAccount = await program.account.market.fetch(new PublicKey(marketPda));
+            const marketAccount = await (program.account as any).market.fetch(new PublicKey(marketPda));
             const marketCreator = marketAccount.creator as PublicKey;
 
             for (let i = 0; i < iterations; i++) {
@@ -38,7 +38,7 @@ export default function StressTestWidget({ marketPda }: { marketPda: string }) {
                     );
                     log(`✅ Success: ${tx.slice(0, 8)}...`);
                     // Wait a bit to prevent rate limits
-                    await new Promise(r => setTimeout(r, 1000));
+                    await new Promise( (r: any) => setTimeout(r, 1000));
                 } catch (e: any) {
                     log(`❌ Failed: ${e.message}`);
                 }
