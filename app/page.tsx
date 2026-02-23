@@ -100,29 +100,7 @@ function WaitlistBlock({ position, totalCount, walletAddress }: { position: numb
                         </div>
                     </div>
 
-                    {/* Referral button */}
-                    <button
-                        onClick={handleCopy}
-                        className={`w-full flex items-center justify-center gap-3 py-4 font-black uppercase text-sm tracking-widest rounded-xl border-[3px] border-black transition-all duration-150
-                            ${copied
-                                ? 'bg-[#10B981] text-white shadow-none translate-x-[4px] translate-y-[4px]'
-                                : 'bg-black text-white shadow-[5px_5px_0px_0px_#F492B7] hover:shadow-[2px_2px_0px_0px_#F492B7] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none active:translate-x-[5px] active:translate-y-[5px]'
-                            }`}
-                    >
-                        {copied ? (
-                            <>✓ Link Copied!</>
-                        ) : (
-                            <>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                                Share your referral link
-                            </>
-                        )}
-                    </button>
-
-                    {/* Referral URL preview */}
-                    <div className="bg-black/5 border-[2px] border-black/10 rounded-xl px-4 py-2.5 font-mono text-[11px] text-black/50 truncate">
-                        {referralUrl}
-                    </div>
+                    {/* Referral section removed */}
                 </div>
             </div>
 
@@ -317,8 +295,6 @@ export default function DjinnLanding() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
                         className="flex items-center gap-0 mb-16 select-none"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => isMounted && connected && profile ? router.push('/markets') : null}
                     >
                         <div className="w-40 h-40 md:w-56 md:h-56 relative -mr-3 md:-mr-4">
                             <Image
@@ -370,21 +346,19 @@ export default function DjinnLanding() {
                             >
                                 {profile.has_access ? (
                                     /* ACCESS GRANTED */
-                                    <Link
-                                        href="/markets"
-                                        className="group relative py-6 px-24 font-black uppercase text-2xl italic tracking-tighter
-                                            bg-white text-black rounded-full
-                                            border-[4px] border-black
-                                            shadow-[8px_8px_0px_#10B981]
-                                            hover:shadow-[4px_4px_0px_#10B981] hover:translate-x-[4px] hover:translate-y-[4px]
-                                            active:shadow-none active:translate-x-[8px] active:translate-y-[8px]
-                                            transition-all duration-150 flex items-center justify-center"
+                                    /* WAITLIST LOCKED STATE */
+                                    <div
+                                        className="py-5 px-16 font-black uppercase text-xl italic tracking-widest
+                                            bg-white text-black/40 rounded-full
+                                            border-[4px] border-black/40
+                                            shadow-[6px_6px_0px_rgba(0,0,0,0.15)]
+                                            flex flex-col items-center justify-center gap-1 cursor-default select-none"
                                     >
-                                        <span className="flex items-center gap-4">
-                                            WELCOME
-                                            <ArrowRight className="w-8 h-8 stroke-[4]" />
+                                        <span className="flex items-center gap-3">
+                                            GATEWAY LOCKED
                                         </span>
-                                    </Link>
+                                        <span className="text-[10px] font-bold tracking-[0.3em] not-italic">OPENING FEB 28</span>
+                                    </div>
                                 ) : (
                                     <WaitlistBlock
                                         position={profile.user_number || status.count}
@@ -422,10 +396,10 @@ export default function DjinnLanding() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2 }}
                                 onClick={handleConnect}
-                                className="group relative px-20 py-6 bg-white text-black rounded-full select-none
-                                    border-[4px] border-black
-                                    shadow-[8px_8px_0px_#10B981] 
-                                    hover:shadow-[4px_4px_0px_#10B981] hover:translate-x-[4px] hover:translate-y-[4px]
+                                className="group relative px-20 py-6 bg-[#F492B7] text-white rounded-full select-none
+                                    border-[4px] border-white
+                                    shadow-[8px_8px_0px_#000000] 
+                                    hover:shadow-[4px_4px_0px_#000000] hover:translate-x-[4px] hover:translate-y-[4px]
                                     active:shadow-none active:translate-x-[8px] active:translate-y-[8px]
                                     transition-all duration-150 flex items-center justify-center gap-4"
                             >

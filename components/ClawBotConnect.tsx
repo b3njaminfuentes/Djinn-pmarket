@@ -79,20 +79,21 @@ export default function ClawBotConnect({ walletAddress }: Props) {
                     </div>
 
                     {/* Bot identity */}
-                    <div className="px-6 py-8 text-center">
-                        <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.3em] mb-2">ClawBot Connected</p>
-                        <motion.p
+                    <div className="px-6 py-8 text-center flex flex-col items-center">
+                        <p className="text-white/40 text-[11px] font-black uppercase tracking-[0.4em] mb-4">ClawBot Paired</p>
+                        <motion.h2
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="text-white font-black text-4xl tracking-tight"
+                            className="text-white text-5xl md:text-6xl tracking-tighter"
+                            style={{ fontFamily: 'var(--font-adriane), serif', fontWeight: 700 }}
                         >
                             @{botName}
-                        </motion.p>
+                        </motion.h2>
                     </div>
 
                     {/* Bot # badge */}
-                    <div className="px-6 pb-6 flex justify-center">
+                    <div className="px-6 pb-8 flex justify-center">
                         <motion.div
                             initial={{ scale: 0, rotate: -10 }}
                             animate={{ scale: 1, rotate: 0 }}
@@ -106,9 +107,9 @@ export default function ClawBotConnect({ walletAddress }: Props) {
                     </div>
 
                     {/* Bottom info */}
-                    <div className="px-6 pb-5">
-                        <p className="text-white/25 text-[10px] font-bold text-center leading-relaxed">
-                            Ready to trade markets, verify outcomes, and earn SOL when devnet opens.
+                    <div className="px-6 pb-6 bg-black">
+                        <p className="text-[#FF69B4] text-[10px] font-black uppercase tracking-widest text-center leading-relaxed">
+                            AWAITING SECURE DEPLOYMENT
                         </p>
                     </div>
                 </div>
@@ -122,76 +123,70 @@ export default function ClawBotConnect({ walletAddress }: Props) {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="w-full bg-[#121214] border-[2px] border-[#2A2A30] rounded-3xl shadow-2xl relative overflow-hidden"
+            className="w-full bg-white border-[4px] border-black rounded-[2rem] shadow-[10px_10px_0px_0px_#FF69B4] relative overflow-hidden"
         >
-            {/* Subtle top glow */}
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#10B981]/50 to-transparent opacity-50" />
-
             {/* Header */}
-            <div className="px-6 py-5 border-b border-[#2A2A30] flex items-center justify-between bg-black/20">
+            <div className="px-6 py-5 border-b-[4px] border-black flex items-center justify-between bg-[#F492B7] text-black">
                 <div className="flex items-center gap-3">
-                    <span className="text-xl">🤖</span>
+                    <span className="text-2xl">🦾</span>
                     <div>
-                        <p className="text-white font-black text-sm uppercase tracking-widest leading-none">Have an AI Agent?</p>
-                        <p className="text-[#10B981] text-[10px] font-black uppercase tracking-wider mt-1">Sync It.</p>
+                        <p className="font-black text-sm uppercase tracking-widest leading-none">Deploy ClawBot</p>
+                        <p className="text-black/60 text-[10px] font-black uppercase tracking-wider mt-1">Sync your Agent</p>
                     </div>
                 </div>
-                <span className="px-3 py-1 bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/30 rounded-full text-[9px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                <span className="px-3 py-1 bg-black text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)]">
                     Skill Available
                 </span>
             </div>
 
             {/* Body */}
-            <div className="px-6 py-6 flex flex-col gap-5">
-                <p className="text-white/60 text-xs leading-relaxed font-medium">
-                    Run the CLI to generate a secure Solana wallet, claim your bot's username, and <span className="text-white font-bold">secure its spot</span> in the Arena waitlist.
+            <div className="px-6 py-6 flex flex-col gap-6 text-black">
+                <p className="text-black/70 text-xs leading-relaxed font-bold uppercase tracking-wider">
+                    Run the CLI to generate a secure wallet, claim your bot's identity, and <span className="text-black font-black">secure its spot</span> on the grid.
                 </p>
 
                 {/* Command box */}
                 <div
                     onClick={handleCopy}
-                    className="relative flex items-center bg-black/40 border-[2px] border-[#2A2A30] rounded-xl px-5 py-3.5 cursor-pointer group hover:border-[#10B981]/50 hover:bg-[#10B981]/5 transition-all duration-300"
+                    className="relative flex items-center bg-black text-white border-[3px] border-black rounded-xl px-5 py-4 cursor-pointer group hover:bg-[#F492B7] hover:text-black transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.15)] hover:translate-x-[3px] hover:translate-y-[3px] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none"
                     title="Click to copy"
                 >
-                    <span className="text-white/30 font-mono text-sm mr-2">$</span>
-                    <span className="text-[#10B981] font-mono font-bold text-sm flex-1 tracking-wider">npx djinn-skill</span>
-                    <span className={`text-[9px] font-black uppercase tracking-wider transition-colors ${copied ? 'text-[#10B981]' : 'text-white/20 group-hover:text-[#10B981]/70'}`}>
-                        {copied ? '✓ copied' : 'copy'}
+                    <span className="text-current/40 font-mono text-sm mr-2">$</span>
+                    <span className="text-current font-mono font-black text-base flex-1 tracking-wider">npx djinn-skill</span>
+                    <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${copied ? 'text-white' : 'text-current/40 group-hover:text-black/60'}`}>
+                        {copied ? '✓ COPIED' : 'COPY'}
                     </span>
                 </div>
 
                 {/* Divider */}
                 <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-white/10" />
-                    <span className="text-white/20 text-[10px] font-black uppercase tracking-widest">then</span>
-                    <div className="h-px flex-1 bg-white/10" />
+                    <div className="h-[3px] flex-1 bg-black/10" />
+                    <span className="text-black/40 text-[10px] font-black uppercase tracking-widest">then</span>
+                    <div className="h-[3px] flex-1 bg-black/10" />
                 </div>
 
                 {/* Step 2 — code input */}
                 <div>
-                    <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 ml-1">Enter pairing code</p>
-                    <div className="flex gap-2.5">
+                    <label className="block text-black font-black uppercase text-[10px] tracking-[0.2em] mb-3 ml-1">Enter pairing code</label>
+                    <div className="flex gap-3">
                         <input
                             type="text"
                             value={code}
                             onChange={handleInput}
                             placeholder="DJNN-XXXX"
                             maxLength={9}
-                            className={`flex-1 bg-black/60 border-[2px] rounded-xl px-4 py-3.5 font-mono font-bold text-base text-white tracking-[0.2em] uppercase placeholder:text-white/10 outline-none transition-all duration-300 ${pairState === 'error' ? 'border-red-500 focus:shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-[#2A2A30] focus:border-[#10B981] focus:shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:border-white/20'}`}
+                            className={`flex-1 bg-white border-[3px] rounded-xl px-4 py-4 font-mono font-black text-lg text-black tracking-[0.2em] uppercase placeholder:text-black/20 outline-none transition-all ${pairState === 'error' ? 'border-red-500 shadow-[4px_4px_0px_0px_#ef4444]' : 'border-black focus:border-[#FF69B4] focus:shadow-[4px_4px_0px_0px_#FF69B4] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]'}`}
                         />
                         <button
                             onClick={handlePair}
-                            disabled={code.length < 4 || pairState === 'loading'}
-                            className="px-6 py-3.5 bg-[#10B981] text-black font-black uppercase text-xs tracking-[0.15em] rounded-xl 
-                                shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] 
-                                hover:scale-[1.02] active:scale-[0.98]
-                                disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:scale-100
-                                transition-all duration-200 flex items-center justify-center min-w-[110px]"
+                            disabled={pairState === 'loading' || code.length < 9}
+                            className={`px-8 rounded-xl font-black uppercase text-sm tracking-widest border-[3px] border-black transition-all flex items-center justify-center min-w-[120px] ${pairState === 'loading' ? 'bg-black text-white/50 cursor-not-allowed border-black/50' : code.length === 9 ? 'bg-[#10B981] text-black shadow-[6px_6px_0px_0px_#000000] hover:shadow-[3px_3px_0px_0px_#000000] hover:translate-x-[3px] hover:translate-y-[3px] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none' : 'bg-black text-white/50 cursor-not-allowed'}`}
                         >
-                            {pairState === 'loading'
-                                ? <Loader2 className="w-4 h-4 animate-spin text-black" />
-                                : <span>Link Bot</span>
-                            }
+                            {pairState === 'loading' ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                'CONNECT'
+                            )}
                         </button>
                     </div>
                     {pairState === 'error' && (
