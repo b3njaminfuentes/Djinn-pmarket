@@ -78,25 +78,10 @@ function WaitlistBlock({ position, totalCount, walletAddress }: { position: numb
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-black/40 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Genesis Slots</p>
-                            <p className="font-black text-2xl tracking-tighter text-black tabular-nums">
-                                {filled}<span className="text-black/25 text-lg">/1000</span>
+                            <p className="text-black/40 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Total Waitlist</p>
+                            <p className="font-black text-4xl tracking-tighter text-black tabular-nums pb-1">
+                                #{filled}
                             </p>
-                        </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div>
-                        <div className="h-3 w-full bg-black/5 rounded-full border-[2px] border-black/10 overflow-hidden">
-                            <div
-                                className="h-full bg-black rounded-full transition-all duration-700"
-                                style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #F492B7 0%, #ff69b4 100%)' }}
-                            />
-                        </div>
-                        <div className="flex justify-between mt-1.5">
-                            <span className="text-black/30 text-[10px] font-black">0</span>
-                            <span className="text-black/50 text-[10px] font-black">{pct}% filled</span>
-                            <span className="text-black/30 text-[10px] font-black">1000</span>
                         </div>
                     </div>
 
@@ -416,7 +401,7 @@ export default function DjinnLanding() {
                                 <ArrowRight className="w-10 h-10 stroke-[3] group-hover:translate-x-2 transition-transform" />
                             </motion.button>
 
-                            {/* Waitlist + Devnet label */}
+                            {/* Waitlist count */}
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -430,7 +415,6 @@ export default function DjinnLanding() {
                                         <span className="text-white/40 text-xs font-black uppercase tracking-widest">on waitlist</span>
                                     </div>
                                 )}
-                                <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em]">Devnet coming soon</p>
                             </motion.div>
                         </motion.div>
 

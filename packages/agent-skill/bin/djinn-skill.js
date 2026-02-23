@@ -179,47 +179,53 @@ async function main() {
         log('');
     }
 
-    // 2. Ask for bot name
-    log(bold('  What should we call your bot on Djinn?'));
-    log(dim('  2–32 characters · letters, numbers, dashes'));
-    log('');
-    const rawName = await prompt(rl, c.pink + '  > Bot name: ' + c.reset);
-    const botName = rawName.trim();
+    // 2. Ask for bot name and register (loop until success)
+    let botName = '';
+    while (true) {
+        log(bold('  What should we call your bot on Djinn?'));
+        log(dim('  2–32 characters · letters, numbers, dashes'));
+        log('');
+        const rawName = await prompt(rl, c.pink + '  > Bot name: ' + c.reset);
+        botName = rawName.trim();
 
-    if (!botName || botName.length < 2 || botName.length > 32) {
-        log(c.red + '  ✗  Name must be 2–32 characters' + c.reset);
-        rl.close(); process.exit(1);
-    }
+        if (!botName || botName.length < 2 || botName.length > 32) {
+            log(c.red + '  ✗  Name must be 2–32 characters. Try again.\n' + c.reset);
+            continue;
+        }
 
-    log('');
-    log(dim('  Registering ' + bold(botName) + ' on Djinn...'));
+        log('');
+        log(dim('  Registering ' + bold(botName) + ' on Djinn...'));
 
-    // 3. Sign + register
-    const timestamp = Math.floor(Date.now() / 1000);
-    let signature;
-    try {
-        const message = Buffer.from(`djinn-register:${botName}:${walletPubkey}:${timestamp}`);
-        signature = signMessage(message, seed).toString('base64');
-    } catch (e) {
-        log(c.red + '  ✗  Signing failed: ' + e.message + c.reset);
-        rl.close(); process.exit(1);
-    }
+        // 3. Sign + register
+        const timestamp = Math.floor(Date.now() / 1000);
+        let signature;
+        try {
+            const message = Buffer.from(`djinn-register:${botName}:${walletPubkey}:${timestamp}`);
+            signature = signMessage(message, seed).toString('base64');
+        } catch (e) {
+            log(c.red + '  ✗  Signing failed: ' + e.message + c.reset);
+            rl.close(); process.exit(1);
+        }
 
-    let res;
-    try {
-        res = await httpPost(`${API_URL}/api/bots/register`, {
-            botName, walletPubkey, signature, timestamp,
-            agentType: 'clawbot',
-            bio: 'Registered via npx djinn-skill',
-        });
-    } catch (e) {
-        log(c.red + '  ✗  Network error: ' + e.message + c.reset);
-        rl.close(); process.exit(1);
-    }
+        let res;
+        try {
+            res = await httpPost(`${API_URL}/api/bots/register`, {
+                botName, walletPubkey, signature, timestamp,
+                agentType: 'clawbot',
+                bio: 'Registered via npx djinn-skill',
+            });
+        } catch (e) {
+            log(c.red + '  ✗  Network error: ' + e.message + c.reset);
+            rl.close(); process.exit(1);
+        }
 
-    if (res.status !== 200 && res.status !== 201) {
-        log(c.red + '  ✗  Registration failed: ' + JSON.stringify(res.body) + c.reset);
-        rl.close(); process.exit(1);
+        if (res.status !== 200 && res.status !== 201) {
+            log(c.red + '  ✗  Registration failed: ' + (res.body?.error || JSON.stringify(res.body)) + c.reset);
+            log(c.yellow + '  ⚠  Please choose a different name.\n' + c.reset);
+            continue;
+        }
+
+        break; // Success
     }
 
     // 4. Send heartbeat → bot goes ONLINE on Djinn
@@ -277,6 +283,9 @@ async function main() {
     log(c.bold + '  └─────────────────────────────────────┘' + c.reset);
     log('');
     log(dim('  Wallet: ') + cyan(walletPubkey));
+    const privateKeyB58 = toBase58(Buffer.concat([seed, pubBytes]));
+    log(dim('  Private Key: ') + c.yellow + privateKeyB58 + c.reset);
+    log(dim('  (Keep this safe! Import it into Phantom/Solflare to manage funds)'));
     log('');
     log('');
 

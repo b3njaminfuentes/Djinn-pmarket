@@ -123,75 +123,71 @@ export default function ClawBotConnect({ walletAddress }: Props) {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="w-full bg-white border-[4px] border-black rounded-[2rem] shadow-[10px_10px_0px_0px_#FF69B4] relative overflow-hidden"
+            className="w-full bg-[#FAFAFA] border-[6px] border-black rounded-3xl shadow-[12px_12px_0px_0px_#FF69B4] relative overflow-hidden"
         >
             {/* Header */}
-            <div className="px-6 py-5 border-b-[4px] border-black flex items-center justify-between bg-[#F492B7] text-black">
-                <div className="flex items-center gap-3">
-                    <span className="text-2xl">🦾</span>
+            <div className="px-6 py-5 border-b-[6px] border-black flex items-center justify-between bg-[#00E5FF] text-black">
+                <div className="flex items-center gap-4">
+                    <span className="text-3xl drop-shadow-[2px_2px_0px_#fff]">🦾</span>
                     <div>
-                        <p className="font-black text-sm uppercase tracking-widest leading-none">Deploy ClawBot</p>
-                        <p className="text-black/60 text-[10px] font-black uppercase tracking-wider mt-1">Sync your Agent</p>
+                        <p className="font-black text-lg uppercase tracking-widest leading-none">Deploy ClawBot</p>
+                        <p className="text-black/70 text-[10px] font-black uppercase tracking-widest mt-1">Terminal Access</p>
                     </div>
                 </div>
-                <span className="px-3 py-1 bg-black text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)]">
-                    Skill Available
+                <span className="px-3 py-1.5 bg-black text-[#00E5FF] border-[2px] border-black rounded-none text-[10px] font-black uppercase tracking-widest shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]">
+                    Ready
                 </span>
             </div>
 
             {/* Body */}
-            <div className="px-6 py-6 flex flex-col gap-6 text-black">
-                <p className="text-black/70 text-xs leading-relaxed font-bold uppercase tracking-wider">
-                    Run the CLI to generate a secure wallet, claim your bot's identity, and <span className="text-black font-black">secure its spot</span> on the grid.
-                </p>
-
-                {/* Command box */}
-                <div
-                    onClick={handleCopy}
-                    className="relative flex items-center bg-black text-white border-[3px] border-black rounded-xl px-5 py-4 cursor-pointer group hover:bg-[#F492B7] hover:text-black transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.15)] hover:translate-x-[3px] hover:translate-y-[3px] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none"
-                    title="Click to copy"
-                >
-                    <span className="text-current/40 font-mono text-sm mr-2">$</span>
-                    <span className="text-current font-mono font-black text-base flex-1 tracking-wider">npx djinn-skill</span>
-                    <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${copied ? 'text-white' : 'text-current/40 group-hover:text-black/60'}`}>
-                        {copied ? '✓ COPIED' : 'COPY'}
-                    </span>
+            <div className="px-6 py-8 flex flex-col gap-8 text-black bg-white">
+                <div className="bg-[#f0f0f0] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+                    <p className="text-black text-xs leading-relaxed font-black uppercase tracking-wider text-center">
+                        Execute the CLI to generate a secure wallet <br />& claim your agent's identity.
+                    </p>
                 </div>
 
-                {/* Divider */}
-                <div className="flex items-center gap-3">
-                    <div className="h-[3px] flex-1 bg-black/10" />
-                    <span className="text-black/40 text-[10px] font-black uppercase tracking-widest">then</span>
-                    <div className="h-[3px] flex-1 bg-black/10" />
+                {/* Command box - Terminal style */}
+                <div
+                    onClick={handleCopy}
+                    className="relative flex items-center bg-black text-[#10B981] border-[4px] border-black px-5 py-4 cursor-pointer group hover:bg-[#111] transition-all shadow-[8px_8px_0px_0px_#000] hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-[4px_4px_0px_0px_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none"
+                    title="Click to copy"
+                >
+                    <span className="text-[#10B981]/50 font-mono text-lg mr-3">❯</span>
+                    <span className="text-current font-mono font-black text-lg flex-1 tracking-widest">npx djinn-skill</span>
+                    <span className={`text-[10px] font-black mr-1 uppercase tracking-[0.2em] transition-colors ${copied ? 'text-white' : 'text-[#10B981]/50 group-hover:text-[#10B981]'}`}>
+                        {copied ? '✓ COPIED' : 'COPY'}
+                    </span>
+                    <div className="absolute top-0 right-0 w-3 h-3 bg-[#10B981] border-l-[4px] border-b-[4px] border-black"></div>
                 </div>
 
                 {/* Step 2 — code input */}
-                <div>
-                    <label className="block text-black font-black uppercase text-[10px] tracking-[0.2em] mb-3 ml-1">Enter pairing code</label>
-                    <div className="flex gap-3">
+                <div className="bg-[#FF69B4] border-[4px] border-black p-5 shadow-[8px_8px_0px_0px_#000]">
+                    <label className="block text-black font-black uppercase text-[12px] tracking-[0.2em] mb-4 text-center">Enter Pairing Code</label>
+                    <div className="flex flex-col sm:flex-row gap-4">
                         <input
                             type="text"
                             value={code}
                             onChange={handleInput}
                             placeholder="DJNN-XXXX"
                             maxLength={9}
-                            className={`flex-1 bg-white border-[3px] rounded-xl px-4 py-4 font-mono font-black text-lg text-black tracking-[0.2em] uppercase placeholder:text-black/20 outline-none transition-all ${pairState === 'error' ? 'border-red-500 shadow-[4px_4px_0px_0px_#ef4444]' : 'border-black focus:border-[#FF69B4] focus:shadow-[4px_4px_0px_0px_#FF69B4] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]'}`}
+                            className={`flex-1 bg-white border-[4px] px-5 py-4 font-mono font-black text-xl text-center text-black tracking-[0.3em] uppercase placeholder:text-black/20 outline-none transition-all ${pairState === 'error' ? 'border-[#ff0000] shadow-[4px_4px_0px_0px_#ff0000]' : 'border-black focus:border-[#000] shadow-[4px_4px_0px_0px_#000]'}`}
                         />
                         <button
                             onClick={handlePair}
                             disabled={pairState === 'loading' || code.length < 9}
-                            className={`px-8 rounded-xl font-black uppercase text-sm tracking-widest border-[3px] border-black transition-all flex items-center justify-center min-w-[120px] ${pairState === 'loading' ? 'bg-black text-white/50 cursor-not-allowed border-black/50' : code.length === 9 ? 'bg-[#10B981] text-black shadow-[6px_6px_0px_0px_#000000] hover:shadow-[3px_3px_0px_0px_#000000] hover:translate-x-[3px] hover:translate-y-[3px] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none' : 'bg-black text-white/50 cursor-not-allowed'}`}
+                            className={`px-8 py-4 font-black uppercase text-base tracking-[0.2em] border-[4px] border-black transition-all flex items-center justify-center min-w-[140px] ${pairState === 'loading' ? 'bg-[#ccc] text-black/50 cursor-not-allowed shadow-[4px_4px_0px_0px_#000]' : code.length === 9 ? 'bg-[#10B981] text-black shadow-[6px_6px_0px_0px_#000] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none' : 'bg-[#e5e5e5] text-black/40 cursor-not-allowed border-black/50 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]'}`}
                         >
                             {pairState === 'loading' ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <Loader2 className="w-6 h-6 animate-spin text-black" />
                             ) : (
                                 'CONNECT'
                             )}
                         </button>
                     </div>
                     {pairState === 'error' && (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-[11px] font-bold mt-2 flex items-center gap-1">
-                            <X className="w-3 h-3 stroke-[3]" /> {errorMsg}
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-black bg-white border-[3px] border-black px-3 py-2 text-[12px] font-black mt-4 flex items-center justify-center gap-2 uppercase tracking-widest shadow-[4px_4px_0px_0px_#ff0000]">
+                            <X className="w-4 h-4 stroke-[4] text-[#ff0000]" /> {errorMsg}
                         </motion.p>
                     )}
                 </div>
