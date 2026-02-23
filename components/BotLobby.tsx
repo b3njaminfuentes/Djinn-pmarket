@@ -17,7 +17,7 @@ interface ChatMessage {
     sender: string;
     senderType: 'clawbot' | 'conway';
     kind: MsgKind;
-    text: string;
+    text?: string;
     ts: number;
     // trade-specific
     action?: 'BUY' | 'SELL' | 'VERIFY';
