@@ -72,6 +72,7 @@
     "three": "^0.182.0",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",
+    "vercel": "^50.22.1",
     "yahoo-finance2": "^3.11.2",
     "youtube-transcript": "^1.2.1"
   },
