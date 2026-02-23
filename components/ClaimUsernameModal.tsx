@@ -96,7 +96,7 @@ export default function ClaimUsernameModal({ isOpen, walletAddress, onSuccess, o
         try {
             console.log("Attempting X connection from Claim Modal...");
             const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'twitter',
+                provider: 'x',
                 options: {
                     redirectTo: window.location.origin,
                 },

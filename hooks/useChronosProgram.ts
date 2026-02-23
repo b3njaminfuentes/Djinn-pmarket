@@ -1,5 +1,5 @@
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { AnchorProvider, Program, Idl, BN, web3 } from "@project-serum/anchor";
+import { AnchorProvider, Program, Idl, BN, web3 } from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { useMemo, useCallback } from "react";
 import idl from "@/lib/idl/djinn_market.json";
@@ -21,7 +21,7 @@ export function useChronosProgram() {
 
     const program = useMemo(() => {
         if (!provider) return null;
-        return new Program(IDL, PROGRAM_ID, provider);
+        return new Program(IDL, provider);
     }, [provider]);
 
     const buyShares = useCallback(async (marketKey: PublicKey, outcomeIndex: number, amountSol: number) => {

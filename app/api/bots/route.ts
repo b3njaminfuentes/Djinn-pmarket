@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
             'confirmed'
         );
         const provider = new AnchorProvider(connection, dummyWallet, {});
-        const program = new Program(idl as any, provider); // Fixed: Coral Anchor constructor signature
+        const program = new Program(idl as any, provider);
 
         // 2. Fetch All Bot Accounts
         // Note: For production, we'd use getProgramAccounts with filters or an indexer.
@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
                 .in('wallet_address', ownerAddresses);
 
             if (profiles && profiles.length > 0) {
-                const agentMap = new Map(profiles.map( (p: any) => [p.wallet_address, p.agent_type]));
+                const agentMap = new Map(profiles.map((p: any) => [p.wallet_address, p.agent_type]));
                 bots = bots.map((b: any) => ({
                     ...b,
                     agentType: agentMap.get(b.owner) || 'clawbot', // default: clawbot (human-registered)

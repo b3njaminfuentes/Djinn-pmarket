@@ -250,7 +250,8 @@ const PrismaticBurst = ({
         const container = containerRef.current;
         if (!container) return;
 
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        // PERFORMANCE OPTIMIZATION: Cap DPR at 1 to prevent native-resolution fragment shading lag
+        const dpr = 1;
         const renderer = new Renderer({
             dpr,
             alpha: false,

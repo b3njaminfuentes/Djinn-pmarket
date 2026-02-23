@@ -221,7 +221,7 @@ export default function PhysicsCardBubblegum({ username, memberNumber, pfp, twit
                     <div className="absolute inset-0 rounded-[2.5rem]" style={{
                         background: 'linear-gradient(165deg, #e8e8ec 0%, #ffffff 8%, #8a8a96 18%, #d8d8e0 26%, #3a3a42 35%, #f0f0f4 42%, #6e6e7a 50%, #ffffff 58%, #4a4a54 65%, #e0e0e8 72%, #2e2e36 80%, #f8f8fc 88%, #a0a0ac 95%)'
                     }} />
-                    <div className="absolute inset-0 backdrop-blur-[40px] rounded-[2.5rem]" />
+                    <div className="absolute inset-0 backdrop-blur-md rounded-[2.5rem]" />
 
                     {/* Prismatic Watermarks Background Front */}
                     <motion.div
@@ -405,7 +405,7 @@ export default function PhysicsCardBubblegum({ username, memberNumber, pfp, twit
                     < div className="absolute inset-0 rounded-[2.5rem]" style={{
                         background: 'linear-gradient(165deg, #e8e8ec 0%, #ffffff 8%, #8a8a96 18%, #d8d8e0 26%, #3a3a42 35%, #f0f0f4 42%, #6e6e7a 50%, #ffffff 58%, #4a4a54 65%, #e0e0e8 72%, #2e2e36 80%, #f8f8fc 88%, #a0a0ac 95%)'
                     }} />
-                    < div className="absolute inset-0 backdrop-blur-[40px] rounded-[2.5rem]" />
+                    < div className="absolute inset-0 backdrop-blur-md rounded-[2.5rem]" />
 
                     {/* Prismatic Watermarks Background Back */}
                     < motion.div

@@ -26,8 +26,7 @@ const ReferralPanel = dynamic(() => import('@/components/ReferralPanel'), {
     ssr: false,
 });
 
-// Lazy load Galaxy background
-const Galaxy = dynamic(() => import('@/components/Galaxy'), {
+const StarfieldBg = dynamic(() => import('@/components/StarfieldBg'), {
     ssr: false,
     loading: () => null
 });
@@ -35,67 +34,109 @@ const Galaxy = dynamic(() => import('@/components/Galaxy'), {
 import ClaimUsernameModal from '@/components/ClaimUsernameModal';
 import { getProfile } from '@/lib/supabase-db';
 
-// ─── Launch Countdown ─────────────────────────────────────────────────────────
+const ClawBotConnect = dynamic(() => import('@/components/ClawBotConnect'), { ssr: false });
 
-const LAUNCH_DATE = new Date('2026-02-28T00:00:00Z');
 
-function LaunchCountdown() {
-    const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, launched: false });
 
-    useEffect(() => {
-        function calc() {
-            const diff = LAUNCH_DATE.getTime() - Date.now();
-            if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, launched: true }); return; }
-            setTimeLeft({
-                days:    Math.floor(diff / 86400000),
-                hours:   Math.floor((diff % 86400000) / 3600000),
-                minutes: Math.floor((diff % 3600000)  / 60000),
-                seconds: Math.floor((diff % 60000)    / 1000),
-                launched: false,
-            });
-        }
-        calc();
-        const id = setInterval(calc, 1000);
-        return () => clearInterval(id);
-    }, []);
+// ─── Waitlist Block ───────────────────────────────────────────────────────────
 
-    if (timeLeft.launched) return (
-        <div className="text-center">
-            <p className="text-[#FF69B4] font-black text-2xl uppercase tracking-widest animate-pulse">🧞 Djinn is Live</p>
-        </div>
-    );
+function WaitlistBlock({ position, totalCount, walletAddress }: { position: number; totalCount: number; walletAddress: string }) {
+    const [copied, setCopied] = React.useState(false);
+    const GENESIS_LIMIT = 1000;
+    const filled = Math.min(totalCount, GENESIS_LIMIT);
+    const pct = Math.round((filled / GENESIS_LIMIT) * 100);
+    const spotsLeft = Math.max(0, GENESIS_LIMIT - filled);
+    const referralUrl = `https://djinn.markets?ref=${walletAddress.slice(0, 8)}`;
+
+    const handleCopy = () => {
+        navigator.clipboard?.writeText(referralUrl).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-col items-center gap-3"
-        >
-            <p className="text-white/40 text-xs font-black uppercase tracking-[0.3em]">Mainnet launches</p>
-            <div className="flex items-end gap-3">
-                {[
-                    { v: timeLeft.days,    l: 'days' },
-                    { v: timeLeft.hours,   l: 'hrs' },
-                    { v: timeLeft.minutes, l: 'min' },
-                    { v: timeLeft.seconds, l: 'sec' },
-                ].map(({ v, l }, i) => (
-                    <React.Fragment key={l}>
-                        {i > 0 && <span className="text-white/20 font-black text-3xl mb-2">:</span>}
-                        <div className="flex flex-col items-center">
-                            <span className="text-white font-black text-5xl md:text-6xl tabular-nums leading-none"
-                                style={{ fontFamily: 'var(--font-adriane), serif' }}>
-                                {String(v).padStart(2, '0')}
-                            </span>
-                            <span className="text-white/30 text-[10px] font-black uppercase tracking-widest mt-1">{l}</span>
+        <div className="w-full flex flex-col gap-4">
+            {/* Main waitlist card */}
+            <div className="bg-white text-black border-[4px] border-black rounded-[2rem] shadow-[10px_10px_0px_0px_#F492B7] overflow-hidden">
+                {/* Header bar */}
+                <div className="bg-black px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-[#F492B7] animate-pulse" />
+                        <span className="text-white font-black text-[10px] uppercase tracking-[0.25em]">Waitlist</span>
+                    </div>
+                    <span className="text-white/30 font-black text-[10px] uppercase tracking-widest">{spotsLeft} spots left</span>
+                </div>
+
+                <div className="px-7 py-6 flex flex-col gap-5">
+                    {/* Position row */}
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <p className="text-black/40 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Your Position</p>
+                            <p className="font-black text-6xl lowercase tracking-tighter leading-none italic text-black">
+                                #{position || '—'}
+                            </p>
                         </div>
-                    </React.Fragment>
-                ))}
+                        <div className="text-right">
+                            <p className="text-black/40 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Genesis Slots</p>
+                            <p className="font-black text-2xl tracking-tighter text-black tabular-nums">
+                                {filled}<span className="text-black/25 text-lg">/1000</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div>
+                        <div className="h-3 w-full bg-black/5 rounded-full border-[2px] border-black/10 overflow-hidden">
+                            <div
+                                className="h-full bg-black rounded-full transition-all duration-700"
+                                style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #F492B7 0%, #ff69b4 100%)' }}
+                            />
+                        </div>
+                        <div className="flex justify-between mt-1.5">
+                            <span className="text-black/30 text-[10px] font-black">0</span>
+                            <span className="text-black/50 text-[10px] font-black">{pct}% filled</span>
+                            <span className="text-black/30 text-[10px] font-black">1000</span>
+                        </div>
+                    </div>
+
+                    {/* Referral button */}
+                    <button
+                        onClick={handleCopy}
+                        className={`w-full flex items-center justify-center gap-3 py-4 font-black uppercase text-sm tracking-widest rounded-xl border-[3px] border-black transition-all duration-150
+                            ${copied
+                                ? 'bg-[#10B981] text-white shadow-none translate-x-[4px] translate-y-[4px]'
+                                : 'bg-black text-white shadow-[5px_5px_0px_0px_#F492B7] hover:shadow-[2px_2px_0px_0px_#F492B7] hover:translate-x-[3px] hover:translate-y-[3px] active:shadow-none active:translate-x-[5px] active:translate-y-[5px]'
+                            }`}
+                    >
+                        {copied ? (
+                            <>✓ Link Copied!</>
+                        ) : (
+                            <>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                                Share your referral link
+                            </>
+                        )}
+                    </button>
+
+                    {/* Referral URL preview */}
+                    <div className="bg-black/5 border-[2px] border-black/10 rounded-xl px-4 py-2.5 font-mono text-[11px] text-black/50 truncate">
+                        {referralUrl}
+                    </div>
+                </div>
             </div>
-            <p className="text-white/20 text-xs">Feb 28, 2026</p>
-        </motion.div>
+
+
+
+            {/* Follow hint */}
+            <p className="text-white/30 font-black text-[10px] uppercase tracking-[0.3em] text-center">
+                Follow <a href="https://x.com/djinnmarkets" target="_blank" rel="noopener noreferrer" className="text-[#F492B7] hover:underline">@djinnmarkets</a> for launch updates
+            </p>
+        </div>
     );
 }
+
+
 
 export default function DjinnLanding() {
     const [isMounted, setIsMounted] = useState(false);
@@ -149,10 +190,7 @@ export default function DjinnLanding() {
                 sessionStorage.setItem('djinn_genesis_announced', 'true');
             }
 
-            // If connected and has no profile, show claim modal
-            if (connected && !profileResult && !isClaimModalOpen) {
-                setIsClaimModalOpen(true);
-            }
+            // NOTE: Claim modal is handled by the handleConnect button only
         } catch (err) {
             console.error('[Djinn] Failed to fetch status:', err);
         } finally {
@@ -184,12 +222,7 @@ export default function DjinnLanding() {
         }
     }, [connected, loading, status.isAdmin, router]);
 
-    // Instantly open claim modal when wallet connects and no profile
-    useEffect(() => {
-        if (connected && !loading && !profile && !isClaimModalOpen) {
-            setIsClaimModalOpen(true);
-        }
-    }, [connected, loading, profile, isClaimModalOpen]);
+
 
     // Fetch real stats from APIs
     useEffect(() => {
@@ -243,23 +276,9 @@ export default function DjinnLanding() {
 
     return (
         <div className="relative w-full min-h-screen bg-black text-white font-sans selection:bg-[#FF69B4] selection:text-white overflow-x-hidden flex flex-col">
-            {/* Galaxy Background */}
+            {/* Starfield Background */}
             <div className="fixed inset-0 z-0">
-                <Galaxy
-                    mouseRepulsion
-                    mouseInteraction
-                    density={1}
-                    glowIntensity={0.3}
-                    saturation={0}
-                    hueShift={320}
-                    twinkleIntensity={0.3}
-                    rotationSpeed={0.1}
-                    repulsionStrength={2}
-                    autoCenterRepulsion={0}
-                    starSpeed={0.5}
-                    speed={1}
-                    transparent={false}
-                />
+                <StarfieldBg />
             </div>
 
             {/* Top Navigation - Neo-Brutalist Disconnect */}
@@ -342,20 +361,19 @@ export default function DjinnLanding() {
                                 />
                             </motion.div>
 
-                            {/* TIER-BASED UI */}
+                            {/* WAITLIST BLOCK + CLAWBOT PANEL */}
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.3 }}
-                                className="w-full max-w-2xl flex flex-col items-center gap-6"
+                                className="w-full max-w-xl flex flex-col items-center gap-5"
                             >
                                 {profile.has_access ? (
-                                    /* ACCESS GRANTED (Tier 1 or Tier 2 Unlocked) */
+                                    /* ACCESS GRANTED */
                                     <Link
                                         href="/markets"
                                         className="group relative py-6 px-24 font-black uppercase text-2xl italic tracking-tighter
-                                            bg-white text-black
-                                            rounded-full
+                                            bg-white text-black rounded-full
                                             border-[4px] border-black
                                             shadow-[8px_8px_0px_#10B981]
                                             hover:shadow-[4px_4px_0px_#10B981] hover:translate-x-[4px] hover:translate-y-[4px]
@@ -363,32 +381,22 @@ export default function DjinnLanding() {
                                             transition-all duration-150 flex items-center justify-center"
                                     >
                                         <span className="flex items-center gap-4">
-                                            WELCOME {profile.tier === 'REFERRAL' ? 'BACK' : ''}
+                                            WELCOME
                                             <ArrowRight className="w-8 h-8 stroke-[4]" />
                                         </span>
                                     </Link>
-                                ) : profile.tier === 'REFERRAL' ? (
-                                    /* TIER 2: REFERRAL — WAITLIST */
-                                    <div className="w-full space-y-8 flex flex-col items-center">
-                                        <div className="bg-white text-black border-[4px] border-black px-12 py-7 rounded-[2.5rem] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] text-center relative overflow-hidden group transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[14px_14px_0px_0px_rgba(0,0,0,1)]">
-                                            <div className="relative z-10">
-                                                <p className="font-black text-4xl lowercase tracking-tighter italic leading-none mb-1.5">spots full</p>
-                                                <p className="font-bold text-[13px] tracking-tight lowercase opacity-60 border-t-2 border-black/10 pt-1.5 mt-1.5 mx-auto max-w-[200px]">mainnet coming soon</p>
-                                            </div>
-                                        </div>
-                                        <p className="text-white/40 font-bold text-xs uppercase tracking-[0.3em]">Follow @djinnmarkets for updates</p>
-                                    </div>
-                                ) : profile.tier === 'WAITLIST' ? (
-                                    /* TIER 3: WAITLIST */
-                                    <div className="space-y-4 text-center">
-                                        <div className="bg-white text-black border-[4px] border-black px-12 py-7 rounded-[2.5rem] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[14px_14px_0px_0px_rgba(0,0,0,1)]">
-                                            <p className="font-black text-4xl lowercase tracking-tighter italic leading-none mb-1.5">devnet full</p>
-                                            <p className="font-bold text-[13px] tracking-tight lowercase opacity-60 border-t-2 border-black/10 pt-1.5 mt-1.5 mx-auto max-w-[150px]">mainnet coming soon</p>
-                                        </div>
-                                        <p className="text-white/40 font-bold text-xs uppercase tracking-[0.3em] mt-6">Follow @djinnmarkets for updates</p>
-                                    </div>
-                                ) : null}
+                                ) : (
+                                    <WaitlistBlock
+                                        position={profile.user_number || status.count}
+                                        totalCount={status.count}
+                                        walletAddress={walletAddress || ''}
+                                    />
+                                )}
                             </motion.div>
+
+                            {/* ClawBot Connect */}
+                            <ClawBotConnect walletAddress={walletAddress || ''} />
+
                         </div>
                     ) : (loading && connected) ? (
                         /* Loading state after connection but before profile load */
@@ -407,168 +415,56 @@ export default function DjinnLanding() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="w-full flex flex-col items-center gap-10 max-w-4xl"
+                            className="flex flex-col items-center"
                         >
-                            {/* TAGLINE */}
-                            <motion.p
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
-                                className="text-white/50 text-base md:text-lg text-center max-w-lg leading-relaxed"
-                            >
-                                Prediction markets where <span className="text-white font-black">humans, bots, and autonomous agents</span> compete — and the truth resolves itself.
-                            </motion.p>
-
-                            {/* THREE NEO-BRUTALIST CARDS */}
-                            <motion.div
-                                className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full"
-                                initial={{ opacity: 0, y: 12 }}
+                            <motion.button
+                                initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.25 }}
+                                transition={{ delay: 0.2 }}
+                                onClick={handleConnect}
+                                className="group relative px-20 py-6 bg-white text-black rounded-full select-none
+                                    border-[4px] border-black
+                                    shadow-[8px_8px_0px_#10B981] 
+                                    hover:shadow-[4px_4px_0px_#10B981] hover:translate-x-[4px] hover:translate-y-[4px]
+                                    active:shadow-none active:translate-x-[8px] active:translate-y-[8px]
+                                    transition-all duration-150 flex items-center justify-center gap-4"
                             >
-                                {/* ── HUMAN ── */}
-                                <motion.div whileHover={{ y: -4 }} className="flex flex-col bg-white border-[4px] border-black rounded-[2rem] shadow-[8px_8px_0px_0px_#FF69B4] overflow-hidden">
-                                    <div className="bg-[#FF69B4] border-b-[4px] border-black px-6 py-4 flex items-center gap-3">
-                                        <span className="text-2xl">👤</span>
-                                        <div>
-                                            <p className="text-black font-black text-sm uppercase tracking-widest">Human</p>
-                                            <p className="text-black/60 text-[10px] font-black uppercase tracking-widest">Trader</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-4 p-6 flex-1">
-                                        <div className="space-y-2">
-                                            {['Connect wallet', 'Claim username', 'Trade markets'].map((s, i) => (
-                                                <div key={s} className="flex items-center gap-2.5">
-                                                    <span className="w-5 h-5 rounded-full bg-black text-white text-[10px] font-black flex items-center justify-center shrink-0">{i + 1}</span>
-                                                    <span className="text-black/70 text-xs font-bold">{s}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <p className="text-black/40 text-[11px] leading-relaxed">
-                                            Create markets. Buy YES/NO shares early. First in = most shares = biggest payout.
-                                        </p>
-                                        <button
-                                            onClick={handleConnect}
-                                            className="mt-auto w-full py-3.5 font-black uppercase text-sm tracking-wider
-                                                bg-black text-white hover:bg-[#FF69B4] hover:text-black
-                                                rounded-xl border-[3px] border-black
-                                                shadow-[4px_4px_0px_#FF69B4]
-                                                hover:shadow-[2px_2px_0px_#FF69B4] hover:translate-x-[2px] hover:translate-y-[2px]
-                                                active:shadow-none transition-all duration-150 flex items-center justify-center gap-2"
-                                        >
-                                            Connect Wallet <ArrowRight className="w-4 h-4 stroke-[3]" />
-                                        </button>
-                                        <p className="text-black/25 text-[10px] text-center font-bold">Phantom · Backpack · Solflare · Ledger</p>
-                                    </div>
-                                </motion.div>
-
-                                {/* ── CLAWBOT ── */}
-                                <motion.div whileHover={{ y: -4 }} className="flex flex-col bg-white border-[4px] border-black rounded-[2rem] shadow-[8px_8px_0px_0px_#10B981] overflow-hidden">
-                                    <div className="bg-[#10B981] border-b-[4px] border-black px-6 py-4 flex items-center gap-3">
-                                        <span className="text-2xl">🤖</span>
-                                        <div>
-                                            <p className="text-black font-black text-sm uppercase tracking-widest">ClawBot</p>
-                                            <p className="text-black/60 text-[10px] font-black uppercase tracking-widest">AI Agent</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-4 p-6 flex-1">
-                                        <div className="space-y-2">
-                                            {['Run setup CLI', 'Open your link', 'Stake & go live'].map((s, i) => (
-                                                <div key={s} className="flex items-center gap-2.5">
-                                                    <span className="w-5 h-5 rounded-full bg-black text-white text-[10px] font-black flex items-center justify-center shrink-0">{i + 1}</span>
-                                                    <span className="text-black/70 text-xs font-bold">{s}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div
-                                            onClick={() => navigator.clipboard?.writeText('npx @djinn/setup')}
-                                            className="bg-black rounded-xl px-4 py-3 font-mono text-[11px] text-[#10B981] cursor-pointer group relative"
-                                            title="Click to copy"
-                                        >
-                                            <span className="text-white/30">$ </span>npx @djinn/setup
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-white/20 group-hover:text-white/50 transition-colors font-sans font-bold uppercase tracking-wider">copy</span>
-                                        </div>
-                                        <p className="text-black/40 text-[11px] leading-relaxed">
-                                            CLI creates your bot wallet → outputs a magic link → open it → connect Phantom → stake 10 SOL → <span className="font-black text-black/70">appears in Bot Arena instantly.</span>
-                                        </p>
-                                        <Link
-                                            href="/bots"
-                                            className="mt-auto w-full py-3.5 font-black uppercase text-sm tracking-wider
-                                                bg-black text-white hover:bg-[#10B981] hover:text-black
-                                                rounded-xl border-[3px] border-black
-                                                shadow-[4px_4px_0px_#10B981]
-                                                hover:shadow-[2px_2px_0px_#10B981] hover:translate-x-[2px] hover:translate-y-[2px]
-                                                active:shadow-none transition-all duration-150 flex items-center justify-center gap-2"
-                                        >
-                                            Bot Arena <ArrowRight className="w-4 h-4 stroke-[3]" />
-                                        </Link>
-                                        <p className="text-black/25 text-[10px] text-center font-bold">Node.js · Claude · 10 SOL stake</p>
-                                    </div>
-                                </motion.div>
-
-                                {/* ── CONWAY WEB4 ── */}
-                                <motion.div whileHover={{ y: -4 }} className="flex flex-col bg-white border-[4px] border-black rounded-[2rem] shadow-[8px_8px_0px_0px_#A78BFA] overflow-hidden">
-                                    <div className="bg-[#A78BFA] border-b-[4px] border-black px-6 py-4 flex items-center gap-3">
-                                        <span className="text-2xl">⚡</span>
-                                        <div>
-                                            <p className="text-black font-black text-sm uppercase tracking-widest">Conway</p>
-                                            <p className="text-black/60 text-[10px] font-black uppercase tracking-widest">Web 4.0 Automaton</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-4 p-6 flex-1">
-                                        <div className="space-y-2">
-                                            {['Install skill SDK', 'Sign & register', 'Survive or die'].map((s, i) => (
-                                                <div key={s} className="flex items-center gap-2.5">
-                                                    <span className="w-5 h-5 rounded-full bg-black text-white text-[10px] font-black flex items-center justify-center shrink-0">{i + 1}</span>
-                                                    <span className="text-black/70 text-xs font-bold">{s}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div
-                                            onClick={() => navigator.clipboard?.writeText('npm i @djinn/agent-skill')}
-                                            className="bg-black rounded-xl px-4 py-3 font-mono text-[11px] text-[#A78BFA] cursor-pointer group relative space-y-1"
-                                            title="Click to copy"
-                                        >
-                                            <div><span className="text-white/30">$ </span>npm i @djinn/agent-skill</div>
-                                            <div className="text-white/25">→ register → <span className="text-[#A78BFA]/80">appears in /web4</span></div>
-                                            <span className="absolute right-3 top-3 text-[9px] text-white/20 group-hover:text-white/50 transition-colors font-sans font-bold uppercase tracking-wider">copy</span>
-                                        </div>
-                                        <p className="text-black/40 text-[11px] leading-relaxed">
-                                            Headless registration (no browser). Agent earns SOL → bridges to Base → pays its own compute. <span className="font-black text-black/70">Appears in Web4 Observatory alive.</span>
-                                        </p>
-                                        <Link
-                                            href="/web4"
-                                            className="mt-auto w-full py-3.5 font-black uppercase text-sm tracking-wider
-                                                bg-black text-white hover:bg-[#A78BFA] hover:text-black
-                                                rounded-xl border-[3px] border-black
-                                                shadow-[4px_4px_0px_#A78BFA]
-                                                hover:shadow-[2px_2px_0px_#A78BFA] hover:translate-x-[2px] hover:translate-y-[2px]
-                                                active:shadow-none transition-all duration-150 flex items-center justify-center gap-2"
-                                        >
-                                            Web4 Observatory <ArrowRight className="w-4 h-4 stroke-[3]" />
-                                        </Link>
-                                        <p className="text-black/25 text-[10px] text-center font-bold">Conway Cloud · x402 · self-funded</p>
-                                    </div>
-                                </motion.div>
-                            </motion.div>
-
-                            {/* LIVE STATS — solo si hay datos */}
-                            {(ecosystemStats.botCount > 0 || liveStats.markets > 0) && (
-                                <motion.div
-                                    className="flex items-center gap-6 px-6 py-3 bg-white/5 border border-white/10 rounded-full"
-                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                                <span
+                                    className="font-black uppercase tracking-tighter"
+                                    style={{
+                                        fontFamily: 'var(--font-adriane), serif',
+                                        fontSize: '2.5rem',
+                                        lineHeight: 1
+                                    }}
                                 >
-                                    <div className="flex items-center gap-2 text-[#10B981]">
-                                        <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                                        <span className="text-xs font-black uppercase tracking-widest">Live</span>
+                                    Enter Djinn
+                                </span>
+                                <ArrowRight className="w-10 h-10 stroke-[3] group-hover:translate-x-2 transition-transform" />
+                            </motion.button>
+
+                            {/* Waitlist + Devnet label */}
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.4 }}
+                                className="flex flex-col items-center gap-3 mt-6"
+                            >
+                                {ecosystemStats.waitlistCount > 0 && (
+                                    <div className="flex items-center gap-3 px-5 py-2 bg-white/5 border border-white/10 rounded-full">
+                                        <span className="w-2 h-2 rounded-full bg-[#F492B7] animate-pulse" />
+                                        <span className="text-white font-black text-base tabular-nums">{ecosystemStats.waitlistCount.toLocaleString()}</span>
+                                        <span className="text-white/40 text-xs font-black uppercase tracking-widest">on waitlist</span>
                                     </div>
-                                    <div className="w-px h-4 bg-white/10" />
-                                    <span className="text-white font-black text-sm">{ecosystemStats.botCount}</span>
-                                    <span className="text-white/40 text-xs">Bots</span>
-                                    <div className="w-px h-4 bg-white/10" />
-                                    <span className="text-white font-black text-sm">{ecosystemStats.activeMarkets || liveStats.markets}</span>
-                                    <span className="text-white/40 text-xs">Markets</span>
-                                </motion.div>
-                            )}
+                                )}
+                                <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em]">Devnet coming soon</p>
+                            </motion.div>
                         </motion.div>
+
+
+
+
+
+
                     )}
                 </AnimatePresence>
             </div>

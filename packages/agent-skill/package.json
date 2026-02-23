@@ -1,24 +1,32 @@
 {
-    "name": "@djinn/agent-skill",
-    "version": "0.1.0",
-    "description": "OpenClaw skill for AI bots to interact with Djinn prediction markets",
-    "main": "tools/index.ts",
+    "name": "djinn-skill",
+    "version": "1.0.4",
+    "description": "Connect your OpenClaw agent to Djinn prediction markets — trade, create markets, verify outcomes, and earn SOL autonomously on Solana.",
+    "bin": {
+        "djinn-skill": "bin/djinn-skill.js"
+    },
     "files": [
         "SKILL.md",
-        "tools"
+        "skill.json",
+        "bin",
+        "tools",
+        "lib"
     ],
     "keywords": [
         "djinn",
         "openclaw",
         "skill",
-        "ai-bots",
-        "prediction-markets"
+        "ai-agents",
+        "prediction-markets",
+        "solana"
     ],
     "author": "Djinn Protocol",
     "license": "MIT",
-    "dependencies": {
-        "@djinn/sdk": "^0.1.0",
-        "@solana/web3.js": "^1.87.0",
-        "@coral-xyz/anchor": "^0.29.0"
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/djinn-world/skill.git"
     }
 }

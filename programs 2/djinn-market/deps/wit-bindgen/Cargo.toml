@@ -1,7 +1,0 @@
-[package]
-name = "wit-bindgen"
-version = "0.51.0"
-edition = "2021"
-
-[lib]
-path = "src/lib.rs"

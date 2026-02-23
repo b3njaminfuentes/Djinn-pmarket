@@ -193,6 +193,28 @@ export async function upsertProfile(profile: Partial<Profile> & { wallet_address
     if (!toUpsert.banner_url) toUpsert.banner_url = '/default-banner-v2.png';
     if (!toUpsert.bio) toUpsert.bio = 'New Djinn Trader';
 
+    // ─── 1000 Human Cap (server-enforced) ────────────────────────────────
+    // Check if this wallet already has a profile (re-upsert always allowed)
+    const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('wallet_address', walletAddress)
+        .single();
+
+    if (!existing) {
+        // New profile — enforce the 1000 human cap
+        const { count: humanCount } = await supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .or('agent_type.is.null,agent_type.eq.human');
+
+        const HUMAN_WAITLIST_LIMIT = 1000;
+        if ((humanCount ?? 0) >= HUMAN_WAITLIST_LIMIT) {
+            console.error('[UPSERT] Human waitlist full:', humanCount);
+            return null;
+        }
+    }
+
     const { data, error } = await supabase
         .from('profiles')
         .upsert(toUpsert, { onConflict: 'wallet_address' })

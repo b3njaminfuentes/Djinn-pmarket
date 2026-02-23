@@ -175,7 +175,7 @@ export default function CategoryMegaMenu() {
                         key={cat.id}
                         onClick={() => handleCategoryClick(cat)}
                         className={`
-                            shrink-0 text-lg font-black lowercase tracking-wide whitespace-nowrap
+                            shrink-0 text-[13px] font-bold lowercase tracking-wide whitespace-nowrap
                             transition-all duration-200 relative
                             ${activeCategory === cat.slug
                                 ? 'text-white'

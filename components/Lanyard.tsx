@@ -222,11 +222,9 @@ function Band({
                             }}
                         >
                             <div style={{ width: '480px', height: '650px' }}>
-                                <PhysicsCardBubblegum
+                                <PhysicsCardContent
                                     username={username}
                                     memberNumber={memberNumber}
-                                    pfp={pfp}
-                                    twitterHandle={twitterHandle}
                                 />
                             </div>
                         </Html>

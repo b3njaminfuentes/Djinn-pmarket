@@ -239,7 +239,9 @@ export default React.memo(function Galaxy({
     let program: Program;
 
     function resize() {
-      const scale = 1;
+      // PERFORMANCE OPTIMIZATION:
+      // Reducing internal render scale drastically improves framerate on heavy pixel shaders
+      const scale = 0.5;
       renderer.setSize(ctn.offsetWidth * scale, ctn.offsetHeight * scale);
       if (program) {
         program.uniforms.uResolution.value = new Color(

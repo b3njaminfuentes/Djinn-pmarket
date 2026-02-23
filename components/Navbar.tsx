@@ -124,7 +124,8 @@ function NavbarContent() {
 
                 console.log('✨ New User Detected! Opening Claim Flow for:', walletAddress);
                 setTempConnectedWallet(walletAddress);
-                if (pathname !== '/bots' && !pathname.startsWith('/bot/')) {
+                // Only open claim modal from Navbar if NOT on the landing page (landing page handles its own)
+                if (pathname !== '/' && pathname !== '/bots' && !pathname.startsWith('/bot/')) {
                     setIsClaimModalOpen(true);
                 }
             }
@@ -293,7 +294,7 @@ function NavbarContent() {
                         </div>
                         <span
                             className="text-3xl md:text-5xl text-white mt-1 relative z-10"
-                            style={{ fontFamily: '"Didot", "Bodoni 72", "Baskerville", "Times New Roman", serif', fontWeight: 700, letterSpacing: '-0.02em' }}
+                            style={{ fontFamily: 'var(--font-adriane), serif', fontWeight: 700, letterSpacing: '-0.02em' }}
                         >
                             Djinn
                         </span>

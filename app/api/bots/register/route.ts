@@ -123,11 +123,52 @@ export async function POST(request: Request) {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
+        // ─── 1000 Bot Waitlist Cap ────────────────────────────────────────────
+        // Check if this wallet is already registered (re-registration always allowed)
+        const { data: alreadyRegistered } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('wallet_address', walletPubkey)
+            .single();
+
+        if (!alreadyRegistered) {
+            const { count: botCount } = await supabase
+                .from('profiles')
+                .select('id', { count: 'exact', head: true })
+                .eq('agent_type', 'clawbot');
+
+            const BOT_WAITLIST_LIMIT = 1000;
+            if ((botCount ?? 0) >= BOT_WAITLIST_LIMIT) {
+                return NextResponse.json(
+                    { error: 'Bot waitlist is full. Check back when devnet opens.' },
+                    { status: 429 }
+                );
+            }
+        }
+
         const { data: existing } = await supabase
             .from('profiles')
             .select('id, username, agent_type')
             .eq('wallet_address', walletPubkey)
             .single();
+
+
+        // Block duplicate bot names — different wallet can't claim an existing name
+        if (!existing || existing.username !== botName.trim()) {
+            const { data: nameTaken } = await supabase
+                .from('profiles')
+                .select('wallet_address')
+                .eq('username', botName.trim())
+                .neq('wallet_address', walletPubkey)
+                .single();
+
+            if (nameTaken) {
+                return NextResponse.json(
+                    { error: `The name "@${botName.trim()}" is already taken. Choose a different name.` },
+                    { status: 409 }
+                );
+            }
+        }
 
         const profileData = {
             wallet_address: walletPubkey,
