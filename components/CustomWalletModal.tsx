@@ -113,13 +113,11 @@ export default function CustomWalletModal({ isOpen, onClose }: CustomWalletModal
 
                                     {/* Logo ONLY */}
                                     <div className="flex flex-col items-center pt-8 pb-6 px-6">
-                                        <div className="w-20 h-20 rounded-[1.5rem] border-[3px] border-black overflow-hidden flex items-center justify-center bg-black/[0.03] shadow-[4px_4px_0px_#000]">
-                                            <img
-                                                src="/djinn-logo.png"
-                                                alt="Djinn Logo"
-                                                className="w-14 h-14 object-contain"
-                                            />
-                                        </div>
+                                        <img
+                                            src="/djinn-logo.png"
+                                            alt="Djinn Logo"
+                                            className="w-16 h-16 object-contain"
+                                        />
                                     </div>
 
                                     {/* Divider */}
@@ -165,14 +163,11 @@ export default function CustomWalletModal({ isOpen, onClose }: CustomWalletModal
                                                     transition-all duration-100 group cursor-pointer"
                                             >
                                                 <div className="flex items-center gap-3.5">
-                                                    <div className="w-11 h-11 rounded-xl border-[2px] border-black overflow-hidden flex items-center justify-center bg-black/[0.03] group-hover:border-[#FF69B4] transition-colors duration-100">
-                                                        <img src={w.adapter.icon} alt={w.adapter.name} className="w-6 h-6 object-contain" />
+                                                    <div className="flex items-center justify-center w-8 h-8 group-hover:scale-110 transition-transform duration-200">
+                                                        <img src={w.adapter.icon} alt={w.adapter.name} className="w-full h-full object-contain" />
                                                     </div>
                                                     <div className="flex flex-col items-start gap-0.5">
-                                                        <span
-                                                            className="font-black text-black text-[12px] uppercase tracking-wide"
-                                                            style={{ fontFamily: 'var(--font-unbounded), sans-serif' }}
-                                                        >
+                                                        <span className="font-black text-black text-lg tracking-[0.05em] capitalize">
                                                             {w.adapter.name}
                                                         </span>
                                                         {w.readyState === WalletReadyState.Installed && (
