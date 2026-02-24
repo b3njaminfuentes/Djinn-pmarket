@@ -54,7 +54,7 @@ export default function ClawBotConnect({ walletAddress }: Props) {
         if (pairState === 'error') setPairState('idle');
     };
 
-    /* ─── Success: Neo-brutalist "Bot Connected" card ──────────────────────── */
+    /* ─── Success: Premium Dark "Bot Connected" card ──────────────────────── */
     if (pairState === 'success') {
         return (
             <motion.div
@@ -64,28 +64,31 @@ export default function ClawBotConnect({ walletAddress }: Props) {
                 className="w-full max-w-md"
             >
                 {/* Main success card */}
-                <div className="bg-black border-[4px] border-black rounded-2xl overflow-hidden shadow-[8px_8px_0px_0px_#10B981]">
+                <div className="bg-[#0a0a0a] border border-white/10 rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.15)] overflow-hidden relative">
+                    {/* Ambient Glow */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#10B981]/10 rounded-full blur-[70px] pointer-events-none" />
+
                     {/* Top bar */}
-                    <div className="px-6 py-4 flex items-center justify-between border-b-[3px] border-white/10">
-                        <div className="flex items-center gap-2">
+                    <div className="px-6 py-5 flex items-center justify-between border-b border-white/5 bg-black/50 relative z-10">
+                        <div className="flex items-center gap-3">
                             <motion.div
-                                animate={{ scale: [1, 1.3, 1] }}
-                                transition={{ duration: 1.5, repeat: Infinity }}
-                                className="w-3 h-3 rounded-full bg-[#10B981]"
+                                animate={{ scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                className="w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_12px_rgba(16,185,129,1)]"
                             />
-                            <span className="text-[#10B981] text-[10px] font-black uppercase tracking-[0.2em]">Online</span>
+                            <span className="text-[#10B981] text-[10px] font-black uppercase tracking-[0.3em]">Online</span>
                         </div>
-                        <span className="text-white/20 text-[10px] font-black uppercase tracking-widest">OpenClaw</span>
+                        <span className="text-white/20 text-[9px] font-black uppercase tracking-[0.3em]">OpenClaw Protocol</span>
                     </div>
 
                     {/* Bot identity */}
-                    <div className="px-6 py-8 text-center flex flex-col items-center">
-                        <p className="text-white/40 text-[11px] font-black uppercase tracking-[0.4em] mb-4">ClawBot Paired</p>
+                    <div className="px-6 py-12 text-center flex flex-col items-center relative z-10">
+                        <p className="text-[#10B981]/70 text-[10px] font-black uppercase tracking-[0.5em] mb-5">ClawBot Paired</p>
                         <motion.h2
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="text-white text-5xl md:text-6xl tracking-tighter"
+                            className="text-white text-5xl md:text-6xl tracking-[0.05em] drop-shadow-[0_0_25px_rgba(16,185,129,0.3)]"
                             style={{ fontFamily: 'var(--font-adriane), serif', fontWeight: 700 }}
                         >
                             @{botName}
@@ -93,22 +96,22 @@ export default function ClawBotConnect({ walletAddress }: Props) {
                     </div>
 
                     {/* Bot # badge */}
-                    <div className="px-6 pb-8 flex justify-center">
+                    <div className="px-6 pb-12 flex justify-center relative z-10">
                         <motion.div
-                            initial={{ scale: 0, rotate: -10 }}
+                            initial={{ scale: 0, rotate: -2 }}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{ delay: 0.4, type: 'spring', stiffness: 400, damping: 15 }}
-                            className="bg-[#F492B7] border-[3px] border-white px-6 py-2.5 rounded-xl shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)]"
+                            className="bg-black/50 border border-white/10 px-8 py-3.5 rounded-2xl shadow-inner group backdrop-blur-sm"
                         >
-                            <span className="text-black font-black text-lg tracking-tight">
+                            <span className="text-[#10B981] font-black text-xl tracking-[0.15em] drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
                                 BOT #{botPosition}
                             </span>
                         </motion.div>
                     </div>
 
                     {/* Bottom info */}
-                    <div className="px-6 pb-6 bg-black">
-                        <p className="text-[#FF69B4] text-[10px] font-black uppercase tracking-widest text-center leading-relaxed">
+                    <div className="px-6 py-5 border-t border-white/5 bg-black/50 relative z-10 text-center">
+                        <p className="text-white/30 text-[9px] font-black uppercase tracking-[0.4em] leading-relaxed">
                             AWAITING SECURE DEPLOYMENT
                         </p>
                     </div>
@@ -123,47 +126,53 @@ export default function ClawBotConnect({ walletAddress }: Props) {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="w-full bg-[#FAFAFA] border-[6px] border-black rounded-3xl shadow-[12px_12px_0px_0px_#FF69B4] relative overflow-hidden"
+            className="w-full bg-[#0a0a0a] border border-white/10 rounded-[2rem] shadow-2xl relative overflow-hidden"
         >
+            {/* Ambient Top Glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-[#F492B7]/50 to-transparent" />
+
             {/* Header */}
-            <div className="px-6 py-5 border-b-[6px] border-black flex items-center justify-between bg-[#00E5FF] text-black">
+            <div className="px-6 py-5 border-b flex items-center justify-between border-white/5 bg-black/50 text-white relative z-10">
                 <div className="flex items-center gap-4">
-                    <span className="text-3xl drop-shadow-[2px_2px_0px_#fff]">🦾</span>
+                    <span className="text-2xl drop-shadow-[0_0_10px_rgba(244,146,183,0.3)]">🦾</span>
                     <div>
-                        <p className="font-black text-lg uppercase tracking-widest leading-none">Deploy ClawBot</p>
-                        <p className="text-black/70 text-[10px] font-black uppercase tracking-widest mt-1">Terminal Access</p>
+                        <p className="font-black text-base uppercase tracking-widest leading-none">Deploy ClawBot</p>
+                        <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] mt-1.5">Terminal Access</p>
                     </div>
                 </div>
-                <span className="px-3 py-1.5 bg-black text-[#00E5FF] border-[2px] border-black rounded-none text-[10px] font-black uppercase tracking-widest shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]">
+                <span className="px-3 py-1.5 bg-[#F492B7]/10 text-[#F492B7] border border-[#F492B7]/20 rounded-full text-[9px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(244,146,183,0.15)]">
                     Ready
                 </span>
             </div>
 
             {/* Body */}
-            <div className="px-6 py-8 flex flex-col gap-8 text-black bg-white">
-                <div className="bg-[#f0f0f0] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
-                    <p className="text-black text-xs leading-relaxed font-black uppercase tracking-wider text-center">
-                        Execute the CLI to generate a secure wallet <br />& claim your agent's identity.
+            <div className="px-6 py-8 flex flex-col gap-8 text-white relative">
+                {/* Background ambient glow */}
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 w-64 h-64 bg-[#F492B7]/5 rounded-full blur-[80px] pointer-events-none" />
+
+                {/* Instructions */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 backdrop-blur-sm">
+                    <p className="text-white/60 text-sm leading-relaxed font-medium tracking-wide">
+                        Execute the CLI to generate a secure wallet & claim your agent's identity.
                     </p>
                 </div>
 
                 {/* Command box - Terminal style */}
                 <div
                     onClick={handleCopy}
-                    className="relative flex items-center bg-black text-[#10B981] border-[4px] border-black px-5 py-4 cursor-pointer group hover:bg-[#111] transition-all shadow-[8px_8px_0px_0px_#000] hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-[4px_4px_0px_0px_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none"
+                    className="relative flex items-center bg-black border border-white/10 rounded-xl px-5 py-4 cursor-pointer group hover:border-[#F492B7]/50 transition-all shadow-inner"
                     title="Click to copy"
                 >
-                    <span className="text-[#10B981]/50 font-mono text-lg mr-3">❯</span>
-                    <span className="text-current font-mono font-black text-lg flex-1 tracking-widest">npx djinn-skill</span>
-                    <span className={`text-[10px] font-black mr-1 uppercase tracking-[0.2em] transition-colors ${copied ? 'text-white' : 'text-[#10B981]/50 group-hover:text-[#10B981]'}`}>
+                    <span className="text-[#F492B7] font-mono text-lg mr-3">❯</span>
+                    <span className="text-white font-mono font-medium text-lg flex-1 tracking-wider">npx djinn-skill</span>
+                    <span className={`text-[10px] font-black mr-1 uppercase tracking-widest transition-colors ${copied ? 'text-white' : 'text-white/30 group-hover:text-[#F492B7]'}`}>
                         {copied ? '✓ COPIED' : 'COPY'}
                     </span>
-                    <div className="absolute top-0 right-0 w-3 h-3 bg-[#10B981] border-l-[4px] border-b-[4px] border-black"></div>
                 </div>
 
                 {/* Step 2 — code input */}
-                <div className="bg-[#FF69B4] border-[4px] border-black p-5 shadow-[8px_8px_0px_0px_#000]">
-                    <label className="block text-black font-black uppercase text-[12px] tracking-[0.2em] mb-4 text-center">Enter Pairing Code</label>
+                <div className="bg-black/40 border border-white/5 rounded-2xl p-6 relative">
+                    <label className="block text-white/40 font-black uppercase text-[10px] tracking-[0.2em] mb-4 text-center">Enter Pairing Code</label>
                     <div className="flex flex-col sm:flex-row gap-4">
                         <input
                             type="text"
@@ -171,23 +180,23 @@ export default function ClawBotConnect({ walletAddress }: Props) {
                             onChange={handleInput}
                             placeholder="DJNN-XXXX"
                             maxLength={9}
-                            className={`flex-1 bg-white border-[4px] px-5 py-4 font-mono font-black text-xl text-center text-black tracking-[0.3em] uppercase placeholder:text-black/20 outline-none transition-all ${pairState === 'error' ? 'border-[#ff0000] shadow-[4px_4px_0px_0px_#ff0000]' : 'border-black focus:border-[#000] shadow-[4px_4px_0px_0px_#000]'}`}
+                            className={`flex-1 bg-black border-[2px] rounded-xl px-5 py-4 font-mono font-medium text-xl text-center text-white tracking-[0.2em] uppercase placeholder:text-white/10 outline-none transition-all ${pairState === 'error' ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)] text-red-100' : 'border-white/10 focus:border-[#F492B7] focus:shadow-[0_0_20px_rgba(244,146,183,0.2)]'}`}
                         />
                         <button
                             onClick={handlePair}
                             disabled={pairState === 'loading' || code.length < 9}
-                            className={`px-8 py-4 font-black uppercase text-base tracking-[0.2em] border-[4px] border-black transition-all flex items-center justify-center min-w-[140px] ${pairState === 'loading' ? 'bg-[#ccc] text-black/50 cursor-not-allowed shadow-[4px_4px_0px_0px_#000]' : code.length === 9 ? 'bg-[#10B981] text-black shadow-[6px_6px_0px_0px_#000] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none' : 'bg-[#e5e5e5] text-black/40 cursor-not-allowed border-black/50 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]'}`}
+                            className={`px-8 py-4 font-black uppercase text-sm tracking-[0.2em] rounded-xl transition-all flex items-center justify-center min-w-[140px] ${pairState === 'loading' ? 'bg-white/5 text-white/30 cursor-not-allowed' : code.length === 9 ? 'bg-[#F492B7] text-black shadow-[0_0_20px_rgba(244,146,183,0.3)] hover:bg-[#ff69b4] hover:shadow-[0_0_30px_rgba(244,146,183,0.5)] hover:-translate-y-0.5 active:translate-y-0' : 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5'}`}
                         >
                             {pairState === 'loading' ? (
-                                <Loader2 className="w-6 h-6 animate-spin text-black" />
+                                <Loader2 className="w-5 h-5 animate-spin text-white" />
                             ) : (
                                 'CONNECT'
                             )}
                         </button>
                     </div>
                     {pairState === 'error' && (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-black bg-white border-[3px] border-black px-3 py-2 text-[12px] font-black mt-4 flex items-center justify-center gap-2 uppercase tracking-widest shadow-[4px_4px_0px_0px_#ff0000]">
-                            <X className="w-4 h-4 stroke-[4] text-[#ff0000]" /> {errorMsg}
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-400 text-[12px] font-medium mt-4 flex items-center justify-center gap-2">
+                            <X className="w-4 h-4" /> {errorMsg}
                         </motion.p>
                     )}
                 </div>
