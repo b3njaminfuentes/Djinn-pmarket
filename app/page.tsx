@@ -377,28 +377,29 @@ export default function DjinnLanding() {
                             className="flex flex-col items-center"
                         >
                             <motion.button
-                                initial={{ opacity: 0, y: 10 }}
+                                <motion.button
+                                initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2 }}
                                 onClick={handleConnect}
-                                className="group relative px-20 py-6 bg-[#F492B7] text-white rounded-full select-none
-                                    border-[4px] border-white
-                                    shadow-[8px_8px_0px_#000000] 
-                                    hover:shadow-[4px_4px_0px_#000000] hover:translate-x-[4px] hover:translate-y-[4px]
-                                    active:shadow-none active:translate-x-[8px] active:translate-y-[8px]
-                                    transition-all duration-150 flex items-center justify-center gap-4"
+                                className="group relative px-16 md:px-24 py-6 md:py-8 bg-[#00E5FF] text-black rounded-[2rem] md:rounded-[3rem] select-none
+                                    border-[6px] md:border-[8px] border-black
+                                    shadow-[12px_12px_0px_#FF69B4] md:shadow-[16px_16px_0px_#FF69B4]
+                                    hover:shadow-[6px_6px_0px_#FF69B4] hover:md:shadow-[8px_8px_0px_#FF69B4] hover:translate-x-[6px] hover:translate-y-[6px] md:hover:translate-x-[8px] md:hover:translate-y-[8px]
+                                    active:shadow-none active:translate-x-[12px] active:translate-y-[12px] md:active:translate-x-[16px] md:active:translate-y-[16px]
+                                    transition-all duration-200 flex items-center justify-center gap-4 md:gap-8"
                             >
                                 <span
-                                    className="font-black uppercase tracking-tighter"
+                                    className="font-black uppercase tracking-[0.15em] drop-shadow-[2px_2px_0px_#fff]"
                                     style={{
                                         fontFamily: 'var(--font-adriane), serif',
-                                        fontSize: '2.5rem',
+                                        fontSize: 'clamp(2rem, 5vw, 3.5rem)',
                                         lineHeight: 1
                                     }}
                                 >
                                     Enter Djinn
                                 </span>
-                                <ArrowRight className="w-10 h-10 stroke-[3] group-hover:translate-x-2 transition-transform" />
+                                <ArrowRight className="w-10 h-10 md:w-14 md:h-14 stroke-[5] group-hover:translate-x-4 transition-transform" />
                             </motion.button>
 
                             {/* Waitlist count */}
@@ -487,7 +488,7 @@ export default function DjinnLanding() {
                             </p>
                             <button
                                 onClick={() => setShowGenesisAnnouncement(false)}
-                                className="w-full bg-black text-white font-black uppercase tracking-widest py-5 rounded-2xl border-4 border-black hover:bg-[#FF69B4] hover:text-black transition-all shadow-[8px_8px_0px_#FF69B4] hover:shadow-none hover:translate-x-1 hover:translate-y-1 active:translate-x-2 active:translate-y-2 active:shadow-none"
+                                className="w-full bg-[#00E5FF] text-black font-black uppercase text-2xl tracking-[0.2em] py-6 rounded-2xl border-[6px] border-black hover:bg-[#FF69B4] transition-all shadow-[8px_8px_0px_#000000] hover:shadow-[4px_4px_0px_#000000] hover:translate-x-[4px] hover:translate-y-[4px] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none"
                             >
                                 enter djinn
                             </button>
