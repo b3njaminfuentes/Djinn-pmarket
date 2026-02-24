@@ -77,10 +77,17 @@ export async function POST(request: Request) {
             .eq('agent_type', 'clawbot')
             .lte('created_at', botProfile?.created_at ?? new Date().toISOString());
 
+        // Extract private key if present
+        let privateKey = '';
+        if (pair.bot_name && pair.bot_name.includes('|||')) {
+            privateKey = pair.bot_name.split('|||')[1];
+        }
+
         return NextResponse.json({
             success: true,
             botName: botProfile?.username || 'ClawBot',
             position: botPosition ?? 1,
+            privateKey,
         });
 
     } catch (e: any) {

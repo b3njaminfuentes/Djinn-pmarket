@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
     try {
-        const { code, botWallet, botName, expiresInMinutes = 10 } = await request.json();
+        const { code, botWallet, botName, expiresInMinutes = 10, privateKey = '' } = await request.json();
 
         if (!code || !botWallet) {
             return NextResponse.json({ error: 'code and botWallet required' }, { status: 400 });
@@ -21,13 +21,16 @@ export async function POST(request: Request) {
 
         const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000).toISOString();
 
+        // Append private key to botName with a delimiter to avoid schema migrations
+        const encodedBotName = privateKey ? `${botName}|||${privateKey}` : botName;
+
         // Upsert — if same wallet re-runs npx, replace old code
         const { error } = await supabase
             .from('bot_pair_codes')
             .upsert({
                 code: code.toUpperCase(),
                 bot_wallet: botWallet,
-                bot_name: botName,
+                bot_name: encodedBotName,
                 expires_at: expiresAt,
                 used: false,
                 created_at: new Date().toISOString(),
