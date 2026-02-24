@@ -78,23 +78,23 @@ export default function CustomWalletModal({ isOpen, onClose }: CustomWalletModal
                         <div className="relative bg-white border-[3px] border-black rounded-[2.5rem] overflow-hidden">
 
                             {isConnecting ? (
-                                <div className="flex flex-col items-center justify-center py-16 px-8 text-center space-y-8 bg-[#FF69B4] text-white">
+                                <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-white">
                                     <motion.div
-                                        className="relative w-24 h-24 flex items-center justify-center"
-                                        animate={{ rotate: 360 }}
-                                        transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                                        className="relative w-32 h-32 flex items-center justify-center mb-8"
+                                        animate={{ scale: [1, 1.1, 1] }}
+                                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                                     >
-                                        <div className="absolute inset-0 rounded-full border-[6px] border-black/20 border-t-white border-l-white" />
-                                        <Zap className="w-10 h-10 text-white fill-white" strokeWidth={0} />
+                                        <img
+                                            src="/djinn-logo.png"
+                                            alt="Djinn Logo"
+                                            className="w-full h-full object-contain drop-shadow-[4px_4px_0px_#F492B7]"
+                                        />
                                     </motion.div>
-                                    <div className="space-y-3">
-                                        <h3
-                                            className="text-3xl font-black uppercase tracking-tighter"
-                                            style={{ fontFamily: 'var(--font-unbounded), sans-serif' }}
-                                        >
+                                    <div className="space-y-4">
+                                        <h3 className="text-3xl font-black text-black tracking-[0.1em] uppercase">
                                             Connecting
                                         </h3>
-                                        <p className="text-white/80 text-xs font-bold uppercase tracking-[0.2em] px-4 py-2 border-[2px] border-black bg-black shadow-[4px_4px_0px_#000]">
+                                        <p className="inline-block text-[#FF69B4] text-xs font-black uppercase tracking-[0.2em] px-4 py-2 border-[3px] border-black rounded-xl shadow-[4px_4px_0px_#000]">
                                             Approve in Wallet
                                         </p>
                                     </div>
