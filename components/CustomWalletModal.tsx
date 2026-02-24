@@ -102,16 +102,7 @@ export default function CustomWalletModal({ isOpen, onClose }: CustomWalletModal
                             ) : (
                                 <>
                                     {/* Header */}
-                                    <div className="bg-black px-6 py-4 flex items-center justify-between rounded-t-[calc(2.5rem-3px)]">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-[#FF69B4]" />
-                                            <h2
-                                                className="text-white font-black text-[11px] uppercase tracking-[0.3em]"
-                                                style={{ fontFamily: 'var(--font-unbounded), sans-serif' }}
-                                            >
-                                                Connect
-                                            </h2>
-                                        </div>
+                                    <div className="bg-black px-6 py-4 flex items-center justify-end rounded-t-[calc(2.5rem-3px)]">
                                         <button
                                             onClick={onClose}
                                             className="bg-white/10 text-white w-8 h-8 rounded-xl flex items-center justify-center hover:bg-[#FF69B4] hover:scale-110 transition-all duration-150"
@@ -120,24 +111,15 @@ export default function CustomWalletModal({ isOpen, onClose }: CustomWalletModal
                                         </button>
                                     </div>
 
-                                    {/* Logo + Title */}
-                                    <div className="flex flex-col items-center pt-7 pb-5 px-6">
-                                        <div className="w-20 h-20 rounded-[1.5rem] border-[3px] border-black overflow-hidden flex items-center justify-center bg-black/[0.03] shadow-[4px_4px_0px_#000] mb-5">
+                                    {/* Logo ONLY */}
+                                    <div className="flex flex-col items-center pt-8 pb-6 px-6">
+                                        <div className="w-20 h-20 rounded-[1.5rem] border-[3px] border-black overflow-hidden flex items-center justify-center bg-black/[0.03] shadow-[4px_4px_0px_#000]">
                                             <img
                                                 src="/djinn-logo.png"
-                                                alt="Djinn"
+                                                alt="Djinn Logo"
                                                 className="w-14 h-14 object-contain"
                                             />
                                         </div>
-                                        <h3
-                                            className="text-black text-2xl font-bold"
-                                            style={{ fontFamily: 'var(--font-adriane), serif' }}
-                                        >
-                                            Djinn
-                                        </h3>
-                                        <p className="text-black/30 text-[10px] font-black uppercase tracking-[0.3em] mt-2">
-                                            Choose your wallet
-                                        </p>
                                     </div>
 
                                     {/* Divider */}
@@ -167,7 +149,7 @@ export default function CustomWalletModal({ isOpen, onClose }: CustomWalletModal
                                     )}
 
                                     {/* Wallet List */}
-                                    <div className="p-5 space-y-2.5 overflow-y-auto max-h-[40vh]">
+                                    <div className="p-5 pb-8 space-y-2.5 overflow-y-auto max-h-[40vh]">
                                         {uniqueWallets.map((w, i) => (
                                             <motion.button
                                                 key={w.adapter.name}
@@ -223,15 +205,7 @@ export default function CustomWalletModal({ isOpen, onClose }: CustomWalletModal
                                         )}
                                     </div>
 
-                                    {/* Footer */}
-                                    <div className="bg-[#FF69B4] border-t-[3px] border-black px-4 py-3 flex items-center justify-center rounded-b-[calc(2.5rem-3px)]">
-                                        <span
-                                            className="text-black text-[9px] font-black uppercase tracking-[0.35em]"
-                                            style={{ fontFamily: 'var(--font-unbounded), sans-serif' }}
-                                        >
-                                            Djinn Protocol
-                                        </span>
-                                    </div>
+
                                 </>
                             )}
                         </div>
