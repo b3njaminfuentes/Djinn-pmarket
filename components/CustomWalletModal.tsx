@@ -116,7 +116,7 @@ export default function CustomWalletModal({ isOpen, onClose }: CustomWalletModal
                                         <img
                                             src="/djinn-logo.png"
                                             alt="Djinn Logo"
-                                            className="w-16 h-16 object-contain"
+                                            className="w-28 h-28 md:w-32 md:h-32 object-contain drop-shadow-md"
                                         />
                                     </div>
 
