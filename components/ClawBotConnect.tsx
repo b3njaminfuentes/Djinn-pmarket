@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, X, Copy, Check, ShieldCheck, Activity } from 'lucide-react';
+import { Loader2, X, Copy, Check, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface Props {
@@ -192,16 +192,24 @@ export default function ClawBotConnect({ walletAddress }: Props) {
 
 function RealtimeBotsTable() {
     const [bots, setBots] = useState<any[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
 
     useEffect(() => {
         const fetchBots = async () => {
-            const { data } = await supabase
-                .from('profiles')
-                .select('username, wallet_address, created_at, avatar_url')
-                .eq('agent_type', 'clawbot')
-                .order('created_at', { ascending: false })
-                .limit(20);
+            const [{ data }, { count }] = await Promise.all([
+                supabase
+                    .from('profiles')
+                    .select('username, wallet_address, created_at, avatar_url')
+                    .eq('agent_type', 'clawbot')
+                    .order('created_at', { ascending: false })
+                    .limit(20),
+                supabase
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('agent_type', 'clawbot'),
+            ]);
             if (data) setBots(data);
+            if (count !== null) setTotalCount(count);
         };
         fetchBots();
 
@@ -214,6 +222,7 @@ function RealtimeBotsTable() {
                 (payload) => {
                     if (payload.eventType === 'INSERT') {
                         setBots((current) => [payload.new, ...current].slice(0, 20));
+                        setTotalCount((c) => c + 1);
                     } else if (payload.eventType === 'UPDATE') {
                         setBots((current) => {
                             const exists = current.find(b => b.wallet_address === payload.new.wallet_address);
@@ -241,7 +250,6 @@ function RealtimeBotsTable() {
             {/* Table Header */}
             <div className="bg-white text-black px-6 py-4 flex items-center justify-between border-b-[4px] border-black">
                 <div className="flex items-center gap-3">
-                    <Activity className="w-5 h-5 text-[#F492B7]" />
                     <h3 className="font-black uppercase text-lg tracking-[0.1em]">ClawBot Registry</h3>
                 </div>
                 <div className="flex items-center gap-2">
@@ -306,10 +314,13 @@ function RealtimeBotsTable() {
                 </table>
             </div>
 
-            {/* Simplified Footer */}
+            {/* Footer */}
             <div className="bg-[#f8f8f8] px-6 py-3 border-t-[4px] border-black flex justify-between items-center">
                 <span className="font-black uppercase text-[9px] tracking-[0.2em] text-black/40 italic">
-                    {bots.length} Active Agents
+                    {totalCount} Agents Connected
+                </span>
+                <span className="font-black uppercase text-[9px] tracking-[0.2em] text-black/40 italic">
+                    {Math.max(0, 1000 - totalCount)} / 1000 Slots
                 </span>
             </div>
         </motion.div>

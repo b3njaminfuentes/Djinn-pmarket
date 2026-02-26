@@ -149,6 +149,22 @@ export async function getProfileByUsername(username: string): Promise<Profile | 
     }, `getProfileByUsername(${username})`);
 }
 
+/**
+ * Admin helper to fetch all user profiles for reporting.
+ */
+export async function getAllProfiles() {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('wallet_address, username, twitter, avatar_url, agent_type, created_at')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('[DB] Error fetching all profiles:', error);
+        return [];
+    }
+    return data;
+}
+
 export async function isUsernameAvailable(username: string, excludeWallet?: string): Promise<boolean> {
     if (!username || username.length < 3) return false;
 
@@ -1049,7 +1065,7 @@ export async function createMarket(market: Partial<Market> & {
 }) {
     // Valid categories (including 'Trending' as fallback)
     const validCategories = ['Trending', 'Crypto', 'Politics', 'Sports', 'Earth', 'Movies',
-        'Culture', 'Tech', 'AI', 'Science', 'Finance', 'Gaming', 'Twitter'];
+        'Culture', 'Tech', 'AI', 'Science', 'Finance', 'Gaming', 'Twitter', 'Other'];
 
     if (!market.category || !validCategories.includes(market.category)) {
         throw new Error('Invalid or missing category. Must be one of: ' + validCategories.join(', '));

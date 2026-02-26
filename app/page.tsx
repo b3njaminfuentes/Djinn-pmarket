@@ -77,12 +77,11 @@ function WaitlistPanel({ position, totalCount, walletAddress }: { position: numb
         <div className="w-full flex flex-col gap-5">
             {/* Position card */}
             <div className="bg-white text-black border-[4px] border-black rounded-[2rem] shadow-[10px_10px_0px_0px_#F492B7] overflow-hidden">
-                <div className="bg-black px-6 py-3 flex items-center justify-between">
+                <div className="bg-black px-6 py-3 flex items-center">
                     <div className="flex items-center gap-2.5">
                         <span className="w-2 h-2 rounded-full bg-[#F492B7] animate-pulse" />
                         <span className="text-white font-black text-[10px] uppercase tracking-[0.25em]">Genesis Waitlist</span>
                     </div>
-                    <span className="text-white/30 font-black text-[10px] uppercase tracking-widest">{spotsLeft} spots left</span>
                 </div>
                 <div className="px-7 py-6 flex items-end justify-between">
                     <div>
@@ -99,67 +98,6 @@ function WaitlistPanel({ position, totalCount, walletAddress }: { position: numb
                     </div>
                 </div>
             </div>
-
-            {/* Real-time users panel */}
-            <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-white border-[4px] border-black rounded-[2rem] shadow-[10px_10px_0px_0px_#000] overflow-hidden"
-            >
-                <div className="bg-black px-6 py-3 flex items-center justify-between">
-                    <span className="text-white font-black text-[10px] uppercase tracking-[0.25em]">Connected Bots</span>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] bg-[#F492B7] text-black px-2 py-0.5 rounded-sm">Live</span>
-                        <div className="flex h-2 w-2 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F492B7] opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F492B7]"></span>
-                        </div>
-                    </div>
-                </div>
-                <div className="max-h-[280px] overflow-y-auto divide-y-[2px] divide-black/10">
-                    <AnimatePresence mode="popLayout">
-                        {users.length === 0 ? (
-                            <div className="px-6 py-8 text-center">
-                                <p className="text-black/25 font-black uppercase text-[10px] tracking-[0.3em]">Waiting for connections...</p>
-                            </div>
-                        ) : users.map((u, i) => (
-                            <motion.div
-                                key={u.wallet_address || i}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.03 }}
-                                className="flex items-center justify-between px-5 py-3 hover:bg-[#F492B7]/5 transition-colors"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full border-[2px] border-black overflow-hidden bg-[#F492B7] shrink-0">
-                                        <img src={u.avatar_url || '/pink-pfp.png'} alt="" className="w-full h-full object-cover" />
-                                    </div>
-                                    <span className="font-black text-sm text-black tracking-tight">
-                                        {u.username ? `@${u.username}` : 'ClawBot'}
-                                    </span>
-                                </div>
-                                <code className="text-[10px] font-mono font-bold text-black/40 hidden sm:block">
-                                    {u.wallet_address?.slice(0, 4)}...{u.wallet_address?.slice(-4)}
-                                </code>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </div>
-                <div className="bg-[#f8f8f8] px-6 py-2.5 border-t-[2px] border-black/10 flex justify-between items-center">
-                    <span className="font-black uppercase text-[9px] tracking-[0.2em] text-black/30">
-                        {users.length} Bots Connected
-                    </span>
-                    <span className="font-black uppercase text-[9px] tracking-[0.2em] text-black/30">
-                        {Math.max(0, 1000 - users.length)} / 1000 Slots
-                    </span>
-                </div>
-            </motion.div>
-
-            {/* Follow hint */}
-            <p className="text-white/30 font-black text-[10px] uppercase tracking-[0.3em] text-center">
-                Follow <a href="https://x.com/djinnmarkets" target="_blank" rel="noopener noreferrer" className="text-[#F492B7] hover:underline">@djinnmarkets</a> for launch updates
-            </p>
         </div>
     );
 }

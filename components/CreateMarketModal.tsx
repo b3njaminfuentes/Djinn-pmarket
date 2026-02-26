@@ -55,7 +55,7 @@ const COLORS = [
 ];
 
 const CATEGORIES = [
-    'Crypto', 'Politics', 'Sports', 'Business', 'Science', 'Tech/AI', 'Gaming', 'Pop Culture', 'Twitter', 'Global', 'Other'
+    'Crypto', 'Politics', 'Sports', 'Finance', 'Science', 'Tech', 'AI', 'Gaming', 'Culture', 'Twitter', 'Earth', 'Movies', 'Other'
 ];
 
 // Max duration for Twitter markets (API only searches 7 days back)

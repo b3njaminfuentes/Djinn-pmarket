@@ -1577,8 +1577,11 @@ export default function Page() {
                 });
 
                 // 4b. Update Market Price & Volume in DB for Top Holders/Markets Page Sync
-                // Store SPOT PRICE in SOL (not probability) for holdings calculation
-                await supabaseDb.updateMarketPrice(effectiveSlug, sim.endPrice, usdValueInTrading);
+                // Store stable probability (0-100) using virtual floor — never raw spot price
+            const yesAfterBuy = outcome0Supply + (selectedSide === 'YES' ? sim.sharesReceived : 0);
+            const noAfterBuy = outcome1Supply + (selectedSide === 'NO' ? sim.sharesReceived : 0);
+            const newProbabilityForDB = calculateImpliedProbability(yesAfterBuy, noAfterBuy);
+                await supabaseDb.updateMarketPrice(effectiveSlug, newProbabilityForDB, usdValueInTrading);
             } catch (dbErr) {
                 console.warn("⚠️ DB Logging failed (non-fatal):", dbErr);
             }
@@ -2029,10 +2032,9 @@ export default function Page() {
                         console.log("🔗 SELL CALL - marketAccount.market_pda:", marketAccount.market_pda);
                         console.log("🔗 SELL CALL - Compare with PAGE.TSX marketInfo.market_pda above");
 
-                        // Debugging Creator
-                        // Use confirmed Master Treasury as fallback
+                        // Use creator_wallet (correct field name) with Treasury fallback
                         const TREASURY_WALLET = new PublicKey('G1NaEsx5Pg7dSmyYy6Jfraa74b7nTbmN9A9NuiK171Ma');
-                        const creatorKey = marketAccount.creator ? new PublicKey(marketAccount.creator) : TREASURY_WALLET;
+                        const creatorKey = marketAccount.creator_wallet ? new PublicKey(marketAccount.creator_wallet) : TREASURY_WALLET;
                         console.log("🔗 SELL CALL - Creator Key passed:", creatorKey.toBase58());
                         console.log("🔗 SELL CALL - Is Treasury?", creatorKey.equals(TREASURY_WALLET));
 
