@@ -65,10 +65,10 @@ export default function TheDjinnChart({
 
         return outcomeNames.map((name, idx) => {
             const seriesData = normalizedData
-                .filter(d => d[name] !== undefined)
+                .filter(d => (d as any)[name] !== undefined)
                 .map(d => ({
                     time: d.time as number,
-                    value: Number(d[name]),
+                    value: Number((d as any)[name]),
                 }));
 
             // Use liveValues prop if provided (keeps chart flowing between trades)

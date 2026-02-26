@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, AlertTriangle, X, ExternalLink, ChevronDown, ChevronUp, Loader2, Brain, Activity, ShieldAlert } from 'lucide-react';
+import { Check, AlertTriangle, X, ExternalLink, ChevronDown, ChevronUp, Loader2, Brain, Activity, ShieldAlert, Users, UserCheck, Twitter, Calendar } from 'lucide-react';
 import CerberusThought from '@/components/admin/CerberusThought';
 
 const ADMIN_WALLET = "C31JQfZBVRsnvFqiNptD95rvbEx8fsuPwdZn62yEWx9X";
@@ -48,28 +48,50 @@ export default function DracoDashboard() {
     const [markets, setMarkets] = useState<any[]>([]);
     const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
     const [processingQueue, setProcessingQueue] = useState<string[]>([]);
-    const [activeTab, setActiveTab] = useState<'MARKETS' | 'BRAIN'>('MARKETS');
+    const [activeTab, setActiveTab] = useState<'MARKETS' | 'BRAIN' | 'USERS'>('MARKETS');
+    const [usersList, setUsersList] = useState<any[]>([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
 
     const fetchMarkets = async () => {
         try {
-            const res = await fetch('/api/markets');
-            const data = await res.json();
-            // Sort: PENDING/ANALYZING first, then UNCERTAIN, then others
-            const sorted = data.sort((a: any, b: any) => {
-                const priority: Record<string, number> = { 'PENDING': 0, 'ANALYZING': 1, 'UNCERTAIN': 2, 'MANUAL_REQUIRED': 2, 'VERIFIED': 3, 'REJECTED': 4 };
-                return (priority[a.status] ?? 5) - (priority[b.status] ?? 5);
+            const res = await fetch('/api/markets', {
+                headers: { 'x-admin-secret': secret }
             });
-            setMarkets(sorted);
-        } catch (e) { }
+            const data = await res.json();
+            if (Array.isArray(data)) setMarkets(data);
+        } catch (e) {
+            console.error('[DRACO] Failed to fetch markets:', e);
+        }
+    };
+
+    const fetchUsers = async () => {
+        setLoadingUsers(true);
+        try {
+            const res = await fetch('/api/admin/detailed-stats', {
+                headers: { 'x-admin-secret': secret }
+            });
+            const data = await res.json();
+            if (data.success) {
+                setUsersList(data.profiles);
+            }
+        } catch (e) {
+            console.error('[DRACO] Failed to fetch users:', e);
+        } finally {
+            setLoadingUsers(false);
+        }
     };
 
     useEffect(() => {
         if (isLogged && connected && publicKey?.toString() === ADMIN_WALLET) {
-            fetchMarkets();
-            const interval = setInterval(fetchMarkets, 3000);
-            return () => clearInterval(interval);
+            if (activeTab === 'MARKETS') {
+                fetchMarkets();
+                const interval = setInterval(fetchMarkets, 5000);
+                return () => clearInterval(interval);
+            } else if (activeTab === 'USERS') {
+                fetchUsers();
+            }
         }
-    }, [isLogged, connected, publicKey]);
+    }, [isLogged, connected, publicKey, activeTab]);
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -81,7 +103,7 @@ export default function DracoDashboard() {
     };
 
     const updateStatus = async (id: string, status: string) => {
-        setProcessingQueue( (prev: any) => [...prev, id]);
+        setProcessingQueue((prev: any) => [...prev, id]);
         await fetch('/api/markets', {
             method: 'PUT',
             headers: {
@@ -90,7 +112,7 @@ export default function DracoDashboard() {
             },
             body: JSON.stringify({ id, status }),
         });
-        setProcessingQueue( (prev: any) => prev.filter( (p: any) => p !== id));
+        setProcessingQueue((prev: any) => prev.filter((p: any) => p !== id));
         fetchMarkets();
     };
 
@@ -160,9 +182,9 @@ export default function DracoDashboard() {
     }
 
     // 🐉 PANTALLA 3: DASHBOARD PRINCIPAL - HORIZONTAL LAYOUT
-    const activeMarkets = markets.filter( (m: any) => m.status === 'PENDING' || m.status === 'ANALYZING').slice(0, 2);
-    const queuedMarkets = markets.filter( (m: any) => m.status !== 'PENDING' && m.status !== 'ANALYZING' && m.status !== 'VERIFIED' && m.status !== 'REJECTED');
-    const completedMarkets = markets.filter( (m: any) => m.status === 'VERIFIED' || m.status === 'REJECTED');
+    const activeMarkets = markets.filter((m: any) => m.status === 'PENDING' || m.status === 'ANALYZING').slice(0, 2);
+    const queuedMarkets = markets.filter((m: any) => m.status !== 'PENDING' && m.status !== 'ANALYZING' && m.status !== 'VERIFIED' && m.status !== 'REJECTED');
+    const completedMarkets = markets.filter((m: any) => m.status === 'VERIFIED' || m.status === 'REJECTED');
 
     return (
         <div className="min-h-screen bg-[#030303] text-white font-sans pt-28 px-6 pb-12 selection:bg-green-500/30">
@@ -189,6 +211,12 @@ export default function DracoDashboard() {
                             className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'BRAIN' ? 'bg-green-500 text-black' : 'text-gray-500 hover:text-white'}`}
                         >
                             Cognitive Trace
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('USERS')}
+                            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'USERS' ? 'bg-green-500 text-black' : 'text-gray-500 hover:text-white'}`}
+                        >
+                            Users
                         </button>
                     </div>
                     <div className="text-right font-mono">
@@ -263,7 +291,7 @@ export default function DracoDashboard() {
                             </div>
                         )}
                     </motion.div>
-                ) : (
+                ) : activeTab === 'BRAIN' ? (
                     <motion.div
                         key="brain"
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -301,8 +329,113 @@ export default function DracoDashboard() {
                             </div>
                         </div>
                     </motion.div>
-                )}
-            </AnimatePresence>
+                ) : (
+                    <motion.div
+                        key="users"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="max-w-7xl mx-auto"
+                    >
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">User Directory</h2>
+                                <p className="text-xs text-green-500 font-mono">Monitoring wallet connections and identity claims</p>
+                            </div>
+                            <button
+                                onClick={fetchUsers}
+                                className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"
+                            >
+                                <Activity size={12} className={loadingUsers ? 'animate-spin' : ''} /> Refresh List
+                            </button>
+                        </div>
+
+                        <div className="bg-black/40 border border-white/5 rounded-2xl overflow-hidden">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-white/5 text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                    <tr>
+                                        <th className="px-6 py-4">Identity</th>
+                                        <th className="px-6 py-4">Username</th>
+                                        <th className="px-6 py-4">X/Twitter</th>
+                                        <th className="px-6 py-4">Attributes</th>
+                                        <th className="px-6 py-4">Joined</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {usersList.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-12 text-center text-gray-600 font-mono text-sm italic">
+                                                No connections detected in current cycle.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        usersList.map((u) => (
+                                            <tr key={u.wallet_address} className="hover:bg-white/5 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-900/20 border border-green-500/30 flex items-center justify-center overflow-hidden shrink-0">
+                                                            {u.avatar_url ? (
+                                                                <img src={u.avatar_url} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <Users size={14} className="text-green-500" />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-mono text-gray-400 group-hover:text-green-500 transition-colors">
+                                                                {u.wallet_address.slice(0, 6)}...{u.wallet_address.slice(-4)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        {u.hasClaimedUsername ? (
+                                                            <span className="text-sm font-bold text-white flex items-center gap-1.5">
+                                                                {u.username}
+                                                                <UserCheck size={14} className="text-green-500" />
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-600 italic">{u.username || 'Anonymous'}</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {u.hasLinkedX ? (
+                                                        <a
+                                                            href={`https://x.com/${u.twitter}`}
+                                                            target="_blank"
+                                                            className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/50 px-2 py-1 rounded text-[10px] font-black text-blue-400 hover:bg-blue-500 hover:text-white transition-all"
+                                                        >
+                                                            <Twitter size={12} /> @{u.twitter}
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-gray-700 uppercase tracking-tighter">Not Linked</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex gap-2">
+                                                        {u.isBot ? (
+                                                            <span className="text-[9px] font-black bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded uppercase">Bot</span>
+                                                        ) : (
+                                                            <span className="text-[9px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded uppercase">Human</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2 text-gray-500 text-[10px] font-mono">
+                                                        <Calendar size={12} />
+                                                        {new Date(u.created_at).toLocaleDateString()}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </motion.div>
+                    )}
+                </AnimatePresence>
         </div>
     );
 }
