@@ -333,13 +333,14 @@ export default function ProfilePage() {
                 };
 
                 // 1. Local Storage Override (Skip if Bot)
+                let localMedalsLoaded = false;
                 if (!botProfileData && isMeCheck) {
                     const local = localStorage.getItem(`djinn_profile_${targetAddress}`);
                     if (local) {
                         try {
                             const p = JSON.parse(local);
                             if (p.username) finalProfile.username = p.username;
-                            if (p.medals && Array.isArray(p.medals)) finalProfile.medals = p.medals;
+                            if (p.medals && Array.isArray(p.medals)) { finalProfile.medals = p.medals; localMedalsLoaded = true; }
                             if (p.showGems !== undefined) finalProfile.showGems = p.showGems;
                             if (p.pfp) finalProfile.pfp = p.pfp;
                             else if (p.avatar_url) finalProfile.pfp = p.avatar_url;
@@ -376,7 +377,8 @@ export default function ProfilePage() {
                 finalProfile.isGenesis = isGenesisMemberUser;
 
                 if (isLordWallet) {
-                    finalProfile.medals = ['FIRST_MARKET', 'ORACLE', 'DIAMOND_HANDS', 'PINK_CRYSTAL', 'EMERALD_SAGE', 'MOON_DANCER', 'MARKET_SNIPER', 'APEX_PREDATOR', 'GOLD_TROPHY', 'LEGENDARY_TRADER'];
+                    // Respect user-saved medals from localStorage; only use defaults if none were saved
+                    if (!localMedalsLoaded) finalProfile.medals = ['FIRST_MARKET', 'ORACLE', 'DIAMOND_HANDS', 'PINK_CRYSTAL', 'EMERALD_SAGE', 'MOON_DANCER', 'MARKET_SNIPER', 'APEX_PREDATOR', 'GOLD_TROPHY', 'LEGENDARY_TRADER'];
                     finalProfile.profit = 1250000;
                     setViewCount(99999);
                     finalProfile.achievements = [
