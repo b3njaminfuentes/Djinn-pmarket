@@ -11,6 +11,7 @@ if (typeof window !== 'undefined') {
         console.log('SUPABASE_ANON_KEY:', supabaseAnonKey ? '✓ Set' : '✗ Missing');
     } else {
         console.log('✅ Supabase initialized with project:', supabaseUrl);
+        console.log('🌐 Current Origin:', window.location.origin);
     }
 }
 

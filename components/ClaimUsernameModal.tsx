@@ -98,7 +98,7 @@ export default function ClaimUsernameModal({ isOpen, walletAddress, onSuccess, o
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'x',
                 options: {
-                    redirectTo: window.location.origin,
+                    redirectTo: `${window.location.origin}/auth/callback`,
                 },
             });
             if (error) {
