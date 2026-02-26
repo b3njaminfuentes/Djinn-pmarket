@@ -951,6 +951,8 @@ export default function Page() {
                     }
                 };
 
+                // 🔑 FIX: Actually call reconstructHistory (was defined but never invoked)
+                reconstructHistory();
             }
         }
     }, [slug, marketAccount?.outcome_supplies]); // Re-run when supplies load to fix "Dark Chart"

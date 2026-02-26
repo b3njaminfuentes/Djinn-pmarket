@@ -67,49 +67,17 @@ export function useRealtimeChart({
 
     // Conectar a WebSocket para actualizaciones en tiempo real
     useEffect(() => {
-        // Simula una conexión WebSocket
-        // En producción, conectarías a tu servidor WebSocket real
-
-        // Ejemplo de endpoint WebSocket:
-        // const ws = new WebSocket(`wss://tu-servidor.com/market/${marketId}`);
-
-        // Por ahora, simula actualizaciones aleatorias
-        const simulateRealtimeUpdates = () => {
-            const interval = setInterval(() => {
-                const lastPoint = chartData[chartData.length - 1];
-                if (!lastPoint) return;
-
-                // Simula pequeños cambios en las probabilidades
-                const updates: any = { time: Date.now() };
-
-                outcomeNames.forEach(outcome => {
-                    const currentValue = lastPoint[outcome] || 50;
-                    const change = (Math.random() - 0.5) * 3; // Cambio de ±1.5%
-                    updates[outcome] = Math.min(100, Math.max(0, currentValue + change));
-                });
-
-                // Normalizar para que sumen 100
-                const total = outcomeNames.reduce((sum, outcome) => sum + updates[outcome], 0);
-                outcomeNames.forEach(outcome => {
-                    updates[outcome] = (updates[outcome] / total) * 100;
-                });
-
-                addDataPoint(updates);
-            }, updateInterval);
-
-            return interval;
-        };
-
-        const interval = simulateRealtimeUpdates();
+        // Simulation DISABLED — chart is seeded from real activity (reconstructHistory)
+        // and updated only on real trades via setHistoryState in the buy/sell handlers.
+        // Random noise was corrupting the chart across all time windows.
         setIsLoading(false);
 
         return () => {
-            clearInterval(interval);
             if (wsRef.current) {
                 wsRef.current.close();
             }
         };
-    }, [marketId, updateInterval, chartData, outcomeNames, addDataPoint]);
+    }, [marketId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // NO SIMULATION: Trade events only come from real WebSocket connection
     // latestTrade is set to null by default and only populated when:
