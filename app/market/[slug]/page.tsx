@@ -22,7 +22,8 @@ import confetti from 'canvas-confetti';
 
 // Components
 import PrettyChart from '@/components/market/PrettyChart';
-import TheDjinnChart from '@/components/market/TheDjinnChart';
+import dynamic from 'next/dynamic';
+const TheDjinnChart = dynamic(() => import('@/components/market/TheDjinnChart'), { ssr: false });
 // TradingView & Switcher REMOVED
 import CommentsSection from '@/components/market/CommentsSection';
 import OutcomeList, { Outcome } from '@/components/market/OutcomeList';
@@ -2517,9 +2518,9 @@ export default function Page() {
 
                         {/* CHART PANEL */}
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.5 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.1 }}
                             className="bg-transparent rounded-3xl border-2 border-white/10 overflow-hidden relative backdrop-blur-sm h-[600px] min-h-[600px]"
                         >
                             <TheDjinnChart
