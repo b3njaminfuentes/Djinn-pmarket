@@ -2252,8 +2252,11 @@ export default function Page() {
                 // 2. Update Price
                 const newPrice = livePrice + probDelta;
                 setLivePrice(newPrice);
-                // Store SPOT PRICE in SOL (not probability) for holdings calculation
-                await supabaseDb.updateMarketPrice(effectiveSlug, sim.endPrice, -usdValue);
+                // FIX: Save probability (0-100) not raw spot price — mirrors buy handler logic
+                const yesAfterSell = Math.max(0, outcome0Supply - (selectedSide === 'YES' ? finalSharesToSell : 0));
+                const noAfterSell  = Math.max(0, outcome1Supply - (selectedSide === 'NO'  ? finalSharesToSell : 0));
+                const newProbabilityForDB = calculateImpliedProbability(yesAfterSell, noAfterSell);
+                await supabaseDb.updateMarketPrice(effectiveSlug, newProbabilityForDB, -usdValue);
 
                 // 2b. Reduce Bet Position in DB (Wait for this!)
                 const dbSide = isMultiOutcome ? (selectedOutcomeName || 'YES') : selectedSide;
