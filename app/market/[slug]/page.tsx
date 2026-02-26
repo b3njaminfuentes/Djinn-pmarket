@@ -2642,53 +2642,81 @@ export default function Page() {
                             whileHover={{ y: -8 }}
                             className="bg-white rounded-3xl border-2 border-black p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden"
                         >
-                            {/* Header Gradient - Jim Raptis Principle: Epic Data Visualization */}
-                            {/* Header Gradient - "The Obsidian Vault" Theme */}
-                            <div className="w-full flex flex-col items-center px-6 py-10 rounded-3xl bg-black border-4 border-black relative overflow-hidden mb-8 group/pool isolate">
+                            {/* POOL STATS CARD */}
+                            <div className="w-full rounded-3xl bg-black border-2 border-white/10 relative overflow-hidden mb-6">
+                                {/* Background glows */}
+                                <div className="absolute top-0 right-0 w-56 h-56 bg-[#F492B7] rounded-full mix-blend-screen filter blur-[70px] opacity-10 animate-pulse pointer-events-none" />
+                                <div className="absolute bottom-0 left-0 w-56 h-56 bg-[#9945FF] rounded-full mix-blend-screen filter blur-[70px] opacity-10 pointer-events-none" />
 
-                                {/* 1. Dynamic Background Mesh */}
-                                <div className="absolute inset-0 opacity-40">
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#F492B7] rounded-full mix-blend-screen filter blur-[80px] opacity-20 animate-pulse" />
-                                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#9945FF] rounded-full mix-blend-screen filter blur-[80px] opacity-20" />
-                                </div>
-
-                                {/* 2. Grid Overlay */}
-                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
-
-                                {/* 3. Content */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="relative z-10 flex flex-col items-center"
-                                >
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#00FF94] shadow-[0_0_10px_#00FF94] animate-pulse" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Total Pool</span>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#00FF94] shadow-[0_0_10px_#00FF94] animate-pulse" />
+                                <div className="relative z-10 px-5 py-5 flex flex-col gap-4">
+                                    {/* Label row */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[#00FF94] shadow-[0_0_6px_#00FF94] animate-pulse" />
+                                            <span className="text-[9px] font-black uppercase tracking-[0.35em] text-white/30">Prize Pool</span>
+                                        </div>
+                                        {solPrice > 0 && (
+                                            <span className="text-[10px] font-bold text-white/25">
+                                                ≈ ${formatCompact(totalPoolSol * solPrice)}
+                                            </span>
+                                        )}
                                     </div>
 
+                                    {/* Big SOL number */}
                                     <div className="flex items-baseline gap-2">
-                                        <span className="text-6xl font-black text-white tracking-tighter drop-shadow-2xl filter">
-                                            <AnimatedNumber
-                                                value={totalPoolSol}
-                                                decimals={2}
-                                                className="inline bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400"
-                                            />
-                                        </span>
-                                        <span className="text-2xl font-black text-[#F492B7] tracking-tight">SOL</span>
+                                        <AnimatedNumber
+                                            value={totalPoolSol}
+                                            decimals={2}
+                                            className="text-5xl font-black text-white tracking-tighter"
+                                        />
+                                        <span className="text-xl font-black text-[#F492B7]">SOL</span>
                                     </div>
 
-                                    {/* 4. Interactive Progress Bar */}
-                                    <div className="w-full max-w-[80%] h-1.5 bg-white/10 rounded-full mt-6 relative overflow-hidden group-hover/pool:bg-white/20 transition-colors">
-                                        <motion.div
-                                            layoutId="pool-progress"
-                                            className="absolute inset-0 bg-gradient-to-r from-[#F492B7] to-[#9945FF]"
-                                            initial={{ x: '-100%' }}
-                                            animate={{ x: '100%' }}
-                                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                        />
-                                    </div>
-                                </motion.div>
+                                    {/* YES / NO split bar */}
+                                    {!isMultiOutcome && marketOutcomes.length >= 2 && (() => {
+                                        const yesChance = Math.max(1, Math.min(99, marketOutcomes[0]?.chance ?? 50));
+                                        const noChance = 100 - yesChance;
+                                        return (
+                                            <div className="flex flex-col gap-1.5">
+                                                {/* Labels */}
+                                                <div className="flex justify-between items-center text-[10px] font-black uppercase">
+                                                    <span className="text-emerald-400">{marketOutcomes[0]?.title || 'YES'} {yesChance.toFixed(0)}%</span>
+                                                    <span className="text-red-400">{marketOutcomes[1]?.title || 'NO'} {noChance.toFixed(0)}%</span>
+                                                </div>
+                                                {/* Split bar */}
+                                                <div className="w-full h-2.5 rounded-full overflow-hidden flex border border-white/10">
+                                                    <motion.div
+                                                        className="h-full bg-emerald-500 rounded-l-full"
+                                                        initial={{ width: '50%' }}
+                                                        animate={{ width: `${yesChance}%` }}
+                                                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                                                    />
+                                                    <motion.div
+                                                        className="h-full bg-red-500 flex-1 rounded-r-full"
+                                                        initial={{ width: '50%' }}
+                                                        animate={{ width: `${noChance}%` }}
+                                                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Multi-outcome: top chances */}
+                                    {isMultiOutcome && marketOutcomes.length > 0 && (
+                                        <div className="flex flex-col gap-1">
+                                            {marketOutcomes.slice(0, 3).map((o, idx) => {
+                                                const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981'];
+                                                return (
+                                                    <div key={idx} className="flex items-center justify-between text-[10px] font-bold">
+                                                        <span className="text-white/50 truncate pr-2">{o.title}</span>
+                                                        <span style={{ color: colors[idx % colors.length] }} className="font-black shrink-0">{(o.chance ?? 0).toFixed(0)}%</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* RESOLVED STATE HANDLING */}

@@ -61,7 +61,26 @@ export default function TheDjinnChart({
 
     // Convert flat data to LivelineSeries format
     const series = useMemo<LivelineSeries[]>(() => {
-        if (!normalizedData || normalizedData.length === 0 || !outcomeNames) return [];
+        if (!outcomeNames || outcomeNames.length === 0) return [];
+
+        const now = Math.floor(Date.now() / 1000);
+
+        // No historical data — generate synthetic flat series from liveValues so chart is never blank
+        if (!normalizedData || normalizedData.length === 0) {
+            return outcomeNames.map((name, idx) => {
+                const val = liveValues?.[idx] ?? (100 / outcomeNames.length);
+                return {
+                    id: name,
+                    label: name,
+                    color: outcomeColors[idx] || '#ccc',
+                    data: [
+                        { time: now - 3600, value: val },
+                        { time: now, value: val },
+                    ],
+                    value: val,
+                };
+            });
+        }
 
         return outcomeNames.map((name, idx) => {
             const seriesData = normalizedData
@@ -71,9 +90,24 @@ export default function TheDjinnChart({
                     value: Number((d as any)[name]),
                 }));
 
+            // Fallback if no matching keys in data — flat line at liveValue
+            if (seriesData.length === 0) {
+                const val = liveValues?.[idx] ?? (100 / outcomeNames.length);
+                return {
+                    id: name,
+                    label: name,
+                    color: outcomeColors[idx] || '#ccc',
+                    data: [
+                        { time: now - 3600, value: val },
+                        { time: now, value: val },
+                    ],
+                    value: val,
+                };
+            }
+
             // Use liveValues prop if provided (keeps chart flowing between trades)
             const latestValue = liveValues?.[idx]
-                ?? (seriesData.length > 0 ? seriesData[seriesData.length - 1].value : 50);
+                ?? seriesData[seriesData.length - 1].value;
 
             return {
                 id: name,
