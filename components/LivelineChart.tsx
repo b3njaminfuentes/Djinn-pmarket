@@ -65,6 +65,8 @@ interface LivelineChartProps {
     onSeriesToggle?: (id: string, visible: boolean) => void;
     /** Compact series toggles */
     seriesToggleCompact?: boolean;
+    /** Callback when user selects a time window (secs) */
+    onWindowChange?: (secs: number) => void;
     /** Show area fill under the line */
     fill?: boolean;
     /** Show pulse effect at the current point */
@@ -104,6 +106,7 @@ export default function LivelineChart({
     candleWidth,
     onSeriesToggle,
     seriesToggleCompact,
+    onWindowChange,
     fill = true,
     pulse = true,
     badge = true,
@@ -156,6 +159,7 @@ export default function LivelineChart({
                 degen={degen}
                 exaggerate={exaggerate}
                 windows={windows}
+                onWindowChange={onWindowChange}
                 formatValue={fmt}
                 orderbook={orderbook}
                 loading={loading}

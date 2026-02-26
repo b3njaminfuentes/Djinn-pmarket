@@ -2522,6 +2522,7 @@ export default function Page() {
                             <TheDjinnChart
                                 outcomeNames={marketOutcomes.map(o => o.title)}
                                 data={historyState.probability || []}
+                                liveValues={marketOutcomes.map(o => o.chance)}
                                 outcomeSupplies={outcomeSuppliesMap}
                                 volume={marketAccount?.volumeTotal ? formatCompact(Number(marketAccount.volumeTotal) / 1e9) + " SOL" : (marketAccount?.volume_usd || "$0")}
                                 resolutionDate={marketAccount?.resolution_date}
