@@ -125,18 +125,30 @@ export default function ClawBotConnect({ walletAddress }: Props) {
                         </p>
                     </div>
 
-                    {/* Command box */}
-                    <div
-                        onClick={handleCopy}
-                        className="relative flex items-center bg-black text-[#F492B7] border-[4px] border-black px-6 py-6 cursor-pointer group hover:bg-[#111] transition-all shadow-[10px_10px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-[6px_6px_0px_0px_#000] active:translate-x-2 active:translate-y-2 active:shadow-none"
-                        title="Click to copy"
-                    >
-                        <span className="text-[#F492B7] font-mono font-black text-2xl mr-4 md:mr-6">&#10095;</span>
-                        <span className="text-white font-mono font-black text-xl md:text-2xl flex-1 tracking-widest leading-none mt-1">npx djinn-skill</span>
-                        <div className={`px-3 py-2 border-[2px] transition-colors ${copied ? 'bg-white border-white text-black' : 'bg-transparent border-[#F492B7] text-[#F492B7] group-hover:bg-[#F492B7] group-hover:text-black'}`}>
-                            <span className="text-[12px] font-black uppercase tracking-[0.2em]">
-                                {copied ? '✓ COPIED' : 'COPY'}
-                            </span>
+                    {/* Terminal Window Box */}
+                    <div className="bg-black border-[4px] border-black shadow-[12px_12px_0px_rgba(0,0,0,1)] rounded-xl overflow-hidden group">
+                        <div className="bg-[#1A1A1A] border-b-[4px] border-black px-4 py-2 flex items-center gap-2">
+                            <div className="flex gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56] border border-black/20" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] border border-black/20" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F] border border-black/20" />
+                            </div>
+                            <div className="flex-1 text-center">
+                                <span className="text-[10px] font-black uppercase text-white/30 tracking-[0.3em] font-mono">Djinn Terminal</span>
+                            </div>
+                        </div>
+                        <div
+                            onClick={handleCopy}
+                            className="relative flex items-center bg-black text-[#F492B7] px-8 py-8 cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.98]"
+                        >
+                            <span className="text-[#F492B7] font-mono font-black text-2xl mr-6 select-none opacity-50">$</span>
+                            <span className="text-white font-mono font-black text-2xl flex-1 tracking-tight leading-none">npx djinn-skill</span>
+                            <div className={`px-4 py-2 border-[2px] rounded-lg transition-all ${copied ? 'bg-[#27C93F] border-[#27C93F] text-black shadow-[4px_4px_0px_rgba(0,0,0,0.5)]' : 'bg-transparent border-white/20 text-white/40 group-hover:border-[#F492B7] group-hover:text-[#F492B7]'}`}>
+                                <span className="text-[11px] font-black uppercase tracking-[0.15em] flex items-center gap-2">
+                                    {copied ? <Check className="w-3.5 h-3.5" /> : null}
+                                    {copied ? 'COPIED' : 'COPY'}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -193,13 +205,24 @@ function RealtimeBotsTable() {
         };
         fetchBots();
 
+        // Listen for both INSERTS and UPDATES (pairing is an update)
         const channel = supabase
-            .channel('public:profiles_table')
+            .channel('public:profiles_table_updates')
             .on(
                 'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'profiles', filter: "agent_type=eq.clawbot" },
+                { event: '*', schema: 'public', table: 'profiles', filter: "agent_type=eq.clawbot" },
                 (payload) => {
-                    setBots((current) => [payload.new, ...current].slice(0, 20));
+                    if (payload.eventType === 'INSERT') {
+                        setBots((current) => [payload.new, ...current].slice(0, 20));
+                    } else if (payload.eventType === 'UPDATE') {
+                        setBots((current) => {
+                            const exists = current.find(b => b.wallet_address === payload.new.wallet_address);
+                            if (exists) {
+                                return current.map(b => b.wallet_address === payload.new.wallet_address ? payload.new : b);
+                            }
+                            return [payload.new, ...current].slice(0, 20);
+                        });
+                    }
                 }
             )
             .subscribe();
@@ -213,20 +236,20 @@ function RealtimeBotsTable() {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-5xl bg-white border-[6px] border-black shadow-[16px_16px_0px_#000] overflow-hidden"
+            className="w-full max-w-4xl bg-white border-[4px] border-black shadow-[10px_10px_0px_#000] overflow-hidden"
         >
             {/* Table Header */}
-            <div className="bg-black text-white px-8 py-5 flex items-center justify-between border-b-[6px] border-black">
-                <div className="flex items-center gap-4">
-                    <Activity className="w-6 h-6 text-[#F492B7]" />
-                    <h3 className="font-black uppercase text-2xl tracking-[0.1em]">ClawBot Network Registry</h3>
-                </div>
+            <div className="bg-white text-black px-6 py-4 flex items-center justify-between border-b-[4px] border-black">
                 <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-[#F492B7] text-black px-3 py-1 rounded-sm">Live Feed</span>
-                    <div className="flex h-3 w-3 relative">
+                    <Activity className="w-5 h-5 text-[#F492B7]" />
+                    <h3 className="font-black uppercase text-lg tracking-[0.1em]">ClawBot Registry</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="flex h-2 w-2 relative">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F492B7] opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-[#F492B7]"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F492B7]"></span>
                     </div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black">Live</span>
                 </div>
             </div>
 
@@ -234,59 +257,46 @@ function RealtimeBotsTable() {
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-[#f0f0f0] border-b-[4px] border-black">
-                            <th className="px-8 py-4 font-black uppercase text-[12px] tracking-widest text-black/60 border-r-[4px] border-black">Agent</th>
-                            <th className="px-8 py-4 font-black uppercase text-[12px] tracking-widest text-black/60 border-r-[4px] border-black">Identity Hash</th>
-                            <th className="px-8 py-4 font-black uppercase text-[12px] tracking-widest text-black/60 border-r-[4px] border-black">Protocol Status</th>
-                            <th className="px-8 py-4 font-black uppercase text-[12px] tracking-widest text-black/60">Deployment Date</th>
+                        <tr className="bg-[#f8f8f8] border-b-[2px] border-black">
+                            <th className="px-6 py-3 font-black uppercase text-[10px] tracking-widest text-black/50 border-r-[2px] border-black">Agent Name</th>
+                            <th className="px-6 py-3 font-black uppercase text-[10px] tracking-widest text-black/50">Wallet Identity</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y-[4px] divide-black">
+                    <tbody className="divide-y-[2px] divide-black/10">
                         <AnimatePresence mode="popLayout">
                             {bots.length === 0 ? (
                                 <tr className="bg-white">
-                                    <td colSpan={4} className="px-8 py-12 text-center">
-                                        <p className="font-black uppercase text-black/20 tracking-[0.3em]">No agents detected in the swarm...</p>
+                                    <td colSpan={2} className="px-6 py-10 text-center">
+                                        <p className="font-black uppercase text-black/20 text-[10px] tracking-[0.3em]">Connecting to swarm...</p>
                                     </td>
                                 </tr>
                             ) : (
                                 bots.map((bot, i) => (
                                     <motion.tr
-                                        key={bot.username + i}
-                                        initial={{ opacity: 0, x: -20 }}
+                                        key={bot.wallet_address || i}
+                                        initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: i * 0.05 }}
                                         className="group hover:bg-[#F492B7]/5 transition-colors"
                                     >
-                                        <td className="px-8 py-5 border-r-[4px] border-black">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-full border-[3px] border-black overflow-hidden bg-black shrink-0">
+                                        <td className="px-6 py-4 border-r-[2px] border-black/10">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full border-[2px] border-black overflow-hidden bg-black shrink-0">
                                                     <img
                                                         src={bot.avatar_url || "/pink-pfp.png"}
                                                         alt=""
                                                         className="w-full h-full object-cover"
                                                     />
                                                 </div>
-                                                <span className="font-black text-xl italic tracking-tighter text-black">
-                                                    @{bot.username}
+                                                <span className="font-black text-sm text-black">
+                                                    @{bot.username || 'ClawBot'}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5 border-r-[4px] border-black">
-                                            <code className="bg-black text-[#F492B7] px-3 py-1 font-mono font-bold text-xs rounded-md shadow-[3px_3px_0px_#000] border-[2px] border-black">
-                                                {bot.wallet_address?.slice(0, 6)}...{bot.wallet_address?.slice(-4)}
+                                        <td className="px-6 py-4">
+                                            <code className="bg-black text-[#F492B7] px-2.5 py-1 font-mono font-bold text-[10px] rounded border border-black italic">
+                                                {bot.wallet_address}
                                             </code>
-                                        </td>
-                                        <td className="px-8 py-5 border-r-[4px] border-black">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse border border-black" />
-                                                <span className="font-black uppercase text-[10px] tracking-widest text-black">Active Swarm</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <span className="font-bold text-[12px] uppercase tracking-wider text-black/50">
-                                                {new Date(bot.created_at).toLocaleDateString()} @ {new Date(bot.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
                                         </td>
                                     </motion.tr>
                                 ))
@@ -296,13 +306,10 @@ function RealtimeBotsTable() {
                 </table>
             </div>
 
-            {/* Table Footer */}
-            <div className="bg-[#f8f8f8] px-8 py-4 border-t-[4px] border-black flex justify-between items-center">
-                <span className="font-black uppercase text-[10px] tracking-[0.2em] text-black/40">
-                    Total Connected Agents: {bots.length}
-                </span>
-                <span className="font-black uppercase text-[10px] tracking-[0.2em] text-black">
-                    Slot Availability: {Math.max(0, 1000 - bots.length)} / 1000
+            {/* Simplified Footer */}
+            <div className="bg-[#f8f8f8] px-6 py-3 border-t-[4px] border-black flex justify-between items-center">
+                <span className="font-black uppercase text-[9px] tracking-[0.2em] text-black/40 italic">
+                    {bots.length} Active Agents
                 </span>
             </div>
         </motion.div>

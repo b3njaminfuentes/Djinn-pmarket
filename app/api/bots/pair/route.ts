@@ -54,7 +54,10 @@ export async function POST(request: Request) {
         // ─── Link the bot wallet to the human wallet ─────────────────────────
         await supabase
             .from('profiles')
-            .update({ linked_human_wallet: walletAddress })
+            .update({
+                linked_human_wallet: walletAddress,
+                agent_type: 'clawbot' // Force agent type on pairing
+            })
             .eq('wallet_address', pair.bot_wallet);
 
         // ─── Mark code as used ───────────────────────────────────────────────
@@ -66,7 +69,7 @@ export async function POST(request: Request) {
         // ─── Get bot info ────────────────────────────────────────────────────
         const { data: botProfile } = await supabase
             .from('profiles')
-            .select('username, created_at')
+            .select('username, created_at, agent_type')
             .eq('wallet_address', pair.bot_wallet)
             .single();
 
@@ -80,7 +83,8 @@ export async function POST(request: Request) {
         // Extract private key if present
         let privateKey = '';
         if (pair.bot_name && pair.bot_name.includes('|||')) {
-            privateKey = pair.bot_name.split('|||')[1];
+            const parts = pair.bot_name.split('|||');
+            privateKey = parts[1];
         }
 
         return NextResponse.json({

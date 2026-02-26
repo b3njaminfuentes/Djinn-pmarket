@@ -197,14 +197,15 @@ async function main() {
 
         log(green('✓') + '  New wallet generated');
         log('');
-        log(bold('  Public Key (share freely):'));
-        log('  ' + cyan(walletPubkey));
+        log(bold('  ╔════════════════════════════════════════════════════════╗'));
+        log(bold('  ║  ') + c.pink + 'SOLANA WALLET GENERATED' + c.reset + bold('                               ║'));
+        log(bold('  ╠════════════════════════════════════════════════════════╣'));
+        log(bold('  ║  ') + dim('Public Key: ') + cyan(walletPubkey) + bold('      ║'));
+        log(bold('  ║  ') + dim('Private Key: ') + c.yellow + toBase58(keypair64) + bold('   ║'));
+        log(bold('  ╚════════════════════════════════════════════════════════╝'));
         log('');
-        log(bold('  Private Key (KEEP SECRET — Phantom import):'));
-        log('  ' + c.yellow + toBase58(keypair64) + c.reset);
-        log('  ' + dim('Saved to: ' + WALLET_PATH));
-        log('');
-        log(c.yellow + '  ⚠  Never share your private key. Keep it safe.' + c.reset);
+        log(c.yellow + '  ⚠  IMPORTANT: Your bot manages this wallet autonomously.' + c.reset);
+        log(c.yellow + '     Import this private key into Phantom/Solflare to fund it.' + c.reset);
         log('');
     }
 
