@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { Program, AnchorProvider, Idl } from '@coral-xyz/anchor';
+import { Program, AnchorProvider, Idl } from '@project-serum/anchor';
 import { Loader2, X, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import idl from '../lib/idl/djinn_market.json';
@@ -151,7 +151,7 @@ export default function RegisterBotModal({ isOpen, onClose, onSuccess, initialCo
 
         try {
             const provider = new AnchorProvider(connection, wallet, AnchorProvider.defaultOptions());
-            const program = new Program(idl as any, provider);
+            const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
 
             const [botProfilePDA] = PublicKey.findProgramAddressSync(
                 [Buffer.from('bot_profile'), publicKey.toBuffer()],

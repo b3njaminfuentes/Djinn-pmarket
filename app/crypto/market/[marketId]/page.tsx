@@ -29,9 +29,6 @@ import {
     ExternalLink,
     Filter
 } from 'lucide-react';
-import { Liveline } from 'liveline';
-import type { LivelinePoint } from 'liveline';
-import dynamic from 'next/dynamic';
 import { useBinancePrice } from '@/hooks/useBinancePrice';
 import LiveTicker from '@/components/LiveTicker';
 import CommentsSection from '@/components/market/CommentsSection';
@@ -39,6 +36,7 @@ import { formatCompact } from '@/lib/utils';
 import { getOutcomeColor } from '@/lib/market-colors';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { useChronosProgram, deriveChronosMarketKey } from '@/hooks/useChronosProgram';
+import LivelineChart from '@/components/LivelineChart';
 
 import StarfieldBg from '@/components/StarfieldBg';
 
@@ -441,9 +439,9 @@ function RoundSelector({
     onSelect: (id: number) => void
 }) {
     const [showPastDropdown, setShowPastDropdown] = useState(false);
-    const selectedRound = rounds.find( (r: any) => r.id === selectedRoundId);
-    const liveRound = rounds.find( (r: any) => r.status === 'LIVE');
-    const pastRounds = rounds.filter( (r: any) => r.status === 'ENDED').slice(0, 10);
+    const selectedRound = rounds.find((r: any) => r.id === selectedRoundId);
+    const liveRound = rounds.find((r: any) => r.status === 'LIVE');
+    const pastRounds = rounds.filter((r: any) => r.status === 'ENDED').slice(0, 10);
 
     // Generate time slot labels for nearby rounds
     const formatSlotLabel = (round: RoundData) => {
@@ -541,7 +539,7 @@ function RoundSelector({
 
                 {/* Time Slot Buttons (Chronological: past ← live → future) */}
                 {[...rounds]
-                    .filter( (r: any) => r.result !== 'FUTURE') // Exclude future slots from main bar for now
+                    .filter((r: any) => r.result !== 'FUTURE') // Exclude future slots from main bar for now
                     .sort((a: any, b: any) => a.id - b.id) // Oldest on left, newest on right
                     .slice(-5) // Show last 5 (most recent)
                     .map((round) => {
@@ -754,16 +752,16 @@ export default function ChronosMarketPage() {
             const intervalVal = interval === '1h' ? 1 : 0; // 0=15min, 1=1h
             const assetIndex = asset.symbol === 'BTC' ? 0 : asset.symbol === 'ETH' ? 1 : 2;
 
-            const relevant = allMarkets.filter( (m: any) =>
+            const relevant = allMarkets.filter((m: any) =>
                 m.account.asset === assetIndex &&
                 m.account.interval === intervalVal
             );
 
             // Find current active market logic
-            const activeM = relevant.find( (m: any) => (m.account as any).roundNumber.toNumber() === currentRoundNumber);
+            const activeM = relevant.find((m: any) => (m.account as any).roundNumber.toNumber() === currentRoundNumber);
             if (activeM) setCurrentMarketState(activeM.account);
 
-            const mapped: RoundData[] = relevant.map( (m: any) => {
+            const mapped: RoundData[] = relevant.map((m: any) => {
                 const acc = m.account as any;
                 const isResolved = acc.status.resolved !== undefined || (typeof acc.status === 'object' && 'resolved' in acc.status) || acc.status === 3;
 
@@ -900,9 +898,9 @@ export default function ChronosMarketPage() {
                 endPrice: effectiveCurrentPrice,
             };
 
-            setCompletedRounds( (prev: any) => {
+            setCompletedRounds((prev: any) => {
                 // Avoid duplicates
-                if (prev.some( (r: any) => r.id === completedRound.id)) return prev;
+                if (prev.some((r: any) => r.id === completedRound.id)) return prev;
                 return [completedRound, ...prev].slice(0, 20); // Keep last 20
             });
 
@@ -910,7 +908,7 @@ export default function ChronosMarketPage() {
             const newRoundStart = Math.floor(Date.now() / duration) * duration;
             const newRoundEnd = newRoundStart + duration;
 
-            setLiveRoundNumber( (prev: any) => prev + 1);
+            setLiveRoundNumber((prev: any) => prev + 1);
             setEndTime(newRoundEnd);
             setPriceToBeat(0); // Reset to trigger re-fetch of new target price
         }
@@ -920,7 +918,7 @@ export default function ChronosMarketPage() {
     const allRounds = useMemo(() => {
         const merged = [...rounds];
         completedRounds.forEach(cr => {
-            if (!merged.some( (r: any) => r.id === cr.id)) {
+            if (!merged.some((r: any) => r.id === cr.id)) {
                 merged.push(cr);
             }
         });
@@ -945,7 +943,7 @@ export default function ChronosMarketPage() {
                 const pastRoundId = liveRoundNumber - (i + 1);
 
                 // Skip if exists
-                if (merged.some( (r: any) => r.id === pastRoundId)) continue;
+                if (merged.some((r: any) => r.id === pastRoundId)) continue;
 
                 const isUp = candle.close >= candle.open;
                 merged.push({
@@ -967,7 +965,7 @@ export default function ChronosMarketPage() {
                 const slotEnd = slotStart + duration;
                 const pastRoundId = liveRoundNumber - i;
 
-                if (merged.some( (r: any) => r.id === pastRoundId)) continue;
+                if (merged.some((r: any) => r.id === pastRoundId)) continue;
 
                 const seed = pastRoundId * 12345 + 67890;
                 const seededRandom1 = ((seed * 9301 + 49297) % 233280) / 233280;
@@ -999,7 +997,7 @@ export default function ChronosMarketPage() {
             const slotEnd = slotStart + duration;
             const futureRoundId = liveRoundNumber + i;
 
-            if (!merged.some( (r: any) => r.id === futureRoundId)) {
+            if (!merged.some((r: any) => r.id === futureRoundId)) {
                 merged.push({
                     id: futureRoundId,
                     time: `${formatTime(slotStart)} — ${formatTime(slotEnd)}`,
@@ -1073,8 +1071,8 @@ export default function ChronosMarketPage() {
 
             // Optimistic UI updates
             const amt = parseFloat(amount);
-            setTotalPool( (prev: any) => prev + amt); // This is just local view
-            setMyTrades( (prev: any) => [...prev, {
+            setTotalPool((prev: any) => prev + amt); // This is just local view
+            setMyTrades((prev: any) => [...prev, {
                 price: currentPrice,
                 time: Date.now(),
                 side
@@ -1090,7 +1088,7 @@ export default function ChronosMarketPage() {
     const [selectedRoundView, setSelectedRoundView] = useState<number>(currentRoundNumber);
 
     // Compute displayed prices based on selected round (past vs live)
-    const selectedRoundData = allRounds.find( (r: any) => r.id === selectedRoundView);
+    const selectedRoundData = allRounds.find((r: any) => r.id === selectedRoundView);
     const isViewingPastRound = selectedRoundData && selectedRoundData.status === 'ENDED';
 
     // When viewing past round: use that round's strikePrice/endPrice
@@ -1147,7 +1145,7 @@ export default function ChronosMarketPage() {
             }
             return points;
         }
-        return priceHistory.map( (p: any) => ({ time: p.time, price: p.price }));
+        return priceHistory.map((p: any) => ({ time: p.time, price: p.price }));
     }, [selectedRoundData, priceHistory]);
 
     // ── Liveline normalisation ────────────────────────────────────────────────
@@ -1155,7 +1153,7 @@ export default function ChronosMarketPage() {
     // that scale, then reverse-normalise inside formatValue to show $dollars.
     const { livelinePoints, strikeNormalized, priceMin, priceMax } = useMemo(() => {
         if (!formattedChartData.length) {
-            return { livelinePoints: [] as LivelinePoint[], strikeNormalized: 50, priceMin: 0, priceMax: 100 };
+            return { livelinePoints: [], strikeNormalized: 50, priceMin: 0, priceMax: 100 };
         }
         const prices = formattedChartData.map((d: { time: number; price: number }) => d.price);
         const rawMin = Math.min(...prices, displayedTargetPrice || prices[0]);
@@ -1261,11 +1259,10 @@ export default function ChronosMarketPage() {
                             </div>
 
                             <div className="flex-1 w-full min-h-0 rounded-2xl overflow-hidden border-2 border-black/10">
-                                <Liveline
+                                <LivelineChart
                                     data={livelinePoints}
                                     value={currentValueNormalized}
                                     color={chartColor}
-                                    theme="light"
                                     fill
                                     pulse
                                     badge
@@ -1277,11 +1274,11 @@ export default function ChronosMarketPage() {
                                         value: strikeNormalized,
                                         label: `Strike $${displayedTargetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                                     }}
-                                    formatValue={(v) => {
+                                    formatValue={(v: number) => {
                                         const actual = priceMin + (v / 100) * (priceMax - priceMin);
                                         return `$${actual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                                     }}
-                                    style={{ width: '100%', height: '100%' }}
+                                    className="w-full h-full"
                                 />
                             </div>
 
@@ -1343,7 +1340,7 @@ export default function ChronosMarketPage() {
                                                         : 0;
                                             try {
                                                 const currentMarketKey = deriveChronosMarketKey(asset.symbol, currentRoundNumber, intervalVal);
-                                                const myPos = realPositions.filter( (p: any) => p.account.market.toString() === currentMarketKey.toString());
+                                                const myPos = realPositions.filter((p: any) => p.account.market.toString() === currentMarketKey.toString());
 
                                                 if (myPos.length > 0) {
                                                     return (
@@ -1384,7 +1381,7 @@ export default function ChronosMarketPage() {
                     <div className="lg:col-span-4 space-y-8">
                         {(() => {
                             // Find the selected round data
-                            const selectedRound = allRounds.find( (r: any) => r.id === selectedRoundView);
+                            const selectedRound = allRounds.find((r: any) => r.id === selectedRoundView);
                             const isViewingPastRound = selectedRound && selectedRound.status === 'ENDED';
 
                             if (isViewingPastRound && selectedRound) {
@@ -1404,7 +1401,7 @@ export default function ChronosMarketPage() {
 
                                             try {
                                                 const marketKey = deriveChronosMarketKey(asset.symbol, selectedRound.id, intervalEnum);
-                                                const realPos = realPositions.find( (p: any) => p.account.market.toString() === marketKey.toString());
+                                                const realPos = realPositions.find((p: any) => p.account.market.toString() === marketKey.toString());
 
                                                 if (realPos) {
                                                     const shares = realPos.account.shares.toNumber ? realPos.account.shares.toNumber() : Number(realPos.account.shares);
@@ -1438,7 +1435,7 @@ export default function ChronosMarketPage() {
                                                 const intervalEnum = interval === '1h' ? 1 : interval === '4h' ? 2 : 0;
                                                 const marketKey = deriveChronosMarketKey(asset.symbol, selectedRound.id, intervalEnum);
                                                 // Find position by market key
-                                                const realPos = realPositions.find( (p: any) => p.account.market.toString() === marketKey.toString());
+                                                const realPos = realPositions.find((p: any) => p.account.market.toString() === marketKey.toString());
 
                                                 if (realPos && !realPos.account.claimed) {
                                                     const outcomeIndex = realPos.account.outcome; // 0 or 1

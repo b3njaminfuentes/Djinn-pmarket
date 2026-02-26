@@ -17,18 +17,20 @@
 
 import React, { useMemo } from 'react';
 import { Liveline } from 'liveline';
-import type { LivelinePoint } from 'liveline';
+import type { LivelinePoint, LivelineSeries, CandlePoint } from 'liveline';
 
 export interface LivelineChartPoint {
     time: number;   // unix seconds
-    value: number;  // 0–100 (probability %)
+    value: number;  // any number
 }
 
 interface LivelineChartProps {
-    /** Historical data array */
-    data: LivelineChartPoint[];
-    /** Current live value (0–100) */
-    value: number;
+    /** Historical data array (single series) */
+    data?: LivelineChartPoint[];
+    /** Current live value (single series) */
+    value?: number;
+    /** Multi-series support */
+    series?: LivelineSeries[];
     /** Accent color (hex or CSS color) */
     color?: string;
     /** Container height in px */
@@ -47,11 +49,44 @@ interface LivelineChartProps {
     formatValue?: (v: number) => string;
     /** Show orderbook overlay */
     orderbook?: { bids: [number, number][]; asks: [number, number][] };
+    /** Loading state */
+    loading?: boolean;
+    /** Paused state */
+    paused?: boolean;
+    /** Empty state text */
+    emptyText?: string;
+    /** Chart mode: line or candle */
+    mode?: 'line' | 'candle';
+    /** Candlestick data */
+    candles?: CandlePoint[];
+    /** Width of each candle in pixels */
+    candleWidth?: number;
+    /** Toggle series visibility callback */
+    onSeriesToggle?: (id: string, visible: boolean) => void;
+    /** Compact series toggles */
+    seriesToggleCompact?: boolean;
+    /** Show area fill under the line */
+    fill?: boolean;
+    /** Show pulse effect at the current point */
+    pulse?: boolean;
+    /** Show price badge */
+    badge?: boolean;
+    /** Show line connecting badge to point */
+    badgeTail?: boolean;
+    /** Show background grid */
+    grid?: boolean;
+    /** Show momentum arrows */
+    momentum?: boolean;
+    /** Enable interactive scrubbing */
+    scrub?: boolean;
+    /** Reference line (e.g. strike price) */
+    referenceLine?: { value: number; label?: string; color?: string };
 }
 
 export default function LivelineChart({
     data,
     value,
+    series,
     color = '#22c55e',
     height = 320,
     showValue = false,
@@ -61,9 +96,26 @@ export default function LivelineChart({
     className = '',
     formatValue,
     orderbook,
+    loading,
+    paused,
+    emptyText,
+    mode = 'line',
+    candles,
+    candleWidth,
+    onSeriesToggle,
+    seriesToggleCompact,
+    fill = true,
+    pulse = true,
+    badge = true,
+    badgeTail = true,
+    grid = true,
+    momentum = true,
+    scrub = true,
+    referenceLine,
 }: LivelineChartProps) {
     // Convert to LivelinePoint[] — Liveline expects { time: unixSeconds, value: number }
     const points = useMemo<LivelinePoint[]>(() => {
+        if (series) return []; // Multi-series uses series prop instead
         if (!data || data.length === 0) {
             // Synthetic seed so the chart draws something even for brand-new markets
             const now = Math.floor(Date.now() / 1000);
@@ -76,7 +128,7 @@ export default function LivelineChart({
             time: d.time > 1e10 ? Math.floor(d.time / 1000) : d.time, // normalise ms → sec
             value: d.value,
         }));
-    }, [data, value]);
+    }, [data, value, series]);
 
     const liveValue = value ?? points[points.length - 1]?.value ?? 50;
 
@@ -87,16 +139,18 @@ export default function LivelineChart({
             <Liveline
                 data={points}
                 value={liveValue}
+                series={series}
                 color={color}
                 theme="dark"
-                fill
-                pulse
-                badge
+                fill={fill}
+                pulse={pulse}
+                badge={badge}
                 badgeVariant="default"
-                badgeTail
-                grid
-                momentum
-                scrub
+                badgeTail={badgeTail}
+                grid={grid}
+                momentum={momentum}
+                scrub={scrub}
+                referenceLine={referenceLine}
                 showValue={showValue}
                 valueMomentumColor={showValue}
                 degen={degen}
@@ -104,6 +158,14 @@ export default function LivelineChart({
                 windows={windows}
                 formatValue={fmt}
                 orderbook={orderbook}
+                loading={loading}
+                paused={paused}
+                emptyText={emptyText}
+                mode={mode}
+                candles={candles}
+                candleWidth={candleWidth}
+                onSeriesToggle={onSeriesToggle}
+                seriesToggleCompact={seriesToggleCompact}
             />
         </div>
     );
@@ -112,14 +174,15 @@ export default function LivelineChart({
 // ─── Mini variant — used on MarketCard / BotVerificationPanel ────────────────
 
 interface MiniLivelineProps {
-    data: LivelineChartPoint[];
-    value: number;
+    data?: LivelineChartPoint[];
+    series?: LivelineSeries[];
+    value?: number;
     color?: string;
     height?: number;
     className?: string;
 }
 
-export function MiniLiveline({ data, value, color = '#22c55e', height = 80, className = '' }: MiniLivelineProps) {
+export function MiniLiveline({ data, series, value, color = '#22c55e', height = 80, className = '' }: MiniLivelineProps) {
     const points = useMemo<LivelinePoint[]>(() => {
         if (!data || data.length === 0) {
             const now = Math.floor(Date.now() / 1000);
@@ -138,6 +201,7 @@ export function MiniLiveline({ data, value, color = '#22c55e', height = 80, clas
         <div className={`w-full ${className}`} style={{ height }}>
             <Liveline
                 data={points}
+                series={series}
                 value={value ?? points[points.length - 1]?.value ?? 50}
                 color={color}
                 theme="dark"

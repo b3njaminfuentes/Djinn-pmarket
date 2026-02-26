@@ -1,4 +1,4 @@
-import { AnchorProvider, Program, BN } from '@coral-xyz/anchor';
+import { AnchorProvider, Program, BN, Idl } from '@project-serum/anchor';
 import { WalletContextState } from '@solana/wallet-adapter-react';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
@@ -26,7 +26,7 @@ export function getProvider(wallet: WalletContextState): AnchorProvider | null {
  * Get Anchor Program instance
  */
 export function getProgram(provider: AnchorProvider): any {
-    return new Program(IDL as any, provider);
+    return new Program(IDL as Idl, PROGRAM_ID, provider);
 }
 
 /**

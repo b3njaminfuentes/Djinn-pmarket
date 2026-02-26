@@ -76,7 +76,36 @@ function httpPost(url, data, redirectCount = 0) {
             });
         });
         req.on('error', reject);
-        req.write(body);
+        req.end();
+    });
+}
+
+function httpGet(url, redirectCount = 0) {
+    return new Promise((resolve, reject) => {
+        if (redirectCount > 5) return reject(new Error('Too many redirects'));
+        const parsed = new URL(url);
+        const mod = parsed.protocol === 'https:' ? https : http;
+        const req = mod.request({
+            hostname: parsed.hostname,
+            port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+            path: parsed.pathname + parsed.search,
+            method: 'GET',
+            headers: { 'User-Agent': 'djinn-skill/1.0' },
+        }, res => {
+            if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location) {
+                const nextUrl = res.headers.location.startsWith('http')
+                    ? res.headers.location
+                    : new URL(res.headers.location, url).toString();
+                return resolve(httpGet(nextUrl, redirectCount + 1));
+            }
+            let raw = '';
+            res.on('data', d => raw += d);
+            res.on('end', () => {
+                try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
+                catch { resolve({ status: res.statusCode, body: raw }); }
+            });
+        });
+        req.on('error', reject);
         req.end();
     });
 }
@@ -179,53 +208,72 @@ async function main() {
         log('');
     }
 
-    // 2. Ask for bot name and register (loop until success)
+    // 2. Check if a profile already exists for this wallet
     let botName = '';
-    while (true) {
-        log(bold('  What should we call your bot on Djinn?'));
-        log(dim('  2–32 characters · letters, numbers, dashes'));
-        log('');
-        const rawName = await prompt(rl, c.pink + '  > Bot name: ' + c.reset);
-        botName = rawName.trim();
+    let isRegistered = false;
 
-        if (!botName || botName.length < 2 || botName.length > 32) {
-            log(c.red + '  ✗  Name must be 2–32 characters. Try again.\n' + c.reset);
-            continue;
-        }
-
-        log('');
-        log(dim('  Registering ' + bold(botName) + ' on Djinn...'));
-
-        // 3. Sign + register
-        const timestamp = Math.floor(Date.now() / 1000);
-        let signature;
+    if (!isNew) {
+        log(dim('  Checking Djinn for existing bot profile...'));
         try {
-            const message = Buffer.from(`djinn-register:${botName}:${walletPubkey}:${timestamp}`);
-            signature = signMessage(message, seed).toString('base64');
+            const checkRes = await httpGet(`${API_URL}/api/bot/${walletPubkey}`);
+            if (checkRes.status === 200 && checkRes.body && checkRes.body.name) {
+                botName = checkRes.body.name;
+                isRegistered = true;
+                log(green('✓') + '  Found existing profile: ' + bold(botName));
+            }
         } catch (e) {
-            log(c.red + '  ✗  Signing failed: ' + e.message + c.reset);
-            rl.close(); process.exit(1);
+            log(dim('  No existing profile found.'));
         }
+    }
 
-        let res;
-        try {
-            res = await httpPost(`${API_URL}/api/bots/register`, {
-                botName, walletPubkey, signature, timestamp,
-                agentType: 'clawbot',
-                bio: 'Registered via npx djinn-skill',
-            });
-        } catch (e) {
-            log(c.red + '  ✗  Network error: ' + e.message + c.reset);
-            rl.close(); process.exit(1);
+    // 3. Ask for bot name and register (if not already registered)
+    if (!isRegistered) {
+        while (true) {
+            log(bold('  What should we call your bot on Djinn?'));
+            log(dim('  2–32 characters · letters, numbers, dashes'));
+            log('');
+            const rawName = await prompt(rl, c.pink + '  > Bot name: ' + c.reset);
+            botName = rawName.trim();
+
+            if (!botName || botName.length < 2 || botName.length > 32) {
+                log(c.red + '  ✗  Name must be 2–32 characters. Try again.\n' + c.reset);
+                continue;
+            }
+
+            log('');
+            log(dim('  Registering ' + bold(botName) + ' on Djinn...'));
+
+            // Sign + register
+            const timestamp = Math.floor(Date.now() / 1000);
+            let signature;
+            try {
+                const message = Buffer.from(`djinn-register:${botName}:${walletPubkey}:${timestamp}`);
+                signature = signMessage(message, seed).toString('base64');
+            } catch (e) {
+                log(c.red + '  ✗  Signing failed: ' + e.message + c.reset);
+                rl.close(); process.exit(1);
+            }
+
+            let res;
+            try {
+                res = await httpPost(`${API_URL}/api/bots/register`, {
+                    botName, walletPubkey, signature, timestamp,
+                    agentType: 'clawbot',
+                    bio: 'Registered via npx djinn-skill',
+                });
+            } catch (e) {
+                log(c.red + '  ✗  Network error: ' + e.message + c.reset);
+                rl.close(); process.exit(1);
+            }
+
+            if (res.status !== 200 && res.status !== 201) {
+                log(c.red + '  ✗  Registration failed: ' + (res.body?.error || JSON.stringify(res.body)) + c.reset);
+                log(c.yellow + '  ⚠  Please choose a different name.\n' + c.reset);
+                continue;
+            }
+
+            break; // Success
         }
-
-        if (res.status !== 200 && res.status !== 201) {
-            log(c.red + '  ✗  Registration failed: ' + (res.body?.error || JSON.stringify(res.body)) + c.reset);
-            log(c.yellow + '  ⚠  Please choose a different name.\n' + c.reset);
-            continue;
-        }
-
-        break; // Success
     }
 
     // 4. Send heartbeat → bot goes ONLINE on Djinn

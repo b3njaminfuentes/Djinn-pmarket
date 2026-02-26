@@ -1,5 +1,5 @@
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { AnchorProvider, Program, Idl, BN, web3 } from "@coral-xyz/anchor";
+import { AnchorProvider, Program, Idl, BN, web3 } from "@project-serum/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { useMemo, useCallback } from "react";
 import idl from "@/lib/idl/djinn_market.json";
@@ -7,7 +7,8 @@ import idl from "@/lib/idl/djinn_market.json";
 // Load IDL from JSON
 const IDL = idl as any;
 
-const PROGRAM_ID = new PublicKey("76HyPe3NMY39BXYaYPTq3QUmvxriXNhfEBZBXBxwxghB");
+// PROGRAM ID synchronized with useDjinnProtocol.ts
+const PROGRAM_ID = new PublicKey("A8pVMgP6vwjGqcbYh1WGWDjXq9uwQRoF9Lz1siLmD7nm");
 const TREASURY = new PublicKey("G1NaEsx5Pg7dSmyYy6Jfraa74b7nTbmN9A9NuiK171Ma");
 
 export function useChronosProgram() {
@@ -16,12 +17,19 @@ export function useChronosProgram() {
 
     const provider = useMemo(() => {
         if (!wallet) return null;
-        return new AnchorProvider(connection, wallet, AnchorProvider.defaultOptions());
+        return new AnchorProvider(connection, wallet, {
+            preflightCommitment: 'processed',
+        });
     }, [connection, wallet]);
 
     const program = useMemo(() => {
         if (!provider) return null;
-        return new Program(IDL, provider);
+        try {
+            return new Program(IDL as Idl, PROGRAM_ID, provider);
+        } catch (e) {
+            console.error('[Chronos] Failed to initialize program:', e);
+            return null;
+        }
     }, [provider]);
 
     const buyShares = useCallback(async (marketKey: PublicKey, outcomeIndex: number, amountSol: number) => {

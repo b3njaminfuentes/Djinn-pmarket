@@ -8,7 +8,7 @@ import StarfieldBg from '@/components/StarfieldBg';
 import { useSound } from '@/components/providers/SoundProvider';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
-import { BN } from '@coral-xyz/anchor';
+import { BN } from '@project-serum/anchor';
 import { useDjinnProtocol } from '@/hooks/useDjinnProtocol';
 import RegisterBotModal from '@/components/RegisterBotModal';
 import CustomWalletModal from '@/components/CustomWalletModal';

@@ -5,7 +5,7 @@
  */
 
 import { Connection, Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
-import { Program, AnchorProvider, Idl } from '@coral-xyz/anchor';
+import { Program, AnchorProvider, Idl } from '@project-serum/anchor';
 import bs58 from 'bs58';
 import idl from '@/lib/idl/djinn_market.json';
 
@@ -55,10 +55,9 @@ export async function resolveMarketOnChain(
         signAllTransactions: async (txs: any[]) => { txs.forEach(t => t.sign(authorityKeypair)); return txs; },
     };
 
-    const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
-    const program = new Program(idl as any, provider);
-
     const marketPubkey = new PublicKey(marketPda);
+    const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
+    const program = new Program(idl as Idl, marketPubkey, provider);
     const winningOutcome = verdict === 'YES' ? 0 : 1;
 
     const [marketVault] = PublicKey.findProgramAddressSync(
@@ -104,10 +103,9 @@ export async function finalizeBountyPoolOnChain(marketPda: string): Promise<stri
             signAllTransactions: async (txs: any[]) => { txs.forEach(t => t.sign(authorityKeypair)); return txs; },
         };
 
-        const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
-        const program = new Program(idl as any, provider);
-
         const marketPubkey = new PublicKey(marketPda);
+        const provider = new AnchorProvider(connection, walletWrapper as any, AnchorProvider.defaultOptions());
+        const program = new Program(idl as Idl, marketPubkey, provider);
         const [bountyPool] = PublicKey.findProgramAddressSync(
             [Buffer.from('bounty_pool'), marketPubkey.toBuffer()],
             DJINN_PROGRAM_ID

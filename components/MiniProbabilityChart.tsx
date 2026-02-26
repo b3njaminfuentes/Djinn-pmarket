@@ -12,11 +12,12 @@ import { MiniLiveline } from '@/components/LivelineChart';
 import { getOutcomeColor } from '@/lib/market-colors';
 
 interface MiniProbabilityChartProps {
-    data: any[];
-    outcomes: (string | { id: string; title: string })[];
+    data?: any[];
+    series?: any[]; // LivelineSeries[]
+    outcomes?: (string | { id: string; title: string })[];
 }
 
-export default function MiniProbabilityChart({ data, outcomes }: MiniProbabilityChartProps) {
+export default function MiniProbabilityChart({ data = [], series, outcomes = [] }: MiniProbabilityChartProps) {
     const outcomeKeys = outcomes.map(o => typeof o === 'string' ? o : o.title);
 
     // Use the primary (YES) outcome as the main Liveline series
@@ -24,6 +25,7 @@ export default function MiniProbabilityChart({ data, outcomes }: MiniProbability
     const primaryColor = getOutcomeColor(primaryKey, 0);
 
     const points = useMemo(() => {
+        if (series) return [];
         const safeData = data.length > 0 ? data : [
             { time: Math.floor(Date.now() / 1000) - 3600, [primaryKey]: 50 },
             { time: Math.floor(Date.now() / 1000), [primaryKey]: 50 },
@@ -34,15 +36,16 @@ export default function MiniProbabilityChart({ data, outcomes }: MiniProbability
                 : Number(d.time) || Math.floor(Date.now() / 1000),
             value: Number(d[primaryKey] ?? d['YES'] ?? 50),
         }));
-    }, [data, primaryKey]);
+    }, [data, primaryKey, series]);
 
     const liveValue = points.length > 0 ? points[points.length - 1].value : 50;
 
     return (
         <div className="w-full h-full min-h-[160px]">
             <MiniLiveline
-                data={points}
-                value={liveValue}
+                data={points.length > 0 ? points : undefined}
+                series={series}
+                value={series ? undefined : liveValue}
                 color={primaryColor}
                 height={160}
                 className="w-full"

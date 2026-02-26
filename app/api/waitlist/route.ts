@@ -52,6 +52,18 @@ export async function POST(request: Request) {
             });
         }
 
+        // Check total count before allowing new signup
+        const { count: totalCount } = await supabase
+            .from('email_waitlist')
+            .select('*', { count: 'exact', head: true });
+
+        if ((totalCount || 0) >= 1000) {
+            return NextResponse.json({
+                error: 'Waitlist full please wait for updates',
+                link: 'https://djinn.world'
+            }, { status: 403 });
+        }
+
         // Insert new signup
         const { error } = await supabase
             .from('email_waitlist')
@@ -106,15 +118,17 @@ export async function GET() {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        const [waitlistRes, botsRes, marketsRes] = await Promise.all([
+        const [waitlistRes, botsRes, humansRes, marketsRes] = await Promise.all([
             supabase.from('email_waitlist').select('*', { count: 'exact', head: true }),
-            supabase.from('profiles').select('*', { count: 'exact', head: true }).not('agent_type', 'eq', 'human'),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('agent_type', 'clawbot'),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).or('agent_type.is.null,agent_type.eq.human'),
             supabase.from('markets').select('*', { count: 'exact', head: true }).eq('resolved', false),
         ]);
 
         return NextResponse.json({
             waitlistCount: waitlistRes.count || 0,
             botCount: botsRes.count || 0,
+            humanCount: humansRes.count || 0,
             activeMarkets: marketsRes.count || 0,
         });
     } catch (error: any) {

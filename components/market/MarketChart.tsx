@@ -12,8 +12,9 @@ import TradeBubbles from './TradeBubbles';
 import LivelineChart from '@/components/LivelineChart';
 
 interface MarketChartProps {
-    data: { time: string; value: number }[];
-    color: string;
+    data?: { time: string | number; value: number }[];
+    series?: any[]; // LivelineSeries[]
+    color?: string;
     hasPosition?: boolean;
     lastTrade?: { amount: number; side: 'YES' | 'NO' } | null;
 }
@@ -28,14 +29,16 @@ const TIME_WINDOWS = [
     { label: '1W', secs: 604800 },
 ];
 
-export default function MarketChart({ data, color, lastTrade }: MarketChartProps) {
+export default function MarketChart({ data, series, color, lastTrade }: MarketChartProps) {
     const points = useMemo(() => {
         if (!data || data.length === 0) return [];
         return data.map(d => ({
             // MarketChart passes time as string — convert if needed
             time: typeof d.time === 'string' && !isNaN(Number(d.time))
                 ? Number(d.time)
-                : Math.floor(Date.now() / 1000),
+                : typeof d.time === 'number'
+                    ? d.time
+                    : Math.floor(Date.now() / 1000),
             value: d.value,
         }));
     }, [data]);
@@ -48,8 +51,9 @@ export default function MarketChart({ data, color, lastTrade }: MarketChartProps
             <TradeBubbles trigger={lastTrade || null} />
 
             <LivelineChart
-                data={points}
-                value={liveValue}
+                data={points.length > 0 ? points : undefined}
+                series={series}
+                value={series ? undefined : liveValue}
                 color={color}
                 height={320}
                 degen

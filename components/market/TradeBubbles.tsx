@@ -7,10 +7,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 interface BubbleData {
     id: number;
     text: string;
-    side: 'YES' | 'NO';
+    side: string;
 }
 
-export default function TradeBubbles({ trigger }: { trigger: { amount: number; side: 'YES' | 'NO' } | null }) {
+export default function TradeBubbles({ trigger }: { trigger: { amount: number; side: string } | null }) {
     const [bubble, setBubble] = useState<BubbleData | null>(null);
 
     useEffect(() => {
@@ -47,12 +47,12 @@ export default function TradeBubbles({ trigger }: { trigger: { amount: number; s
                             rounded-xl shadow-2xl
                             backdrop-blur-md
                             flex items-center gap-3
-                            ${bubble.side === 'YES'
+                            ${bubble.side.toUpperCase() === 'YES' || bubble.side.toUpperCase() === 'BUY'
                                 ? 'bg-[#10B981]/20 border-[#10B981]/40 shadow-[#10B981]/20'
                                 : 'bg-[#EF4444]/20 border-[#EF4444]/40 shadow-[#EF4444]/20'}
                         `}
                     >
-                        <div className={`w-2 h-2 rounded-full ${bubble.side === 'YES' ? 'bg-[#10B981]' : 'bg-[#EF4444]'}`} />
+                        <div className={`w-2 h-2 rounded-full ${bubble.side.toUpperCase() === 'YES' || bubble.side.toUpperCase() === 'BUY' ? 'bg-[#10B981]' : 'bg-[#EF4444]'}`} />
                         <span className="opacity-80 font-medium">Bought {bubble.side}</span>
                         <span className={`font-black ${bubble.side === 'YES' ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
                             {bubble.text}

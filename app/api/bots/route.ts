@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { Program, AnchorProvider, Idl, BN } from '@coral-xyz/anchor';
+import { Program, AnchorProvider, Idl, BN } from '@project-serum/anchor';
 import idl from '@/lib/idl/djinn_market.json';
 
 // Hardcoded for now to avoid package import issues in API route
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
             'confirmed'
         );
         const provider = new AnchorProvider(connection, dummyWallet, {});
-        const program = new Program(idl as any, provider);
+        const program = new Program(idl as Idl, DJINN_PROGRAM_ID, provider);
 
         // 2. Fetch All Bot Accounts
         // Note: For production, we'd use getProgramAccounts with filters or an indexer.

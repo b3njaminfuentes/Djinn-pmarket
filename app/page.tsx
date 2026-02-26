@@ -33,63 +33,128 @@ const StarfieldBg = dynamic(() => import('@/components/StarfieldBg'), {
 
 import ClaimUsernameModal from '@/components/ClaimUsernameModal';
 import { getProfile } from '@/lib/supabase-db';
+import { supabase } from '@/lib/supabase';
 
 const ClawBotConnect = dynamic(() => import('@/components/ClawBotConnect'), { ssr: false });
 
 
 
-// ─── Waitlist Block ───────────────────────────────────────────────────────────
+// ─── Waitlist Panel ───────────────────────────────────────────────────────────
 
-function WaitlistBlock({ position, totalCount, walletAddress }: { position: number; totalCount: number; walletAddress: string }) {
-    const [copied, setCopied] = React.useState(false);
+function WaitlistPanel({ position, totalCount, walletAddress }: { position: number; totalCount: number; walletAddress: string }) {
     const GENESIS_LIMIT = 1000;
     const filled = Math.min(totalCount, GENESIS_LIMIT);
-    const pct = Math.round((filled / GENESIS_LIMIT) * 100);
     const spotsLeft = Math.max(0, GENESIS_LIMIT - filled);
-    const referralUrl = `https://djinn.markets?ref=${walletAddress.slice(0, 8)}`;
+    const [users, setUsers] = React.useState<any[]>([]);
 
-    const handleCopy = () => {
-        navigator.clipboard?.writeText(referralUrl).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        });
-    };
+    React.useEffect(() => {
+        const fetchBots = async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('username, wallet_address, created_at, avatar_url')
+                .eq('agent_type', 'clawbot')
+                .order('created_at', { ascending: false })
+                .limit(50);
+            if (data) setUsers(data);
+        };
+        fetchBots();
+
+        const channel = supabase
+            .channel('waitlist_bots_realtime')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'profiles', filter: 'agent_type=eq.clawbot' },
+                (payload) => {
+                    setUsers((current) => [payload.new, ...current].slice(0, 50));
+                }
+            )
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, []);
 
     return (
-        <div className="w-full flex flex-col gap-4">
-            {/* Main waitlist card */}
+        <div className="w-full flex flex-col gap-5">
+            {/* Position card */}
             <div className="bg-white text-black border-[4px] border-black rounded-[2rem] shadow-[10px_10px_0px_0px_#F492B7] overflow-hidden">
-                {/* Header bar */}
                 <div className="bg-black px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <span className="w-2 h-2 rounded-full bg-[#F492B7] animate-pulse" />
-                        <span className="text-white font-black text-[10px] uppercase tracking-[0.25em]">Waitlist</span>
+                        <span className="text-white font-black text-[10px] uppercase tracking-[0.25em]">Genesis Waitlist</span>
                     </div>
                     <span className="text-white/30 font-black text-[10px] uppercase tracking-widest">{spotsLeft} spots left</span>
                 </div>
-
-                <div className="px-7 py-6 flex flex-col gap-5">
-                    {/* Position row */}
-                    <div className="flex items-end justify-between">
-                        <div>
-                            <p className="text-black/40 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Your Position</p>
-                            <p className="font-black text-6xl lowercase tracking-tighter leading-none italic text-black">
-                                #{position || '—'}
-                            </p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-black/40 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Total Waitlist</p>
-                            <p className="font-black text-4xl tracking-tighter text-black tabular-nums pb-1">
-                                #{filled}
-                            </p>
-                        </div>
+                <div className="px-7 py-6 flex items-end justify-between">
+                    <div>
+                        <p className="text-black/40 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Your Position</p>
+                        <p className="font-black text-6xl lowercase tracking-tighter leading-none italic text-black">
+                            #{position || '\u2014'}
+                        </p>
                     </div>
-
-                    {/* Referral section removed */}
+                    <div className="text-right">
+                        <p className="text-black/40 font-black text-[9px] uppercase tracking-[0.3em] mb-1">Total</p>
+                        <p className="font-black text-4xl tracking-tighter text-black tabular-nums pb-1">
+                            {filled}
+                        </p>
+                    </div>
                 </div>
             </div>
 
-
+            {/* Real-time users panel */}
+            <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white border-[4px] border-black rounded-[2rem] shadow-[10px_10px_0px_0px_#000] overflow-hidden"
+            >
+                <div className="bg-black px-6 py-3 flex items-center justify-between">
+                    <span className="text-white font-black text-[10px] uppercase tracking-[0.25em]">Connected Bots</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] bg-[#F492B7] text-black px-2 py-0.5 rounded-sm">Live</span>
+                        <div className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F492B7] opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F492B7]"></span>
+                        </div>
+                    </div>
+                </div>
+                <div className="max-h-[280px] overflow-y-auto divide-y-[2px] divide-black/10">
+                    <AnimatePresence mode="popLayout">
+                        {users.length === 0 ? (
+                            <div className="px-6 py-8 text-center">
+                                <p className="text-black/25 font-black uppercase text-[10px] tracking-[0.3em]">Waiting for connections...</p>
+                            </div>
+                        ) : users.map((u, i) => (
+                            <motion.div
+                                key={u.wallet_address || i}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.03 }}
+                                className="flex items-center justify-between px-5 py-3 hover:bg-[#F492B7]/5 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full border-[2px] border-black overflow-hidden bg-[#F492B7] shrink-0">
+                                        <img src={u.avatar_url || '/pink-pfp.png'} alt="" className="w-full h-full object-cover" />
+                                    </div>
+                                    <span className="font-black text-sm text-black tracking-tight">
+                                        {u.username ? `@${u.username}` : 'ClawBot'}
+                                    </span>
+                                </div>
+                                <code className="text-[10px] font-mono font-bold text-black/40 hidden sm:block">
+                                    {u.wallet_address?.slice(0, 4)}...{u.wallet_address?.slice(-4)}
+                                </code>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+                <div className="bg-[#f8f8f8] px-6 py-2.5 border-t-[2px] border-black/10 flex justify-between items-center">
+                    <span className="font-black uppercase text-[9px] tracking-[0.2em] text-black/30">
+                        {users.length} Bots Connected
+                    </span>
+                    <span className="font-black uppercase text-[9px] tracking-[0.2em] text-black/30">
+                        {Math.max(0, 1000 - users.length)} / 1000 Slots
+                    </span>
+                </div>
+            </motion.div>
 
             {/* Follow hint */}
             <p className="text-white/30 font-black text-[10px] uppercase tracking-[0.3em] text-center">
@@ -123,9 +188,49 @@ export default function DjinnLanding() {
     const [showGenesisAnnouncement, setShowGenesisAnnouncement] = useState(false);
     const [isGenesis, setIsGenesis] = useState(false);
     const [liveStats, setLiveStats] = useState({ markets: 0 });
-    const [ecosystemStats, setEcosystemStats] = useState({ waitlistCount: 0, botCount: 0, activeMarkets: 0 });
+    const [ecosystemStats, setEcosystemStats] = useState({ waitlistCount: 0, botCount: 0, humanCount: 0, activeMarkets: 0 });
 
     const walletAddress = useMemo(() => publicKey?.toBase58(), [publicKey]);
+    const [showWelcome, setShowWelcome] = useState(false);
+
+    // Welcome transition → auto-register + claim modal
+    useEffect(() => {
+        if (connected && walletAddress && !loading && !profile && !isClaimModalOpen && !showWelcome) {
+            // Check if spots are available before showing welcome
+            if (status.isFull && !status.isRegistered && !status.isAdmin) {
+                console.log("🚫 [Home] Spots full, denying access.");
+                return;
+            }
+
+            setShowWelcome(true);
+            registerForWhitelist(walletAddress).then((res) => {
+                if (res.success) {
+                    setTimeout(() => {
+                        setShowWelcome(false);
+                        setIsClaimModalOpen(true);
+                    }, 2200);
+                } else {
+                    console.error("❌ [Home] Failed to register:", res.message);
+                    setShowWelcome(false);
+                }
+            });
+        }
+    }, [connected, walletAddress, loading, profile, isClaimModalOpen, showWelcome, status]);
+
+    // Enhanced Cookie management — protects routes via middleware
+    useEffect(() => {
+        if (connected && walletAddress) {
+            document.cookie = `djinn_connected=${walletAddress};path=/;max-age=${60 * 60 * 24 * 7};SameSite=Lax`;
+
+            // Set access cookie if the user has a profile or is whitelisted
+            if (profile || status.isRegistered || status.isAdmin) {
+                document.cookie = `djinn_access=true;path=/;max-age=${60 * 60 * 24 * 7};SameSite=Lax`;
+            }
+        } else {
+            document.cookie = 'djinn_connected=;path=/;max-age=0';
+            document.cookie = 'djinn_access=;path=/;max-age=0';
+        }
+    }, [connected, walletAddress, profile, status]);
 
     const refreshStatus = useCallback(async () => {
         if (!walletAddress) {
@@ -221,12 +326,18 @@ export default function DjinnLanding() {
             return;
         }
 
+        // Check if waitlist is full and user is not registered
+        if (status.isFull && !status.isRegistered && !status.isAdmin) {
+            // We handle this visually in the render now
+            return;
+        }
+
         // Si ya está conectado pero no tiene perfil, forzamos abrir el modal de claim
         if (connected && !profile) {
             console.log("💎 User connected but no profile, opening Claim Modal...");
             setIsClaimModalOpen(true);
         }
-    }, [connected, profile]);
+    }, [connected, profile, status]);
 
     const handleClaimSuccess = (newUsername: string) => {
         // Close modal instantly so confetti is visible
@@ -306,57 +417,124 @@ export default function DjinnLanding() {
                     {/* Show card IF profile exists */}
                     {connected && profile ? (
                         <div className="w-full flex flex-col items-center gap-12">
-                            <motion.div
-                                key="card-section"
-                                initial={{ opacity: 0, scale: 0.8, y: 50 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.8, y: 50 }}
-                                transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                                className="w-full max-w-xl h-[680px] relative"
-                            >
-                                <PhysicsCardBubblegum
-                                    username={profile.username}
-                                    memberNumber={profile.user_number}
-                                    pfp={profile.avatar_url}
-                                    twitterHandle={profile.twitter}
-                                />
-                            </motion.div>
+                            {status.isRegistered || status.isAdmin ? (
+                                <>
+                                    <motion.div
+                                        key="card-section"
+                                        initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.8, y: 50 }}
+                                        transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                                        className="w-full max-w-xl h-[680px] relative"
+                                    >
+                                        <PhysicsCardBubblegum
+                                            username={profile.username}
+                                            memberNumber={profile.user_number}
+                                            pfp={profile.avatar_url}
+                                            twitterHandle={profile.twitter}
+                                        />
+                                    </motion.div>
 
-                            {/* WAITLIST BLOCK + CLAWBOT PANEL */}
+                                    {/* WAITLIST BLOCK + CLAWBOT PANEL */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.3 }}
+                                        className="w-full max-w-xl flex flex-col items-center gap-5"
+                                    >
+                                        {status.isAdmin ? (
+                                            <Link href="/markets" className="w-full">
+                                                <button className="w-full py-5 px-16 font-black uppercase text-xl md:text-2xl italic tracking-widest bg-[#F492B7] text-black rounded-full border-[4px] border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] transition-all flex flex-col items-center justify-center gap-1">
+                                                    <span className="flex items-center gap-3">ENTER DJINN</span>
+                                                </button>
+                                            </Link>
+                                        ) : profile.has_access ? (
+                                            /* ACCESS GRANTED */
+                                            /* WAITLIST LOCKED STATE */
+                                            <div
+                                                className="py-5 px-16 font-black uppercase text-xl italic tracking-widest
+                                                    bg-white text-black/40 rounded-full
+                                                    border-[4px] border-black/40
+                                                    shadow-[6px_6px_0px_rgba(0,0,0,0.15)]
+                                                    flex flex-col items-center justify-center gap-1 cursor-default select-none"
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    GATEWAY LOCKED
+                                                </span>
+                                                <span className="text-[10px] font-bold tracking-[0.3em] not-italic">OPENING FEB 28</span>
+                                            </div>
+                                        ) : (
+                                            <WaitlistPanel
+                                                position={profile.user_number || status.count}
+                                                totalCount={status.count}
+                                                walletAddress={walletAddress || ''}
+                                            />
+                                        )}
+                                    </motion.div>
+
+                                    {/* ClawBot Connect */}
+                                    <ClawBotConnect walletAddress={walletAddress || ''} />
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center gap-8 py-10">
+                                    <div className="bg-[#FF0055] text-white border-[6px] border-black px-12 py-6 rounded-[2rem] shadow-[12px_12px_0px_#000] transform -rotate-2">
+                                        <p className="font-black uppercase text-4xl md:text-5xl tracking-tighter italic">
+                                            Spots Full
+                                        </p>
+                                    </div>
+                                    <p className="text-white/60 font-black uppercase text-xs md:text-sm tracking-[0.3em] text-center max-w-xs mt-4 leading-relaxed">
+                                        Waitlist at maximum capacity. <br /> Follow @djinnmarkets for next wave access.
+                                    </p>
+                                    <motion.a
+                                        href="https://x.com/djinnmarkets"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        whileHover={{ scale: 1.05, rotate: 2 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="mt-4 px-8 py-4 bg-white text-black border-[4px] border-black rounded-2xl shadow-[8px_8px_0px_#F492B7] font-black uppercase text-sm tracking-widest flex items-center gap-3 hover:shadow-[4px_4px_0px_#F492B7] hover:translate-x-1 hover:translate-y-1 transition-all"
+                                    >
+                                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                                        Follow DJINN Updates
+                                    </motion.a>
+                                </div>
+                            )}
+                        </div>
+                    ) : showWelcome ? (
+                        /* Welcome transition — after wallet connects */
+                        <motion.div
+                            key="welcome-screen"
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 1.05 }}
+                            transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+                            className="flex flex-col items-center gap-8 py-16"
+                        >
                             <motion.div
+                                animate={{ scale: [1, 1.08, 1] }}
+                                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                                className="w-36 h-36 relative"
+                            >
+                                <Image src="/djinn-logo.png" alt="Djinn" fill className="object-contain" />
+                            </motion.div>
+                            <motion.h2
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.3 }}
-                                className="w-full max-w-xl flex flex-col items-center gap-5"
+                                className="text-5xl md:text-7xl font-black text-white lowercase tracking-tighter italic"
+                                style={{ fontFamily: 'var(--font-adriane), serif' }}
                             >
-                                {profile.has_access ? (
-                                    /* ACCESS GRANTED */
-                                    /* WAITLIST LOCKED STATE */
-                                    <div
-                                        className="py-5 px-16 font-black uppercase text-xl italic tracking-widest
-                                            bg-white text-black/40 rounded-full
-                                            border-[4px] border-black/40
-                                            shadow-[6px_6px_0px_rgba(0,0,0,0.15)]
-                                            flex flex-col items-center justify-center gap-1 cursor-default select-none"
-                                    >
-                                        <span className="flex items-center gap-3">
-                                            GATEWAY LOCKED
-                                        </span>
-                                        <span className="text-[10px] font-bold tracking-[0.3em] not-italic">OPENING FEB 28</span>
-                                    </div>
-                                ) : (
-                                    <WaitlistBlock
-                                        position={profile.user_number || status.count}
-                                        totalCount={status.count}
-                                        walletAddress={walletAddress || ''}
-                                    />
-                                )}
+                                Welcome
+                            </motion.h2>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.7 }}
+                                className="flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-full"
+                            >
+                                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                                <span className="text-white/60 font-black text-xs uppercase tracking-[0.2em]">Wallet Connected</span>
                             </motion.div>
-
-                            {/* ClawBot Connect */}
-                            <ClawBotConnect walletAddress={walletAddress || ''} />
-
-                        </div>
+                        </motion.div>
                     ) : (loading && connected) ? (
                         /* Loading state after connection but before profile load */
                         <motion.div
@@ -376,46 +554,72 @@ export default function DjinnLanding() {
                             exit={{ opacity: 0, y: -20 }}
                             className="flex flex-col items-center"
                         >
-                            <motion.button
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                                onClick={handleConnect}
-                                className="group relative px-10 md:px-14 py-4 md:py-5 bg-white text-black rounded-2xl md:rounded-3xl select-none
-                                    border-[4px] md:border-[6px] border-black
-                                    shadow-[8px_8px_0px_#F492B7] md:shadow-[10px_10px_0px_#F492B7]
-                                    hover:shadow-[4px_4px_0px_#F492B7] hover:translate-x-[4px] hover:translate-y-[4px]
-                                    active:shadow-none active:translate-x-[8px] active:translate-y-[8px] md:active:translate-x-[10px] md:active:translate-y-[10px]
-                                    transition-all duration-200 flex items-center justify-center gap-4"
-                            >
-                                <span
-                                    className="font-black uppercase tracking-[0.15em]"
-                                    style={{
-                                        fontFamily: 'var(--font-adriane), serif',
-                                        fontSize: 'clamp(1.25rem, 3vw, 2rem)',
-                                        lineHeight: 1
-                                    }}
-                                >
-                                    Welcome
-                                </span>
-                                <ArrowRight className="w-6 h-6 md:w-8 md:h-8 stroke-[4] group-hover:translate-x-2 transition-transform" />
-                            </motion.button>
-
-                            {/* Waitlist count */}
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.4 }}
-                                className="flex flex-col items-center gap-3 mt-6"
-                            >
-                                {ecosystemStats.waitlistCount > 0 && (
-                                    <div className="flex items-center gap-3 px-5 py-2 bg-white/5 border border-white/10 rounded-full">
-                                        <span className="w-2 h-2 rounded-full bg-[#F492B7] animate-pulse" />
-                                        <span className="text-white font-black text-base tabular-nums">{ecosystemStats.waitlistCount.toLocaleString()}</span>
-                                        <span className="text-white/40 text-xs font-black uppercase tracking-widest">on waitlist</span>
+                            {(status.isFull || ecosystemStats.humanCount >= 1000) && !status.isRegistered && !status.isAdmin ? (
+                                <div className="flex flex-col items-center gap-6">
+                                    <div className="bg-[#FF0055] text-white border-[6px] border-black px-12 py-6 rounded-[2rem] shadow-[12px_12px_0px_#000] transform -rotate-2">
+                                        <p className="font-black uppercase text-4xl md:text-5xl tracking-tighter italic">
+                                            Spots Full
+                                        </p>
                                     </div>
-                                )}
-                            </motion.div>
+                                    <p className="text-white/60 font-black uppercase text-xs md:text-sm tracking-[0.3em] text-center max-w-xs mt-4 leading-relaxed">
+                                        Waitlist at maximum capacity. <br /> Follow for next wave access.
+                                    </p>
+                                    <motion.a
+                                        href="https://x.com/djinnmarkets"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        whileHover={{ scale: 1.05, rotate: 2 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="mt-4 px-8 py-4 bg-white text-black border-[4px] border-black rounded-2xl shadow-[8px_8px_0px_#F492B7] font-black uppercase text-sm tracking-widest flex items-center gap-3 hover:shadow-[4px_4px_0px_#F492B7] hover:translate-x-1 hover:translate-y-1 transition-all"
+                                    >
+                                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                                        Follow @djinnmarkets
+                                    </motion.a>
+                                </div>
+                            ) : (
+                                <>
+                                    <motion.button
+                                        initial={{ opacity: 0, y: 15 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.2 }}
+                                        onClick={handleConnect}
+                                        className="group relative px-10 md:px-14 py-5 md:py-6 bg-white text-black rounded-2xl md:rounded-3xl select-none
+                                            border-[4px] md:border-[6px] border-black
+                                            shadow-[8px_8px_0px_#F492B7] md:shadow-[12px_12px_0px_#F492B7]
+                                            hover:shadow-[4px_4px_0px_#F492B7] hover:translate-x-[4px] hover:translate-y-[4px]
+                                            active:shadow-none active:translate-x-[8px] active:translate-y-[8px] md:active:translate-x-[12px] md:active:translate-y-[12px]
+                                            transition-all duration-200 flex items-center justify-center gap-4"
+                                    >
+                                        <span
+                                            className="font-black uppercase tracking-[0.05em]"
+                                            style={{
+                                                fontFamily: 'var(--font-unbounded), sans-serif',
+                                                fontSize: 'clamp(1rem, 2.5vw, 1.5rem)',
+                                                lineHeight: 1
+                                            }}
+                                        >
+                                            Connect Wallet
+                                        </span>
+                                        <ArrowRight className="w-6 h-6 md:w-8 md:h-8 stroke-[4] group-hover:translate-x-2 transition-transform" />
+                                    </motion.button>
+
+                                    {/* Waitlist count */}
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.4 }}
+                                        className="flex flex-col items-center gap-3 mt-6"
+                                    >
+                                        {ecosystemStats.waitlistCount > 0 && (
+                                            <div className="flex items-center gap-3 px-5 py-2 bg-white/5 border border-white/10 rounded-full">
+                                                <span className="w-2 h-2 rounded-full bg-[#F492B7] animate-pulse" />
+                                                <span className="text-white font-black text-base tabular-nums">{ecosystemStats.waitlistCount.toLocaleString()}</span>
+                                                <span className="text-white/40 text-xs font-black uppercase tracking-widest">on waitlist</span>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                </>
+                            )}
                         </motion.div>
 
 

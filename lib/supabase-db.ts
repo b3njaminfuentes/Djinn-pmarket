@@ -95,6 +95,7 @@ export interface Profile {
     referral_code?: string;
     referred_by?: string | null;
     share_count?: number;
+    agent_type?: string;
 }
 
 // Local Mode: Desactivado para producción
@@ -202,16 +203,31 @@ export async function upsertProfile(profile: Partial<Profile> & { wallet_address
         .single();
 
     if (!existing) {
-        // New profile — enforce the 1000 human cap
-        const { count: humanCount } = await supabase
-            .from('profiles')
-            .select('id', { count: 'exact', head: true })
-            .or('agent_type.is.null,agent_type.eq.human');
+        // New profile — enforce the limits
+        if (!toUpsert.agent_type || toUpsert.agent_type === 'human') {
+            // 1000 Human Cap
+            const { count: humanCount } = await supabase
+                .from('profiles')
+                .select('id', { count: 'exact', head: true })
+                .or('agent_type.is.null,agent_type.eq.human');
 
-        const HUMAN_WAITLIST_LIMIT = 1000;
-        if ((humanCount ?? 0) >= HUMAN_WAITLIST_LIMIT) {
-            console.error('[UPSERT] Human waitlist full:', humanCount);
-            return null;
+            const HUMAN_WAITLIST_LIMIT = 1000;
+            if ((humanCount ?? 0) >= HUMAN_WAITLIST_LIMIT) {
+                console.error('[UPSERT] Human waitlist full:', humanCount);
+                return null; // This will return null to the caller, which should handle it
+            }
+        } else if (toUpsert.agent_type === 'clawbot') {
+            // 1000 Bot Cap
+            const { count: botCount } = await supabase
+                .from('profiles')
+                .select('id', { count: 'exact', head: true })
+                .eq('agent_type', 'clawbot');
+
+            const BOT_LIMIT = 1000;
+            if ((botCount ?? 0) >= BOT_LIMIT) {
+                console.error('[UPSERT] Bot limit full:', botCount);
+                return null;
+            }
         }
     }
 
