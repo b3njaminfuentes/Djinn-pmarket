@@ -222,11 +222,11 @@ export default function DjinnLanding() {
     }, [refreshStatus]);
 
     useEffect(() => {
-        if (connected && !loading && (status.isAdmin || profile?.has_access)) {
-            console.log("🚀 [Home] Access granted, redirecting to markets...");
+        if (connected && !loading && status.isAdmin) {
+            console.log("🚀 [Home] Admin detected, redirecting to markets...");
             router.push('/markets');
         }
-    }, [connected, loading, status.isAdmin, profile, router]);
+    }, [connected, loading, status.isAdmin, router]);
 
 
 
@@ -387,12 +387,20 @@ export default function DjinnLanding() {
                                                 </button>
                                             </Link>
                                         ) : profile.has_access ? (
-                                            /* ACCESS GRANTED — ENTER MARKETS */
-                                            <Link href="/markets" className="w-full">
-                                                <button className="w-full py-5 px-16 font-black uppercase text-xl md:text-2xl italic tracking-widest bg-[#F492B7] text-black rounded-full border-[4px] border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] transition-all flex flex-col items-center justify-center gap-1">
-                                                    <span className="flex items-center gap-3">ENTER DJINN</span>
-                                                </button>
-                                            </Link>
+                                            /* ACCESS GRANTED */
+                                            /* WAITLIST LOCKED STATE */
+                                            <div
+                                                className="py-5 px-16 font-black uppercase text-xl italic tracking-widest
+                                                    bg-white text-black/40 rounded-full
+                                                    border-[4px] border-black/40
+                                                    shadow-[6px_6px_0px_rgba(0,0,0,0.15)]
+                                                    flex flex-col items-center justify-center gap-1 cursor-default select-none"
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    GATEWAY LOCKED
+                                                </span>
+                                                <span className="text-[10px] font-bold tracking-[0.3em] not-italic">OPENING FEB 28</span>
+                                            </div>
                                         ) : (
                                             <WaitlistPanel
                                                 position={profile.user_number || status.count}
