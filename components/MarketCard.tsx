@@ -165,69 +165,55 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
                         </div>
                     ) : isMultiple && options ? (
 
-                        <div className="flex flex-col gap-2 mt-1">
-                            {options.slice(0, 4).map((opt: any, idx: number) => {
+                        <div
+                            className="flex flex-col gap-1.5 mt-1 overflow-y-auto pr-0.5"
+                            style={{ maxHeight: '84px' }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {options.map((opt: any, idx: number) => {
                                 const colors = [
-                                    { bg: 'bg-blue-500', text: 'text-blue-500', border: 'border-blue-500', light: 'bg-blue-50' },
-                                    { bg: 'bg-purple-500', text: 'text-purple-500', border: 'border-purple-500', light: 'bg-purple-50' },
-                                    { bg: 'bg-pink-500', text: 'text-pink-500', border: 'border-pink-500', light: 'bg-pink-50' },
-                                    { bg: 'bg-orange-500', text: 'text-orange-500', border: 'border-orange-500', light: 'bg-orange-50' },
-                                    { bg: 'bg-cyan-500', text: 'text-cyan-500', border: 'border-cyan-500', light: 'bg-cyan-50' },
+                                    { text: 'text-blue-500', light: 'bg-blue-100' },
+                                    { text: 'text-purple-500', light: 'bg-purple-100' },
+                                    { text: 'text-pink-500', light: 'bg-pink-100' },
+                                    { text: 'text-orange-500', light: 'bg-orange-100' },
+                                    { text: 'text-cyan-500', light: 'bg-cyan-100' },
                                 ];
                                 const theme = colors[idx % colors.length];
                                 const optChance = opt.chance || 0;
-                                const customColor = opt.color; // Support custom color from DB
-                                const barColor = customColor || theme.bg.replace('bg-', ''); // simple hack or just use inline style
-                                const textColor = customColor ? `text-[${customColor}]` : theme.text;
-                                const lightColor = customColor ? `bg-[${customColor}]/10` : theme.light;
+                                const customColor = opt.color;
 
                                 return (
                                     <div
                                         key={typeof opt === 'string' ? opt : (opt.id || idx)}
-                                        className="relative w-full h-9 rounded-lg overflow-hidden bg-gray-50 border border-black/10 hover:border-black/30 transition-all cursor-pointer group/option"
+                                        className="relative w-full h-9 rounded-lg overflow-hidden bg-gray-50 border border-black/10 hover:border-black/30 transition-all cursor-pointer shrink-0"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            // Handle betting on this specific option logic here if needed, 
-                                            // or just navigate to market page
                                             router.push(`/market/${slug}`);
                                         }}
                                     >
-                                        {/* Progress Bar Background */}
+                                        {/* Progress bar */}
                                         <div
-                                            className={`absolute top-0 left-0 h-full opacity-30 transition-all duration-500`}
+                                            className={`absolute top-0 left-0 h-full transition-all duration-500 ${!customColor ? theme.light : ''}`}
                                             style={{
                                                 width: `${optChance}%`,
-                                                backgroundColor: customColor || undefined
+                                                backgroundColor: customColor ? `${customColor}22` : undefined
                                             }}
                                         />
-                                        {!customColor && (
-                                            <div className={`absolute top-0 left-0 h-full ${theme.light} opacity-50 w-full`} style={{ width: `${optChance}%` }} />
-                                        )}
-
                                         {/* Content */}
                                         <div className="absolute inset-0 flex items-center justify-between px-3 z-10">
                                             <span className="font-bold text-xs text-gray-800 truncate pr-2">
                                                 {typeof opt === 'string' ? opt : opt.title}
                                             </span>
                                             <span
-                                                className="font-black text-xs"
+                                                className={`font-black text-xs shrink-0 ${!customColor ? theme.text : ''}`}
                                                 style={{ color: customColor || undefined }}
                                             >
-                                                <span className={!customColor ? theme.text : ''}>
-                                                    {optChance > 0 ? `${optChance.toFixed(0)}%` : '--%'}
-                                                </span>
+                                                {optChance > 0 ? `${optChance.toFixed(0)}%` : '--%'}
                                             </span>
                                         </div>
                                     </div>
                                 );
                             })}
-                            {options.length > 4 && (
-                                <div className="text-center">
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                        + {options.length - 4} more options
-                                    </span>
-                                </div>
-                            )}
                         </div>
                     ) : (
                         <>
@@ -251,45 +237,20 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
                                 />
                             </div>
 
-                            {/* Yes/No or Up/Down Buttons */}
+                            {/* Yes/No Buttons */}
                             <div className="grid grid-cols-2 gap-2">
-                                {category?.toLowerCase() === 'crypto' ? (
-                                    <>
-                                        <button
-                                            onClick={(e) => handleBetClick(e, 'yes')}
-                                            className="bg-emerald-500 text-white border-2 border-black rounded-xl font-bold py-2.5 text-xs transition-all hover:brightness-110 active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none flex items-center justify-center gap-1.5"
-                                        >
-                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0">
-                                                <path d="M6 2L10 7H2L6 2Z" fill="currentColor" />
-                                            </svg>
-                                            <span>up</span>
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleBetClick(e, 'no')}
-                                            className="bg-red-500 text-white border-2 border-black rounded-xl font-bold py-2.5 text-xs transition-all hover:brightness-110 active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none flex items-center justify-center gap-1.5"
-                                        >
-                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0">
-                                                <path d="M6 10L2 5H10L6 10Z" fill="currentColor" />
-                                            </svg>
-                                            <span>down</span>
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button
-                                            onClick={(e) => handleBetClick(e, 'yes')}
-                                            className="bg-emerald-500 text-white border-2 border-black rounded-xl font-bold py-2.5 text-xs transition-all hover:brightness-110 active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none flex items-center justify-center gap-1.5"
-                                        >
-                                            <span>yes</span>
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleBetClick(e, 'no')}
-                                            className="bg-red-500 text-white border-2 border-black rounded-xl font-bold py-2.5 text-xs transition-all hover:brightness-110 active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none flex items-center justify-center gap-1.5"
-                                        >
-                                            <span>no</span>
-                                        </button>
-                                    </>
-                                )}
+                                <button
+                                    onClick={(e) => handleBetClick(e, 'yes')}
+                                    className="bg-emerald-500 text-white border-2 border-black rounded-xl font-bold py-2.5 text-xs transition-all hover:brightness-110 active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none flex items-center justify-center"
+                                >
+                                    yes
+                                </button>
+                                <button
+                                    onClick={(e) => handleBetClick(e, 'no')}
+                                    className="bg-red-500 text-white border-2 border-black rounded-xl font-bold py-2.5 text-xs transition-all hover:brightness-110 active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none flex items-center justify-center"
+                                >
+                                    no
+                                </button>
                             </div>
                         </>
                     )}
