@@ -17,9 +17,10 @@ import { useSound } from '@/components/providers/SoundProvider';
 import StarfieldBg from '@/components/StarfieldBg';
 
 // Fresh start timestamp - hide markets created before this (filtering for clean view)
+// Default to 0 (disabled) so all markets show when env var is not set
 const FRESH_START_TIMESTAMP = process.env.NEXT_PUBLIC_FRESH_START_TIMESTAMP
   ? parseInt(process.env.NEXT_PUBLIC_FRESH_START_TIMESTAMP)
-  : 1769193287079;
+  : 0;
 
 
 export default function Home() {

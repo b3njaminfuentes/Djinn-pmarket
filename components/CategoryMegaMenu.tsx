@@ -65,13 +65,6 @@ const CATEGORIES: Category[] = [
         glowColor: '#EC4899'
     },
     {
-        id: 'trenches',
-        name: 'Trenches',
-        slug: 'Trenches',
-        image: '/trenches-header.png',
-        glowColor: '#84CC16'
-    },
-    {
         id: 'movies',
         name: 'Movies',
         slug: 'Movies',
@@ -114,16 +107,9 @@ const CATEGORIES: Category[] = [
         glowColor: '#22C55E'
     },
     {
-        id: 'climate',
-        name: 'Climate',
-        slug: 'Climate',
-        image: '/category-climate.png',
-        glowColor: '#10B981'
-    },
-    {
-        id: 'mentions',
-        name: 'Mentions',
-        slug: 'Mentions',
+        id: 'twitter',
+        name: 'Twitter',
+        slug: 'Twitter',
         image: '/category-mentions.png',
         glowColor: '#F492B7'
     },
@@ -135,11 +121,11 @@ const CATEGORIES: Category[] = [
         glowColor: '#A855F7'
     },
     {
-        id: 'music',
-        name: 'Music',
-        slug: 'Music',
-        image: '/category-music.png',
-        glowColor: '#EC4899'
+        id: 'other',
+        name: 'Other',
+        slug: 'Other',
+        image: '/category-trending.png',
+        glowColor: '#6B7280'
     }
 ];
 
