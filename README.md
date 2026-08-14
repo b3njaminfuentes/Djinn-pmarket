@@ -1,4 +1,4 @@
-# 🧞 DJINN v2: The Living Market
+#DJINN prediction market with no ceiling 
 ## Complete Protocol Architecture — February 2026
 
 ---
